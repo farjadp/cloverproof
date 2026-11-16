@@ -1,28 +1,49 @@
 "use server";
 
+import { isEnabledLocale } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionaries";
+import { getDb } from "@/lib/db";
+
 export type PilotState = { status: "idle" | "success" | "invalid" | "notConnected" | "error" };
 
 const REQUIRED = ["name", "email", "country", "farmSize", "crop"] as const;
+const MAX = { name: 200, email: 320, country: 100, farmSize: 100, crop: 100, notes: 2000 } as const;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const read = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
 
 export async function requestPilot(_prev: PilotState, formData: FormData): Promise<PilotState> {
-  const values = Object.fromEntries(REQUIRED.map((k) => [k, String(formData.get(k) ?? "").trim()]));
-  const email = values.email;
-  const consent = formData.get("consent") === "on";
   // Honeypot: real users never fill the hidden "website" field.
-  if (String(formData.get("website") ?? "") !== "") return { status: "success" };
+  if (read(formData, "website") !== "") return { status: "success" };
 
-  if (REQUIRED.some((k) => !values[k]) || !consent || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  const locale = read(formData, "locale");
+  const v = {
+    name: read(formData, "name"),
+    email: read(formData, "email"),
+    country: read(formData, "country"),
+    farmSize: read(formData, "farmSize"),
+    crop: read(formData, "crop"),
+    notes: read(formData, "notes"),
+  };
+  const consent = formData.get("consent") === "on";
+
+  const tooLong = (Object.keys(MAX) as (keyof typeof MAX)[]).some((k) => v[k].length > MAX[k]);
+  if (!isEnabledLocale(locale) || !consent || tooLong || REQUIRED.some((k) => !v[k]) || !EMAIL.test(v.email)) {
     return { status: "invalid" };
   }
 
-  // Step 5 of docs/plans/website-v1.md wires this to the Supabase `pilot_request` table.
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return { status: "notConnected" };
-  }
+  const db = getDb();
+  if (!db) return { status: "notConnected" };
 
   try {
-    // TODO(step-5): insert into pilot_request with consent timestamp and locale.
-    return { status: "notConnected" };
+    const t = await getDictionary(locale);
+    await db.query(
+      `insert into pilot_request
+         (locale, full_name, email, country, farm_size_text, main_crop, notes, consent_at, consent_text)
+       values ($1, $2, $3, $4, $5, $6, $7, now(), $8)`,
+      [locale, v.name, v.email, v.country, v.farmSize, v.crop, v.notes || null, t.pilot.consent],
+    );
+    return { status: "success" };
   } catch (error) {
     console.error("requestPilot failed", error);
     return { status: "error" };

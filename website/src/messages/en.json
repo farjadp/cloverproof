@@ -124,6 +124,7 @@
     "required": "Required",
     "success": "Thank you. We've received your request and will be in touch.",
     "notConnected": "Pilot requests aren't connected yet. Please check back soon.",
+    "error": "Something went wrong and your request was not saved. Please try again in a moment.",
     "invalid": "Please fill in the required fields and accept the consent statement."
   },
   "faq": {

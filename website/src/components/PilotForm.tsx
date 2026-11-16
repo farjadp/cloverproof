@@ -30,12 +30,13 @@ function Field({ id, label, hint, required, type = "text", autoComplete, require
   );
 }
 
-export function PilotForm({ t, privacyHref }: { t: Labels; privacyHref: string }) {
+export function PilotForm({ t, privacyHref, locale }: { t: Labels; privacyHref: string; locale: string }) {
   const [state, action, pending] = useActionState<PilotState, FormData>(requestPilot, { status: "idle" });
   const message =
     state.status === "success" ? t.success
     : state.status === "invalid" ? t.invalid
-    : state.status === "notConnected" || state.status === "error" ? t.notConnected
+    : state.status === "notConnected" ? t.notConnected
+    : state.status === "error" ? t.error
     : null;
 
   return (
@@ -51,6 +52,7 @@ export function PilotForm({ t, privacyHref }: { t: Labels; privacyHref: string }
         <label htmlFor="notes" className="text-sm font-semibold text-ink">{t.notes}</label>
         <textarea id="notes" name="notes" rows={3} className="rounded-md border border-rule bg-white px-3 py-2.5 text-ink focus:border-olive focus:outline-none focus:ring-2 focus:ring-olive/30" />
       </div>
+      <input type="hidden" name="locale" value={locale} />
       <div className="hidden" aria-hidden="true">
         <label htmlFor="website">Website</label>
         <input id="website" name="website" tabIndex={-1} autoComplete="off" />

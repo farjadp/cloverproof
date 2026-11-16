@@ -10,7 +10,7 @@ export function Pilot({ t, lang }: { t: Dictionary; lang: Locale }) {
           <h2 id="pilot-title" className="font-serif text-3xl text-ink sm:text-4xl">{t.pilot.title}</h2>
           <p className="mt-4 text-ink-soft">{t.pilot.intro}</p>
         </div>
-        <PilotForm t={t.pilot} privacyHref={`/${lang}/privacy`} />
+        <PilotForm t={t.pilot} privacyHref={`/${lang}/privacy`} locale={lang} />
       </div>
     </section>
   );
