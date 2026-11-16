@@ -12,17 +12,17 @@ Decisions: ADR 0002, ADR 0004, ADR 0006 (database roles), `docs/plans/webapp-v1.
 | Website (pilot form) | `cp_website_login` | `cp_website` | INSERT into `pilot_request` only |
 | Operator, migrations | `postgres` (superuser) | — | everything; never stored in a service |
 
-## 1. Create the `postgis` service (Farjad Iranmehr, Railway dashboard — the CLI action is blocked for agents)
+## 1. Create the `postgis` service — DONE 2026-11-16 by the CPO session with Farjad Iranmehr's approval (service id `65b71098-9811-4144-a98e-cf8e816914bc`, image `postgis/postgis:18-3.6`); first deploy was stuck, redeployed. Original instructions kept for a rebuild:
 Project `cloverproof`, environment `production`:
-- New service → Docker image `postgis/postgis:17-3.5`, name `postgis`.
+- New service → Docker image `postgis/postgis:18-3.6` (same as local `docker-compose.yml` and CI), name `postgis`.
 - Variables: `POSTGRES_USER=postgres`, `POSTGRES_DB=cloverproof`, `POSTGRES_PASSWORD=<random, 32+ chars>`, `PGDATA=/var/lib/postgresql/data/pgdata`,
   `DATABASE_URL=postgresql://${{POSTGRES_USER}}:${{POSTGRES_PASSWORD}}@${{RAILWAY_PRIVATE_DOMAIN}}:5432/${{POSTGRES_DB}}`.
-- Volume mounted at `/var/lib/postgresql/data`. Enable volume backups.
+- Volume: for Postgres 18 images mount it at `/var/lib/postgresql` (data lives in `/var/lib/postgresql/18/docker`; then do not set `PGDATA`). Enable volume backups.
 - No public TCP proxy unless needed for a one-off migration; remove it afterwards.
 
 ## 2. Apply migrations and create the logins (lead / `cp-database`)
 From the operator's machine (temporary TCP proxy, removed afterwards), with the superuser URL only in that shell:
-`DATABASE_URL=<postgis superuser URL> make db-migrate`. Expected: 0001 … 0011 applied, `select postgis_version();` returns 3.5.
+`DATABASE_URL=<postgis superuser URL> make db-migrate`. Expected: 0001 … 0011 applied, `select postgis_version();` returns 3.6.
 Do not put the superuser URL in the app's pre-deploy command or any service variable; until a dedicated deploy role exists, migrations are run this way by an operator.
 
 Create the three logins outside git, in `psql` as the superuser (generate each password with `openssl rand -base64 32`, store it only in Railway variables / the password manager):
