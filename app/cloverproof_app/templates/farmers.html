@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Farmers{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Farmers</h1>
+</div>
+<section class="panel" aria-label="Farmers">
+  {% if farmers %}
+  <table>
+    <thead><tr><th scope="col">Farmer</th><th scope="col" class="num">Farms</th></tr></thead>
+    <tbody>
+      {% for farmer in farmers %}
+      <tr><td>{{ farmer.display_name }}</td><td class="num">{{ farmer.farm_count }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">No farmers yet. Adding farmers and plans comes in the next step.</p>
+  {% endif %}
+</section>
+{% endblock %}

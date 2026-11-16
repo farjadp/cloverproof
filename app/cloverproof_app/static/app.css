@@ -1,0 +1,134 @@
+/* CloverProof internal tool. One plain CSS file, no build step.
+ *
+ * Type: no web fonts are downloaded (offline-friendly, nothing to build). Headings use the
+ * website's serif (Source Serif) when installed, else Iowan Old Style (macOS) / Palatino
+ * (Windows) / Georgia: book serifs with clear numerals. Body and forms use the platform
+ * UI sans (SF Pro / Segoe UI / Roboto via system-ui), tuned for screen reading and form
+ * entry. Numbers use tabular figures so columns line up.
+ */
+:root {
+  --olive: #4c610b;
+  --olive-deep: #3b4b08;
+  --sage: #a7b58a;
+  --sage-soft: #e6eadb;
+  --ivory: #faf6eb;
+  --ink: #273125;
+  --ink-soft: #4d5a4a;
+  --danger: #8a1c12;
+  --danger-soft: #f6e3df;
+  --white: #fffdf7;
+
+  --font-serif: "Source Serif 4", "Source Serif Pro", "Iowan Old Style", "Palatino Linotype",
+    Palatino, "Book Antiqua", Georgia, serif;
+  --font-sans: "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans",
+    sans-serif;
+
+  --radius: 6px;
+  --space: 1rem;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { font-size: 106.25%; } /* 17px base: readable for long data-entry sessions */
+
+body {
+  margin: 0;
+  background: var(--ivory);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { font-family: var(--font-serif); font-weight: 600; line-height: 1.2; margin: 0 0 0.5em; }
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.35rem; }
+
+a { color: var(--olive); text-underline-offset: 2px; }
+a:hover { color: var(--olive-deep); }
+
+:focus-visible { outline: 2px solid var(--olive); outline-offset: 2px; }
+
+.skip-link { position: absolute; left: -999px; }
+.skip-link:focus { left: var(--space); top: var(--space); background: var(--white); padding: 0.5rem; }
+
+/* Header */
+.site-header {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space);
+  padding: 0.75rem 1.5rem;
+  background: var(--white);
+  border-bottom: 1px solid var(--sage);
+}
+.brand { display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; color: var(--ink); }
+.brand img { width: 28px; height: 31px; }
+.brand span { font-family: var(--font-serif); font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
+.site-header nav { display: flex; align-items: center; gap: var(--space); color: var(--ink-soft); font-size: 0.94rem; }
+.site-header form { margin: 0; }
+.org-name { color: var(--ink); font-weight: 600; }
+
+main { max-width: 64rem; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+main.narrow { max-width: 26rem; }
+
+/* Forms */
+label { display: block; font-weight: 600; margin: 0 0 0.25rem; }
+.field { margin-bottom: 1rem; }
+input[type="email"], input[type="password"], input[type="text"], select {
+  width: 100%;
+  font: inherit;
+  padding: 0.55rem 0.7rem;
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid var(--ink-soft);
+  border-radius: var(--radius);
+}
+input:focus-visible, select:focus-visible { border-color: var(--olive); }
+
+.button {
+  display: inline-block;
+  font: inherit; font-weight: 600;
+  padding: 0.55rem 1.1rem;
+  color: var(--ivory);
+  background: var(--olive);
+  border: 1px solid var(--olive);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-decoration: none;
+}
+.button:hover { background: var(--olive-deep); border-color: var(--olive-deep); color: var(--ivory); }
+.button.quiet { color: var(--olive); background: transparent; }
+.button.quiet:hover { background: var(--sage-soft); color: var(--olive-deep); }
+.button.block { width: 100%; }
+
+.alert {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+/* Panels: one level only, never nested. */
+.panel {
+  background: var(--white);
+  border: 1px solid var(--sage);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+
+.muted { color: var(--ink-soft); }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--sage-soft); }
+th { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
+td.num, th.num { text-align: right; }
+
+.empty { padding: 2rem 1.5rem; text-align: center; color: var(--ink-soft); }
+
+.page-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space); margin-bottom: 1.25rem; }
+
+.org-list { list-style: none; padding: 0; margin: 0; }
+.org-list li + li { margin-top: 0.5rem; }
+.org-list button { width: 100%; text-align: left; }

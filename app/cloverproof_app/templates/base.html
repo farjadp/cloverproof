@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="htmx-config" content='{"includeIndicatorStyles": false, "allowEval": false}'>
+  <title>{% block title %}CloverProof{% endblock %} · CloverProof</title>
+  <link rel="icon" href="{{ url_for('static', path='logo.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}">
+  <script src="{{ url_for('static', path='vendor/htmx-2.0.11.min.js') }}" defer></script>
+</head>
+<body{% if csrf_token %} hx-headers='{{ {"X-CSRF-Token": csrf_token} | tojson }}'{% endif %}>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <img src="{{ url_for('static', path='logo.svg') }}" alt="">
+      <span>CloverProof</span>
+    </a>
+    {% if user %}
+    <nav aria-label="Account">
+      {% if org_context %}
+        <span class="org-name">{{ org_context.org.name }}</span>
+        {% if org_context.organisations | length > 1 %}<a href="/orgs/choose">Switch</a>{% endif %}
+      {% endif %}
+      <span>{{ user.display_name }}</span>
+      <form method="post" action="/logout">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="button quiet" type="submit">Sign out</button>
+      </form>
+    </nav>
+    {% endif %}
+  </header>
+  <main id="main" class="{% block main_class %}{% endblock %}">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Error {{ status }}{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+<h1>{% if status == 403 %}Not allowed{% elif status == 404 %}Not found{% else %}Something went wrong{% endif %}</h1>
+<p class="alert" role="alert">{{ detail }}</p>
+<p><a href="/">Back to Farmers</a></p>
+{% endblock %}
