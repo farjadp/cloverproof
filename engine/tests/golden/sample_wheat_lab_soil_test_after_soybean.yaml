@@ -7,7 +7,7 @@
 # rate 150 / 0.8 = 187.5 kg N/ha; total 187.5 x 25 = 4687.5 kg N; splits 0.4 / 0.6.
 # The soil test values are illustrative only; engine v0 does not use them for N.
 id: sample_wheat_lab_soil_test_after_soybean
-status: SAMPLE — not agronomist-approved
+status: SAMPLE  # not agronomist-approved
 description: Wheat after soybean with a recent lab soil test (P Olsen, K ammonium acetate, 0-15 cm).
 pack:
   id: placeholder

@@ -1,11 +1,15 @@
 """Golden cases: loader, comparison and report. The report never fails the build."""
 
+from datetime import date
 from pathlib import Path
+from typing import Any
 
 import pytest
+import yaml
+from pydantic import ValidationError
 
 from cloverproof_engine import recommend
-from cloverproof_engine.golden import GoldenCase, compare
+from cloverproof_engine.golden import GoldenCase, GoldenStatus, compare
 from cloverproof_engine.golden_report import main, run_report
 from cloverproof_engine.loaders import load_golden_cases
 
@@ -14,7 +18,7 @@ GOLDEN_DIR = REPO_ROOT / "engine" / "tests" / "golden"
 PACKS_DIR = REPO_ROOT / "packs"
 
 
-def _case(**expected_overrides: object) -> GoldenCase:
+def _case_data(**expected_overrides: object) -> dict[str, Any]:
     expected: dict[str, object] = {
         "n_rate_kg_ha": 175.0,
         "n_total_kg": 7000.0,
@@ -23,22 +27,90 @@ def _case(**expected_overrides: object) -> GoldenCase:
         "pk_note": "PK_SOIL_TEST_RECOMMENDED",
     }
     expected.update(expected_overrides)
-    return GoldenCase.model_validate(
-        {
-            "id": "t",
-            "status": "SAMPLE — not agronomist-approved",
-            "pack": {"id": "placeholder", "version": "v0"},
-            "tolerance": {"kg_n_per_ha": 0.5, "kg_n": 10.0},
-            "input": {
-                "crop": "wheat",
-                "target_yield_t_ha": 6.0,
-                "previous_crop": "canola",
-                "area_ha": 40.0,
-                "plan_date": "2027-02-15",
-            },
-            "expected": expected,
-        }
+    return {
+        "id": "t",
+        "status": "SAMPLE",
+        "pack": {"id": "placeholder", "version": "v0"},
+        "tolerance": {"kg_n_per_ha": 0.5, "kg_n": 10.0},
+        "input": {
+            "crop": "wheat",
+            "target_yield_t_ha": 6.0,
+            "previous_crop": "canola",
+            "area_ha": 40.0,
+            "plan_date": "2027-02-15",
+        },
+        "expected": expected,
+    }
+
+
+def _case(**expected_overrides: object) -> GoldenCase:
+    return GoldenCase.model_validate(_case_data(**expected_overrides))
+
+
+def _approved_data(**top: object) -> dict[str, Any]:
+    data = _case_data(reason="Test reason for the expected numbers.")
+    data.update(
+        {"status": "AGRONOMIST_APPROVED", "reviewer": "Test Reviewer", "reviewed_on": "2027-01-10"}
     )
+    data.update(top)
+    return data
+
+
+def test_status_values() -> None:
+    assert {s.value for s in GoldenStatus} == {"SAMPLE", "AGRONOMIST_APPROVED"}
+
+
+def test_free_text_status_is_rejected() -> None:
+    data = _case_data()
+    data["status"] = "SAMPLE — not agronomist-approved"
+    with pytest.raises(ValidationError):
+        GoldenCase.model_validate(data)
+
+
+def test_approved_case_with_review_fields_loads() -> None:
+    case = GoldenCase.model_validate(_approved_data())
+    assert case.status is GoldenStatus.AGRONOMIST_APPROVED
+    assert case.reviewer == "Test Reviewer"
+    assert case.reviewed_on == date(2027, 1, 10)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"reviewer": None},
+        {"reviewer": "  "},
+        {"reviewed_on": None},
+        {"reviewed_on": "not a date"},
+    ],
+)
+def test_approved_case_requires_reviewer_and_date(change: dict[str, object]) -> None:
+    with pytest.raises(ValidationError):
+        GoldenCase.model_validate(_approved_data(**change))
+
+
+@pytest.mark.parametrize("reason", [None, "", "   "])
+def test_approved_case_requires_reason(reason: str | None) -> None:
+    data = _approved_data()
+    data["expected"]["reason"] = reason
+    with pytest.raises(ValidationError):
+        GoldenCase.model_validate(data)
+
+
+def test_sample_case_needs_no_review_fields() -> None:
+    case = _case()
+    assert case.status is GoldenStatus.SAMPLE
+    assert case.reviewer is None and case.reviewed_on is None
+
+
+def test_report_shows_invalid_approved_case_as_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    data = _approved_data(id="approved_without_reviewer", reviewer=None)
+    (tmp_path / "approved_without_reviewer.yaml").write_text(yaml.safe_dump(data), encoding="utf-8")
+    assert main(["--golden-dir", str(tmp_path), "--packs-dir", str(PACKS_DIR)]) == 0
+    out = capsys.readouterr().out
+    assert "approved_without_reviewer.yaml  ERROR" in out
+    assert "1 error(s)" in out
 
 
 def test_loads_sample_cases() -> None:
@@ -46,7 +118,7 @@ def test_loads_sample_cases() -> None:
     assert len(cases) >= 2
     for path, case in cases:
         assert path.name.startswith("sample_")
-        assert case.status == "SAMPLE — not agronomist-approved"
+        assert case.status is GoldenStatus.SAMPLE
 
 
 def test_compare_all_match(placeholder_pack) -> None:

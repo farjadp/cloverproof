@@ -3,11 +3,17 @@
 Golden YAML lives in engine/tests/golden/. `sample_*.yaml` are SAMPLE cases
 derived from the placeholder pack; the agronomist's real cases replace them.
 The report is informational: it never fails the build (yet).
+
+`status` is SAMPLE or AGRONOMIST_APPROVED. An AGRONOMIST_APPROVED case must
+carry `reviewer` and `reviewed_on` (top level) and a non-empty
+`expected.reason`; otherwise loading fails and the report shows an ERROR line.
 """
 
-from typing import Literal
+from datetime import date
+from enum import StrEnum
+from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from cloverproof_engine.confidence import Confidence
 from cloverproof_engine.models import RecommendationInput
@@ -16,6 +22,11 @@ from cloverproof_engine.results import Recommendation
 
 class _Frozen(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
+
+
+class GoldenStatus(StrEnum):
+    SAMPLE = "SAMPLE"
+    AGRONOMIST_APPROVED = "AGRONOMIST_APPROVED"
 
 
 class PackRef(_Frozen):
@@ -41,12 +52,31 @@ class GoldenExpected(_Frozen):
 
 class GoldenCase(_Frozen):
     id: str
-    status: str
+    status: GoldenStatus
+    reviewer: str | None = None
+    reviewed_on: date | None = None
     description: str = ""
     pack: PackRef
     tolerance: Tolerance
     input: RecommendationInput
     expected: GoldenExpected
+
+    @model_validator(mode="after")
+    def _check_review(self) -> Self:
+        if self.status is not GoldenStatus.AGRONOMIST_APPROVED:
+            return self
+        missing = [
+            name
+            for name, value in (
+                ("reviewer", self.reviewer),
+                ("reviewed_on", self.reviewed_on),
+                ("expected.reason", self.expected.reason),
+            )
+            if value is None or (isinstance(value, str) and not value.strip())
+        ]
+        if missing:
+            raise ValueError(f"AGRONOMIST_APPROVED case needs non-empty: {', '.join(missing)}")
+        return self
 
 
 class DiffRow(_Frozen):
@@ -111,7 +141,7 @@ def _cell(value: float | str | None) -> str:
 
 def format_case(case: GoldenCase, rows: list[DiffRow], rec: Recommendation) -> str:
     header = (
-        f"== {case.id}  [{case.status}]  pack {rec.pack_id} {rec.pack_version}  "
+        f"== {case.id}  [{case.status.value}]  pack {rec.pack_id} {rec.pack_version}  "
         f"engine {rec.engine_version}"
     )
     table = [("field", "expected", "actual", "diff", "ok")]

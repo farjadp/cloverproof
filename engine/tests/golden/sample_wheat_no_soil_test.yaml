@@ -6,7 +6,7 @@
 # Arithmetic: demand 6 x 30 = 180; net 180 - 40 - 0 (canola) = 140;
 # rate 140 / 0.8 = 175 kg N/ha; total 175 x 40 = 7000 kg N; splits 0.4 / 0.6.
 id: sample_wheat_no_soil_test
-status: SAMPLE — not agronomist-approved
+status: SAMPLE  # not agronomist-approved
 description: Wheat after canola, no soil test. N only; P/K -> recommend a soil test.
 pack:
   id: placeholder
