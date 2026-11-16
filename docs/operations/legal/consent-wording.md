@@ -1,9 +1,11 @@
 # CloverProof consent wording — DRAFT
 
 > **This is not legal advice; a licensed Ontario lawyer should review before use.**
-> Drafted by `legal-compliance-specialist` (not a lawyer) for the CloverProof COO, 2026-11-16.
+> Drafted by `legal-compliance-specialist` (not a lawyer) for the CloverProof COO. v0.1 2026-11-16; v0.2 2026-11-16 (CPO decisions D4 + R4).
 
-Placeholders: `[LEGAL ENTITY]`, `[ADDRESS]`, `[CONTACT EMAIL]`, `[PRIVACY URL]`.
+**v0.2 changes:** D4 — consent text now says an AI system may check plans and a named human agronomist approves every plan; nothing says or implies the founder is the agronomist. R4 — pilot is for Ontario farms; the form intro says so. Data residency for pilot data is OPEN (`[RESIDENCY DECISION]`).
+
+Placeholders: `[LEGAL ENTITY]`, `[ADDRESS]`, `[CONTACT EMAIL]`, `[PRIVACY URL]`, `[HUMAN AGRONOMIST NAME, CREDENTIALS]`, `[RESIDENCY DECISION]`, `[AI PROVIDER]`.
 English only. Other locales need native-speaker review (ADR 0003) and a counsel check that the translation keeps the legal meaning.
 
 ## Rules that shape the wording
@@ -18,6 +20,7 @@ English only. Other locales need native-speaker review (ADR 0003) and a counsel 
 | Cannot require consent beyond what is needed for the explicitly specified, legitimate purpose | PIPEDA Sch. 1, 4.3.3 (S1) |
 | GDPR consent must be distinguishable from other matters, plain language, withdrawable as easily as given, demonstrable | GDPR Art. 7(1)–(3) (S11) |
 | Performance of a contract should not be conditional on consent to processing not necessary for it | GDPR Art. 7(4) (S11) |
+| Tell people how AI is used with their information and its role in decisions | FPT regulators' generative-AI principles, 2023 (S23, search only); GDPR Art. 13(2)(f) for EU website visitors (S11) |
 
 S-numbers refer to the source list at the end.
 
@@ -33,7 +36,7 @@ Assessment: acceptable core; missing (a) who "CloverProof" is legally, (b) link 
 ### Proposed form block
 
 Intro line (above the boxes, plain text):
-> We use these details only to review your pilot request and contact you about it. They are stored by our host, Railway, in the United States. [Privacy notice]([PRIVACY URL])
+> The 2027 pilot is for farms in Ontario, Canada. We use these details only to review your pilot request and contact you about it. They are stored by our host, Railway, in the United States. [Privacy notice]([PRIVACY URL])
 
 **Box A — required, unticked by default**
 > ☐ I agree that [LEGAL ENTITY] (CloverProof) may store these details and contact me by email about my pilot request. I can ask for them to be deleted at any time by writing to [CONTACT EMAIL].
@@ -51,15 +54,18 @@ Implementation notes for `cp-website` (do not edit `website/` from this task):
 
 **Required for the pilot (one box, unticked):**
 > ☐ I agree that [LEGAL ENTITY] (CloverProof) may collect and use the information I provide about me, my farm, my fields, my soil tests and what I apply, to prepare, review and record fertilizer plans for me during the pilot, as explained in the privacy notice. I understand that:
-> - the information is stored by Railway, a US company, and may be accessed in the United States;
-> - every plan is reviewed by CloverProof's agronomist before I receive it, and CloverProof records the software's proposal, the agronomist's final number and the reason for any change, to check how accurate the software is;
+> - the fields I enrol are in Ontario, Canada;
+> - the information is stored [RESIDENCY DECISION: "by Railway, a US company, and may be accessed in the United States" OR "in Canada by [CANADIAN HOST]"];
+> - an AI system may check a de-identified copy of a proposed plan, which never includes my name, contact details, address, farm or field names or exact field location (D-7, CPO 2026-11-16; any change needs a DPA with the AI provider and an updated privacy notice);
+> - no plan is sent to me until CloverProof's human agronomist, [HUMAN AGRONOMIST NAME, CREDENTIALS], has reviewed and approved it; an AI check is never an approval;
+> - CloverProof records the software's proposal, any AI check notes, the agronomist's final number and the reason for any change, to check how accurate the software is;
 > - approved plans are kept as write-once records; if I ask for deletion, everything linking them to me is removed;
 > - I can withdraw at any time by writing to [CONTACT EMAIL]; CloverProof will then stop making plans for me.
 
 ## 3. Optional consents (each a separate, unticked box)
 
 **C — De-identified data to improve the engine after the pilot**
-> ☐ Optional. After the pilot, CloverProof may keep a de-identified copy of my plan data (crop, yields, soil-test values, the software's proposal and the agronomist's final numbers) to improve the software. My name, contact details, farm and field names and exact locations will be removed, and locations generalised to region. I can say no and still take part. I can withdraw this later by writing to [CONTACT EMAIL]; data that can still be linked to me will then be removed.
+> ☐ Optional. After the pilot, CloverProof may keep a de-identified copy of my plan data (crop, yields, soil-test values, the software's proposal and the human agronomist's final numbers) to improve the software. My name, contact details, farm and field names and exact locations will be removed, and locations generalised to region. I can say no and still take part. I can withdraw this later by writing to [CONTACT EMAIL]; data that can still be linked to me will then be removed.
 
 **D — Case study / quote (only if we ever want one)**
 > ☐ Optional. CloverProof may name my farm and quote me in a case study, after showing me the text and getting my written approval of it.
@@ -114,7 +120,9 @@ Government of Canada / CRTC sites refused direct connections from this environme
 - S8 CRTC Compliance and Enforcement Information Bulletin 2012-549 (toggling) — https://crtc.gc.ca/eng/archive/2012/2012-549.htm *(search: pre-checked box / silence not valid)*
 - S9 CRTC CASL FAQ — https://crtc.gc.ca/eng/com500/faq500.htm ; S9a CRTC implied-consent guidance — https://crtc.gc.ca/eng/com500/guide.htm *(search: 10 business days)*
 - S10 ISED Canada's anti-spam legislation — https://ised-isde.canada.ca/site/canada-anti-spam-legislation/en *(search: mailing address + phone/email/web; 60 days)*
-- S11 GDPR Art. 7 — https://eur-lex.europa.eu/eli/reg/2016/679/oj *(fetched)*
+- S11 GDPR Arts. 7, 13 — https://eur-lex.europa.eu/eli/reg/2016/679/oj *(fetched)*
+- S23 FPT privacy regulators, *Principles for responsible, trustworthy and privacy-protective generative AI technologies* (7 Dec 2023) — https://www.priv.gc.ca/en/privacy-topics/ai-technology-and-innovation/artificial-intelligence/leadership-ai/ ; https://oipc.bc.ca/documents/guidance-documents/2811 *(search only — verify)*
+- Decisions D4, R4 — `origin/backend-traceability:docs/plans/backend-plan-reconciliation.md` (CPO, 2026-11-16)
 
 ## Needs licensed counsel
 1. Whether replies to a pilot request need any CASL consent beyond Box A (inquiry-based implied consent vs. exclusion).
@@ -122,3 +130,5 @@ Government of Canada / CRTC sites refused direct connections from this environme
 3. Whether the pilot data-use consent (§2) is correctly scoped as necessary for the service, and C as optional.
 4. Consent-record retention period.
 5. Legal equivalence of translated consent text in each locale.
+6. Whether the AI-review bullets in §2 are enough disclosure, and whether sending pilot data to an AI provider needs its own consent or only notice (service-provider transfer).
+7. Residency wording once Farjad decides (US vs Canada).

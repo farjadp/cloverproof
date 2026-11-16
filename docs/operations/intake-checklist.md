@@ -1,15 +1,17 @@
 # Pilot intake checklist
 
-Owner: `customer-onboarding-specialist` (reports to `coo`). Status: DRAFT, not yet reviewed by Farjad Iranmehr (agronomist).
+Owner: `customer-onboarding-specialist` (reports to `coo`). Status: DRAFT, not yet reviewed by `[HUMAN AGRONOMIST]` (not named yet; target before Jan 29, 2027). Farjad Iranmehr is founder/operator, not the reviewing agronomist.
+
+Launch scope: Canada, Ontario winter wheat (Prairie wheat backup). Open agronomy questions go to `[HUMAN AGRONOMIST]`; until named, `cp-agronomist` (AI) can research options and draft answers, but its answers are not decisions.
 
 Sources: `engine/cloverproof_engine/models.py` (engine v0.2.0), `db/migrations/0003`-`0008`, `website/db/migrations/0001_pilot_request.sql`, `docs/agronomist-todo.md`, `CLAUDE.md` hard rules.
 
 Rules this checklist follows:
-- We ask only for data the plan uses, or that the agronomist may need (marked "maybe", with a `TODO(agronomist)`).
+- We ask only for data the plan uses, or that the human agronomist may need (marked "maybe", with a `TODO(agronomist)`).
 - No soil test: N-only plan (max `medium` confidence); we recommend a lab test for P and K. Never block onboarding on a missing test.
 - Every soil-test value is stored with form (P vs P2O5, K vs K2O), unit, extraction method, depth and date. Never guessed.
 - No agronomic constant, threshold or rate appears in this document or in any message to a farmer.
-- Nothing here is sent to a farmer without agronomist approval of the plan numbers (review gate). Intake messages contain no numbers at all.
+- Nothing here is sent to a farmer without approval of the plan numbers by a named human agronomist (review gate; an `ai_reviewed` pre-check does not count). Intake messages contain no numbers at all.
 
 Column key. **Engine**: R = required, O = optional, - = not used (v0). **Agro**: R / O / maybe (agronomist-only, undecided).
 
@@ -22,8 +24,8 @@ Already captured by the website pilot request (`pilot_request`). Confirm, do not
 | Full name | - | R | text | `farmer.display_name` | Who the plan is for; appears on the proof PDF | Business name given instead of person | Ask in welcome message |
 | Email | - | R | valid email | `pilot_request.email` (PII) | Only channel for plan delivery and reminders | Typos; shared mailbox | Cannot onboard |
 | Phone / preferred contact | - | O | text | `farmer.notes` (no column yet) | Faster follow-up for farmers who do not read email | Not collected by the website form | Optional, skip |
-| Country | R (pack choice) | R | ISO country | `farm.country_code` | Selects the country pack | Free text "UK" vs "GB" | Ask; no plan without it |
-| Region / province / county | - | R | text | `farm.region` | Agronomist judges local conditions; pack constants may vary by region (todo #2, #7) | Too vague ("north") | Ask |
+| Country | R (pack choice) | R | ISO country; launch = `CA` with province Ontario (`ON`) | `farm.country_code` | Selects the country pack | Free text "UK" vs "GB"; farm outside Ontario (Prairie wheat is backup only: ask `coo`) | Ask; no plan without it |
+| Region: Ontario county (or district) | - | R | text; for Ontario, the county name | `farm.region` | Agronomist judges local conditions; pack constants may vary by region (todo #2, #7) | Too vague ("southern Ontario"); township given instead of county | Ask |
 | Consent to process data and share with agronomist | - | R | timestamp + exact wording | `pilot_request.consent_at`, `consent_text` | Legal basis; needed before any data is stored | Consent for contact only, not for field data | Do not proceed |
 | Language / locale | - | O | locale code | `pilot_request.locale` | Message language (website is multi-language; internal tool is English) | Assuming English | Default to request locale |
 
@@ -33,7 +35,7 @@ Already captured by the website pilot request (`pilot_request`). Confirm, do not
 |---|---|---|---|---|---|---|---|
 | Farm name | - | R | text | `farm.name` | Groups fields; used on the document | Several farms under one name | Use farmer's name + "farm" |
 | Total farm size (as entered on website) | - | O | free text with units | `pilot_request.farm_size_text` | Scoping only; the engine uses per-field area | Treating it as field area | Ignore; use field area |
-| Main crop (website) | - | O | text | `pilot_request.main_crop` | Screens eligibility: engine v0 supports wheat only | Several crops listed | If not wheat, tell farmer we cannot plan it yet; log demand |
+| Main crop (website) | - | O | text | `pilot_request.main_crop` | Screens eligibility: launch crop is winter wheat in Ontario; engine v0 supports wheat only | Several crops listed; spring wheat given | If not wheat, tell farmer we cannot plan it yet; log demand |
 
 ## 3. Field
 
@@ -52,13 +54,14 @@ One block per field in the pilot. Pilot target is 5-10 farms; confirm the number
 
 | Item | Engine | Agro | Format / units | Stored as | Why it matters | Common mistakes | If missing |
 |---|---|---|---|---|---|---|---|
-| Crop for the coming season | R | R | wheat (only value in engine v0) | `crop_plan.crop` | Selects the nutrient method and constants | Winter vs spring wheat not stated | If not wheat: stop, log demand. `TODO(agronomist)`: do we need winter/spring, class, variety? |
+| Crop for the coming season | R | R | wheat (only value in engine v0); pilot = winter wheat, Ontario. Record "winter" in the note until a field exists | `crop_plan.crop` (winter/spring not stored; note on `crop_plan`) | Selects the nutrient method and constants | Winter vs spring wheat not stated; winter wheat sown in a different year than the plan season | If not wheat: stop, log demand. If spring wheat: stop for now (not launch scope), log demand. `TODO(agronomist)`: do we need class, variety? `[HUMAN AGRONOMIST]` / `cp-agronomist` research |
 | Target yield | R | R | t/ha. Accept bu/ac, kg/ha, t/ac, quintal/ha and convert at intake | `crop_plan.target_yield_t_ha` (t/ha) | Sets how much nutrient the crop removes; the largest single driver of the nitrogen rate | bu/ac typed as t/ha; fresh vs dry grain; best-ever year instead of realistic average; wheat bushel weight differs from other crops | Ask the farmer to give recent field or farm yields. Agronomist chooses. Do not default silently |
 | How the farmer derived the target yield | - | R | choice: average of recent years / best recent year / neighbour or regional figure / guess; plus the years used | note on `crop_plan` (no column yet) | Lets the agronomist judge whether it is realistic; a guess is treated more carefully than a measured average. Also feeds a possible later confidence rule | Not recording the source | Record "not stated"; agronomist decides |
-| Previous crop | R | R | name of the crop grown last season in this field | `crop_plan.previous_crop` (trimmed, lower case) | Previous crop changes the nitrogen credit the engine applies | Listing the crop two seasons ago; "none" for fallow; "legume" without saying which; engine v0 knows only wheat, canola, corn, soybean, field pea and rejects others (`UnknownPreviousCropError`) | Ask. If the crop is not on the pack list, the plan is blocked until the agronomist extends the list (todo #8). Fallow, alfalfa/clover and "other" are not supported yet |
+| Previous crop | R | R | name of the crop grown before this winter wheat in this field | `crop_plan.previous_crop` (trimmed, lower case) | Previous crop changes the nitrogen credit the engine applies | Listing the crop two seasons ago; "none" for fallow; "legume" without saying which; engine v0 knows only wheat, canola, corn, soybean, field pea and rejects others (`UnknownPreviousCropError`) | Ask. If the crop is not on the pack list, the plan is blocked until the agronomist extends the list (todo #8). Fallow, alfalfa/clover and "other" are not supported yet |
 | Previous-crop residue handled (removed / baled / left) | - | maybe | choice | not stored yet | May affect nitrogen credit (todo #3, #6) | - | `TODO(agronomist)`: confirm whether needed |
 | Plan date | R | R | date (today's date by default; the date the plan is made) | `crop_plan.plan_date` | Engine rejects a soil test dated after the plan date; used for soil-test age rule | Using seeding date | Set by staff, not asked of the farmer |
-| Planned seeding date / window | - | maybe | date or month | not stored yet | Split timing is printed per growth stage (todo #4) | - | `TODO(agronomist)`: confirm whether needed for split timing |
+| Seeding date (winter wheat is fall-seeded: date already sown, or planned) | - | maybe | date or month, as the farmer says it; no numbers or rules from us | not stored yet | Timing is set by the agronomist, not by us (todo #4) | Giving the intended date, not the actual one | `TODO(agronomist)`: confirm whether needed |
+| Stand / emergence status (as the farmer sees it: good, thin, patchy, not yet emerged) | - | maybe | words + optional photo | not stored yet | May change what the agronomist advises; we set no thresholds | Over-detail | `TODO(agronomist)`: confirm whether needed; ask no numbers |
 
 ## 5. Soil test (one test per field per sample date)
 
@@ -122,18 +125,18 @@ Conversions are done by staff or tool at intake. The engine factors live in `eng
 Used in the welcome message and any form. Staff fill the rest.
 
 1. What is your name and the best email to reach you? (confirm from website)
-2. Which country and region is your farm in?
+2. Which county in Ontario is your farm in? (If it is elsewhere, tell us the country and region.)
 3. What is the name of the field you want a plan for?
 4. How big is that field? Please tell us the number and the unit you use (hectares, acres, or something else).
 5. Where is it? A nearest town plus a pin on a map, or a photo of the field boundary, is fine.
-6. What crop do you plan to grow there this coming season?
+6. Is this winter wheat? If so, when was it sown (or when do you plan to sow it), and how does the stand look now? (A rough month and a few words is fine.)
 7. What yield are you aiming for, and in what unit do you usually measure it?
 8. How did you get to that yield goal (average of recent years, best recent year, a neighbour's yield, a guess)? Any of these is fine.
 9. What crop was grown in this field last season? (If it was left empty, tell us.)
 10. Do you have a recent soil test report for this field? Yes or no.
 11. If yes: please send the whole report (PDF or clear photos of every page). If no: that is fine. We can plan nitrogen only, and we will recommend a lab test so we can also advise on phosphorus and potassium.
 12. If you have a report: do you know the date the soil was sampled?
-13. Are you happy for us to use this information to prepare your plan, and for our agronomist to review it? (consent, as the exact wording approved by the COO)
+13. Are you happy for us to use this information to prepare your plan, and for a qualified agronomist to review it? (consent, as the exact wording approved by the COO; do not name or promise a specific reviewer until `[HUMAN AGRONOMIST]` is named)
 
 Not asked of the farmer: depth, extraction method, form (P vs P2O5), units, lab method. Staff read these from the report; if the report does not show them, staff ask the lab, not the farmer.
 
@@ -145,7 +148,7 @@ Always:
 - Consent recorded (`consent_at`, exact `consent_text`).
 - Country set; farmer, farm and field records exist.
 - Field area in ha, entered and checked against the farmer's stated unit.
-- Crop is one the engine supports (wheat in v0).
+- Crop is one the engine supports (wheat in v0); for the pilot, winter wheat in Ontario.
 - Target yield in t/ha, with the farmer's derivation noted.
 - Previous crop named and present in the pack's previous-crop list (else blocked, see section 4).
 - Plan date set.
@@ -156,9 +159,9 @@ Then exactly one of:
 
 Not required for ready: management history, soil nitrate, pH, organic matter, bulk density, irrigation, soil type. These never block a plan unless the agronomist marks them required.
 
-Hand-off: the field moves to "plan in progress" when ready. No number reaches the farmer until the agronomist approves (review gate).
+Hand-off: the field moves to "plan in progress" when ready; `cp-agronomist` pre-reviews (`ai_reviewed`), then `[HUMAN AGRONOMIST]` reviews. No number reaches the farmer until a named human agronomist approves (review gate). If none is named, the plan stays `in_review`.
 
-## 11. Open questions for the agronomist (`TODO(agronomist)`)
+## 11. Open questions for `[HUMAN AGRONOMIST]` (`TODO(agronomist)`; `cp-agronomist` researches options first)
 
 1. Which "maybe" items must we collect for the pilot: soil type, irrigation, seeding date, residue, organic amendments, tillage, pH, organic matter, soil nitrate? Which depth(s) for nitrate?
 2. Previous-crop list: add fallow, alfalfa/clover, barley, potato, a generic "other" (todo #8). Until then those farms are blocked at "ready for plan".
@@ -168,3 +171,5 @@ Hand-off: the field moves to "plan in progress" when ready. No number reaches th
 6. Accept a test older than which age? (only the agronomist can set this; today it is a PLACEHOLDER in the pack, todo #5).
 7. Multi-layer tests: one test per layer, or do you need a different model?
 8. Which crops after wheat do we onboard? The website lets people request any main crop; engine v0 only supports wheat.
+9. Winter wheat in Ontario: which of seeding date, stand status, residue and tillage do you need, and how do you want spring-timing questions asked? Prairie wheat (backup): same list, spring wheat included?
+10. Previous-crop list for Ontario rotations (add the crops common before winter wheat there): `cp-agronomist` to research, you decide.

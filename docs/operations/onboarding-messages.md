@@ -9,7 +9,9 @@ Sources: `docs/operations/pilot-sop.md` (statuses, steps, targets), `docs/operat
 - Transactional only: it answers the farmer's own request or serves the pilot they joined. No promotion, no offers, no newsletter, no upsell (CASL).
 - Every message ends with the identification and contact block below.
 - No agronomic numbers: no rates, thresholds, yields, depths or dates of growth stages. Plans reach the farmer only as the approved PDF (gate G1).
-- Sent only to the email on file. Signer: Farjad Iranmehr.
+- Sent only to the email on file. Signer: Farjad Iranmehr, as founder of CloverProof (not as the agronomist).
+- Reviewer honesty (D4, 2026-11-16): software and an AI assistant help prepare the plan; a named human agronomist, `[HUMAN AGRONOMIST NAME, CREDENTIALS]` (not yet named; fill before any send), checks and approves every number. Never write "reviewed by an agronomist" unless a human did.
+- Pilot scope: Ontario (Canada) farms, launch crop winter wheat.
 - All time targets are `PROPOSED — validate in S3 workload model` (business days, Eastern time), taken from the SOP.
 - Log the send date on the case. Use the request id in notes, never the farmer's name or contact details in repo files.
 - Replies that are not covered here go to the support macros (M-ids below), not improvised.
@@ -44,7 +46,7 @@ Hi [NAME],
 
 Thank you for your request to join the CloverProof pilot. We have it on file.
 
-Places are limited and depend on location and fit, so this is not yet a confirmation. We will write to you again with a decision and, if you are accepted, the next steps.
+The pilot is open to farms in Ontario, Canada, and for now covers winter wheat. Places are limited and depend on fit, so this is not yet a confirmation. We will write to you again with a decision and, if you are accepted, the next steps.
 
 If you already have a laboratory soil test for the field, you can send it now. If you do not, that is fine.
 
@@ -67,7 +69,7 @@ Hi [NAME],
 
 Good news: we would like to include [FARM NAME] in the CloverProof pilot. Thank you for taking part.
 
-What happens: you send us some details about one field. We prepare a fertilizer plan. Our agronomist, Farjad Iranmehr, reviews it and approves every number before you see it. You then receive a PDF with the plan, the reasons, and how it was made.
+What happens: you send us some details about one field. Our software and an AI assistant help prepare a fertilizer plan. A human agronomist, [HUMAN AGRONOMIST NAME, CREDENTIALS], checks and approves every number before you see it. You then receive a PDF with the plan, the reasons, and how it was made. You keep the final decision on what you do in your field.
 
 This is a pilot. Please read the terms here: [PILOT TERMS LINK]
 
@@ -94,7 +96,7 @@ Why we ask: each answer is used in your plan, or helps the agronomist check it. 
 [STANDARD FOOTER]
 ```
 
-- Internal note: if the main crop is not one the engine supports, do not send this. Use the not-selected message (3) or a scope reply and log the demand (SOP escalation "outside scope").
+- Internal note: if the farm is outside Ontario, Canada, or the main crop is not winter wheat, do not send this. Use the not-selected message (3) and log the demand (SOP escalation "outside scope"). Question 2 (country and region) confirms Ontario.
 
 ---
 
@@ -111,7 +113,7 @@ Why we ask: each answer is used in your plan, or helps the agronomist check it. 
 ```
 Hi [NAME],
 
-Thank you for your interest in the CloverProof pilot. We have looked at your request, and we cannot include [FARM NAME] in this pilot. Places are limited and depend on location and fit. This is not a judgement on your farm.
+Thank you for your interest in the CloverProof pilot. We have looked at your request, and we cannot include [FARM NAME] in this pilot. [USE ONLY THE TRUE REASON(S): The pilot is open only to farms in Ontario, Canada. / The pilot covers winter wheat only for now. / Places are limited and are now full.] This is not a judgement on your farm.
 
 [ONLY IF OPTED IN: You asked to hear from us, so we will keep your request on file and contact you if this changes. We cannot promise a place.]
 
@@ -120,7 +122,7 @@ Thank you for your interest in the CloverProof pilot. We have looked at your req
 [STANDARD FOOTER, without the "You are receiving this because..." line changed if not opted in; keep it as is]
 ```
 
-- Internal note: never promise a later place. State no reason that is not true (location, capacity, crop outside scope).
+- Internal note: never promise a later place or a date for other regions or crops. State no reason that is not true (outside the pilot area, outside the pilot crop, capacity). Covers "outside the pilot area/crop".
 
 ---
 
@@ -228,7 +230,7 @@ Thank you. We now have the details we need to prepare the plan for [FIELD NAME].
 
 What happens next:
 1. We prepare the plan.
-2. Our agronomist, Farjad Iranmehr, reviews it and approves each number. Nothing is sent to you before he has approved it.
+2. A human agronomist, [HUMAN AGRONOMIST NAME, CREDENTIALS], checks it and approves each number. An AI assistant helps check the logic, but it does not approve anything. Nothing is sent to you before the agronomist has approved it.
 3. We email you a PDF with the plan, the reasons behind it, and how it was made.
 
 We cannot give a firm date, because the review comes first. If we need anything else, we will write to you. If something changes in the meantime, for example a new soil test or a change of crop, tell us and we will add it.
@@ -244,6 +246,8 @@ We cannot give a firm date, because the review comes first. If we need anything 
 - Follow-up timing (PROPOSED): send within 1 business day after approval. First application-log ask within 7 days after delivery (message 10).
 - Attach: the approved proof PDF for the exact recommendation id. No other file; no screenshots or engine output.
 - Wording status: the pilot and low-confidence wording is subject to Farjad Iranmehr approval and review by `legal-compliance-specialist` (SOP open decision 3). Do not change it without that.
+- Cover-note alignment: reviewer line matches `docs/operations/legal/proof-pdf-wording.md` Block B (checked by coo, 2026-11-16). Keep the PDF and cover note identical on this point; copy the disclaimer once counsel fixes it (OQ-07).
+- Send gate: only when a human agronomist's approve row exists for this recommendation id (an `ai_reviewed` sign-off alone is not enough).
 - If no soil test: add the extra paragraph (in brackets).
 - Related macros: M5, M7, M8, M12.
 
@@ -256,7 +260,7 @@ Your plan for [FIELD NAME] is attached as a PDF (version [VERSION]).
 
 Please note:
 - This is a pilot. The calculation constants behind the tool are still being validated, so the confidence label on your plan may show low. Low does not mean the plan is wrong. It means treat it as a carefully reviewed starting point, and tell us how it goes.
-- Every number in the plan was checked and approved by Farjad Iranmehr as agronomist.
+- This plan was prepared with CloverProof and reviewed by [HUMAN AGRONOMIST NAME, CREDENTIALS] on [DATE]. Software and an AI assistant helped prepare it; the human agronomist checked and approved every number.
 - You keep the final decision on what you do in your field. The plan is a recommendation.
 - The PDF records how the plan was made: the inputs you gave us, the reasons for each number, and which version it is. It is not endorsed or approved by any lender, certifier or regulator, and we have not agreed anything with them.
 
@@ -286,7 +290,7 @@ We have issued a new version of your plan for [FIELD NAME]. Version [NEW VERSION
 
 What changed: [WHAT CHANGED, in plain words and the reason, without repeating any number].
 
-The agronomist has reviewed and approved this version. The earlier version stays on file with us, so there is a record of both. It does not change the points in our first note: this is a pilot, the confidence label may show low, you keep the final decision, and the PDF is not endorsed by any lender, certifier or regulator.
+A human agronomist, [HUMAN AGRONOMIST NAME, CREDENTIALS], has reviewed and approved this version on [DATE]. The earlier version stays on file with us, so there is a record of both. It does not change the points in our first note: this is a pilot, the confidence label may show low, you keep the final decision, and the PDF is not endorsed by any lender, certifier or regulator.
 
 If anything is still wrong, tell us.
 
@@ -390,6 +394,7 @@ Maps farm-level SOP statuses to the stages `data-analyst` measures. Stage record
 
 1. Does the pilot request form capture a marketing / keep-in-touch opt-in? Message 3 depends on it. `support-macros.md` M16 keeps the request unless the farmer objects; this file is stricter (only if opted in). Align both. `legal-compliance-specialist` to confirm CASL wording and the footer.
 2. Approve the consent wording for question 13 and the retention statement in message 11 (SOP open decision 4).
-3. Approve the pilot / low-confidence cover-note wording in message 8 (SOP open decision 3); legal review.
+3. Approve the pilot / low-confidence cover-note wording in message 8 (SOP open decision 3); legal review. Re-align message 8 with `docs/operations/legal/proof-pdf-wording.md` once it exists.
+6. Name the human agronomist (`[HUMAN AGRONOMIST NAME, CREDENTIALS]`) before any message 2, 7, 8 or 9 is sent; none can go out with the placeholder.
 4. Confirm the "reply stop" opt-out line is honoured within the CASL time limit (see M10) and that someone owns the inbox.
 5. `[LEGAL ENTITY]`, `[CONTACT EMAIL]`, `[PRIVACY NOTICE LINK]`, `[PILOT TERMS LINK]` must be filled before any send. Stage 3 chase wording relies on the "paused" label, which is not yet a stored status (SOP open decision 1).

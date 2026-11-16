@@ -1,18 +1,22 @@
 # Support FAQ (English, draft for review)
 
-Owner: customer-support-specialist, for `coo`. Status: DRAFT, not yet reviewed by Farjad Iranmehr.
+Owner: customer-support-specialist, for `coo`. Status: DRAFT, not yet reviewed by Farjad Iranmehr. Updated 2026-11-16 for decisions D4 (AI assistant plus named human agronomist) and launch scope (Ontario, Canada; winter wheat).
+Honesty rule: say "reviewed by an agronomist" only when a human agronomist did. Farjad Iranmehr is the founder, not the approving agronomist. `[HUMAN AGRONOMIST NAME, CREDENTIALS]` is not yet named; fill before any send.
 Rules for every answer: no fertilizer rates, thresholds, prices or growth-stage dates; field-specific questions go to agronomist review; no claim that any third party accepts the proof PDF. Privacy and deletion answers point to `[PRIVACY NOTICE LINK]`. Contact: `[CONTACT EMAIL]`. Refer to requests by database id, never by name.
 
 ## About the pilot
 
 **Q: What is the CloverProof pilot?**
-A: A free pilot for a small number of farms in the 2027 season (February to April). We turn your field details, and a soil test if you have one, into a fertilizer plan: what, how much, when and why. An agronomist checks the plan before it reaches you.
+A: A free pilot for a small number of farms in the 2027 season (February to April). We turn your field details, and a soil test if you have one, into a fertilizer plan: what, how much, when and why. Software and an AI assistant help prepare the plan, and a human agronomist checks and approves it before it reaches you.
 
 **Q: Who can join, and is a place guaranteed?**
-A: Places are limited and depend on location and fit. Requesting a plan does not guarantee a place. We will tell you either way.
+A: The pilot is open to Ontario (Canada) farms only, and the launch crop is winter wheat. Places are limited and also depend on fit. Requesting a plan does not guarantee a place. We will tell you either way.
 
 **Q: Who reads my plan before I do?**
-A: Our agronomist, Farjad Iranmehr. Nothing with numbers reaches you until he has approved, adjusted or rejected it.
+A: A named human agronomist: `[HUMAN AGRONOMIST NAME, CREDENTIALS]`. Nothing with numbers reaches you until that person has approved, adjusted or rejected it. Farjad Iranmehr is the founder of CloverProof and writes to you as founder; he is not the agronomist who approves the plan.
+
+**Q: Is an AI making my plan?**
+A: Not on its own. Our calculation engine works out the numbers from fixed rules. An AI assistant then checks the logic of the plan and flags anything that looks inconsistent. It does not approve anything. A human agronomist, `[HUMAN AGRONOMIST NAME, CREDENTIALS]`, checks and approves every number before you see it. You make the final decision about what to do in your field.
 
 **Q: Do you sell fertilizer or take commission from suppliers?**
 A: No. CloverProof is software only and independent of any supplier. The plan names nutrients, not brands, and we cannot tell you which brand to buy.
@@ -54,15 +58,18 @@ A: For each field: what to apply, how much, when and why, with a plain-language 
 A: They show how well the available inputs support the recommendation. Fewer or weaker inputs, such as no soil test, mean lower confidence. The level comes from fixed rules, not a judgement call on the day.
 
 **Q: Why does my plan say "low" confidence?**
-A: During the pilot, some of the regional values behind the calculation are still being validated by our agronomist. Where a value is not yet confirmed, confidence stays low, and the agronomist reviews the plan with that in mind. Low does not mean the plan is wrong. It means treat it as a carefully reviewed starting point and read the stated reason for each number.
+A: During the pilot, some of the regional values behind the calculation are still being validated by our agronomist team. Where a value is not yet confirmed, confidence stays low, and the human agronomist reviews the plan with that in mind. Low does not mean the plan is wrong. It means treat it as a carefully reviewed starting point and read the stated reason for each number.
 
 **Q: What rate should I apply to my field?**
-A: We do not give rates in chat or email. Rates appear only in your reviewed plan. If you have asked for a plan, the agronomist will review it and send it. If you have a question about a specific field, we pass it to him.
+A: We do not give rates in chat or email. Rates appear only in your reviewed plan. If you have asked for a plan, the human agronomist will review it before we send it. If you have a question about a specific field, we pass it to the agronomist review.
+
+**Q: When will my plan arrive?**
+A: We cannot give a date. A plan is sent only after a human agronomist has approved it, and that review comes first. We will write to you when there is an update. If we need something from you, such as a soil test or a corrected detail, we will ask.
 
 ## The proof PDF
 
 **Q: What is the proof PDF?**
-A: A record of the plan: what, how much, when and why, the reviewer, the version used, the inputs and a digital fingerprint (a hash) that shows whether the file has changed since it was issued.
+A: A record of the plan: what, how much, when and why, the human agronomist who approved it, the version used, the inputs and a digital fingerprint (a hash) that shows whether the file has changed since it was issued.
 
 **Q: Will my bank, certifier, regulator or supplier accept it?**
 A: We cannot say. Each organisation sets its own rules, and we have not agreed any with them. The PDF is a clear record of your reasoning. If you need it for a particular body, ask them what they require, and tell us if you would like help describing what the document contains.
@@ -70,7 +77,7 @@ A: We cannot say. Each organisation sets its own rules, and we have not agreed a
 ## Changes and corrections
 
 **Q: Can you change a number in my plan?**
-A: A plan is never edited in place. If something changes, for example a corrected lab value or a new soil test, the agronomist reviews it and issues a new version with the reason recorded. The earlier version stays on file. We cannot promise a particular number; the agronomist decides after review.
+A: A plan is never edited in place. If something changes, for example a corrected lab value or a new soil test, the human agronomist reviews it and issues a new version with the reason recorded. The earlier version stays on file. We cannot promise a particular number; the agronomist decides after review.
 
 **Q: I found a mistake in my details. What now?**
 A: Tell us what is wrong and send the correct information. We will route it to the agronomist, and if the plan is affected it becomes a new version.

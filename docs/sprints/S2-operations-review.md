@@ -42,3 +42,20 @@ Status: drafts only. Nothing sent, signed or filed. Not reviewed by a lawyer. No
 - **Went well:** 7 deliverables in one pass by running specialists in parallel; each checked against CLAUDE.md gates before acceptance.
 - **Slowed us:** official sites (priv.gc.ca, crtc.gc.ca, laws-lois, agriculture.canada.ca, nrc.canada.ca) refused fetches → some citations rest on search summaries, marked. Entity question unresolved → blocks legal text and grants verdicts. Specialist agent files point to other output sub-folders than the brief (flat `docs/operations/` used).
 - **One change for S3:** get the entity/contact facts from Farjad Iranmehr before any further legal or grants work; otherwise every document keeps placeholders.
+
+## Update 2026-11-16 (pm) — CPO decisions D4, D-7, launch; backend-plan scope §3
+Applied to all ops docs: the reviewer for now is the AI agent `cp-agronomist` (`ai_reviewed` only); no real-farm plan reaches a farmer without a named **human** agronomist's approval; Farjad Iranmehr is founder/operator, not the reviewer. D-7: the AI gets de-identified data only (SOP gate G8). Launch = Ontario winter wheat; pilot open to Ontario farms only.
+
+| ID | Output | Status |
+|---|---|---|
+| NB-OPS-01 / SC-07 | SOP (G0 no human → no delivery, G1 human approval, G8 de-identified AI input; REC-D4 ref), intake (winter wheat, Ontario county), legal v0.2, FAQ/macros (+ "Is an AI making my plan?") | Drafts ready for Farjad Iranmehr + lawyer (OQ-07) |
+| PD-05 | `legal/proof-pdf-wording.md` — ai_reviewed "NOT FOR FARMER USE" banner; human reviewer line; banned phrases; disclaimer `[COUNSEL]` | For cto/cp-pdf + cp-agronomy-guard |
+| OQ-07 | `legal/oq-07-decision-pack.md` — 8 documents, 12 decisions, 16 lawyer questions | Waiting on Farjad Iranmehr |
+| NB-OPS-03 / OQ-04 | `legal/ontario-agronomist-credentials.md` — Ontario: title-protected only (P.Ag.), no practice licence found for crop fertilizer advice outside NMA plans (counsel to confirm); SK/MB require registration → no Prairie farms until the approver is registered there; minimum hire = CCA-ON or P.Ag.; E&O before first real plan | Done (S3 item, early) |
+| NB-OPS-02 | Workload model split: AI pre-review (machine) vs human minutes (key metric); human hours/week = ASSUMPTION for hiring brief | Done |
+| NB-SEC-04 | `legal/data-residency-input.md` — recommend Railway US for pilot with DPA (counsel-reviewed) + notice; Canadian Postgres if a partner requires it | Input to ciso; OQ-06 is Farjad Iranmehr's |
+| NB-OPS-06 | `legal/erasure-requirements.md` — ER-01..37, AT-01..17, 10 current violations (V-01..10) | To cp-database (design S4) |
+| NB-WEB-05 | Privacy-page copy v0.2 in shared notes `coo-website-privacy-copy.md` | Ships only after placeholders filled + approval |
+| (CPO ask) | `docs/agronomy/ontario-winter-wheat-season-note.md` (ai_reviewed, sourced) + `docs/agronomist-todo.md` row #11 | For the human agronomist |
+
+**Finding for the CPO (season shape, ai_reviewed, sourced to OMAFA):** for Ontario winter wheat, P/K for the 2027 crop is decided at fall seeding (2026), and OMAFA advises against fall N. A Feb–Apr 2027 pilot therefore fits the **spring N decision only**, and the real deadline per farm is before green-up. In 2026 the south of the province was at GS30 by Apr 23, so the crunch is likely **March to early April**, not spread to Apr 30. This rests on one season of crop reports and is marked UNVERIFIED as a general rule. It affects pilot recruitment timing (cro), the workload peak, and P/K scope for 2027.
