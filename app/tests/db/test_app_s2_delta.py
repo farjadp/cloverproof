@@ -135,21 +135,32 @@ def test_db_refuses_fork_as_409(
 # --- B1: service accounts never sign in, never count as approval -----------------------
 
 
-def test_ai_review_is_shown_but_never_as_approval(db: psycopg.Connection, org_a: Org) -> None:
+@pytest.mark.parametrize("ai_decision", ["approve", "reject"])
+def test_ai_review_is_shown_but_never_as_final(
+    db: psycopg.Connection, org_a: Org, ai_decision: str
+) -> None:
     service = make_service(db, org_a)
     insert(
         db, "review", organisation_id=org_a.id, recommendation_id=org_a.engine_rec,
-        decision="ai_reviewed", reviewer_id=service, minutes_spent=0, reason="Looks plausible",
+        decision=ai_decision, review_kind="ai_reviewed", reviewer_id=service, minutes_spent=0,
+        reason="Looks plausible",
     )  # fmt: skip
     client, csrf = signed_in(db, org_a.agronomist)
     plan_url = f"/plans/{org_a.crop_plan}"
     page = client.get(plan_url).text
     assert "AI review" in page and "not an approval" in page
-    assert "Approved by" not in page and "Save review" in page  # still open for the human
+    assert "Approved by" not in page and "Rejected by" not in page
+    assert "Save review" in page  # still open for the human
     assert "In review" in client.get("/farmers").text
     data = {"csrf_token": csrf, "recommendation_id": str(org_a.engine_rec), "decision": "approve"}
     assert client.post(plan_url + "/review", data=data).status_code == 303
     assert "Approved by Agro a" in client.get(plan_url).text
+    kinds = db.execute(
+        "select review_kind, count(*) from review where recommendation_id = %s"
+        " group by review_kind order by review_kind",
+        (org_a.engine_rec,),
+    ).fetchall()
+    assert kinds == [("agronomist_approved", 1), ("ai_reviewed", 1)]
 
 
 # --- F4: minutes per review, capped, timer reset ----------------------------------------

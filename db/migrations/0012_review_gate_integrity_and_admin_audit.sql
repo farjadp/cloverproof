@@ -1,28 +1,29 @@
 -- Review gate hardening and admin audit (ADR 0007 "Migration 0012"; security review
 -- S2-review-pr7-delta B1, F1, F2, F4, N11, N16; CPO decision D4).
 --
---   B1/D4  app_user.actor_kind human|service; service accounts hold no password, never
---          approve/edit/reject, never author an agronomist recommendation; they record
---          review decision `ai_reviewed`, which is never final and never unlocks a proof.
---   N16    approve, edit and reject all need a human agronomist of the organisation.
---   F1     at most one child per recommendation, at most one final review (approve or
---          reject), never both. Violations are SQLSTATE 23505 with these constraint names:
+--   B1/D4  app_user.actor_kind human|service; service accounts hold no password and never
+--          author an agronomist recommendation.
+--   D4 / CLAUDE.md rule 11: review.review_kind agronomist_approved|ai_reviewed, fixed by the
+--          reviewer's actor_kind (human -> agronomist_approved, service -> ai_reviewed).
+--          decision stays approve|edit|reject; an ai_reviewed row is the AI's opinion
+--          (approve or reject, reason required, never edit). It is never final, never an
+--          approval, never unlocks a proof and never enters recommendation_diff.
+--   N16    agronomist_approved reviews (approve, edit, reject) need a human agronomist of
+--          the organisation.
+--   F1     at most one child per recommendation, at most one final agronomist_approved
+--          review (approve or reject), never both. Violations are SQLSTATE 23505 with these
+--          constraint names:
 --            recommendation_one_child_idx, review_final_after_child        -> stale version
 --            review_one_final_idx, review_one_approval_idx,
 --            recommendation_child_after_final                               -> already reviewed
 --   F4     review.started_at (signed timer start) for later recomputation of minutes.
 --   N11    app_user.temp_password_expires_at, set by trigger (72 h) for admin-set passwords.
 --   F2     append-only admin_event written by triggers on membership and app_user.
---
--- `ai_reviewed` is added with ALTER TYPE ... ADD VALUE, so nothing below may use the new
--- label in SQL that runs in this transaction (PL/pgSQL bodies are fine: they run later).
 set local role cp_migrator;
 
 -- ---------------------------------------------------------------------------------------
 -- B1 / D4: human vs service accounts
 -- ---------------------------------------------------------------------------------------
-
-alter type review_decision add value 'ai_reviewed';
 
 alter table app_user
   add column actor_kind text not null default 'human'
@@ -38,27 +39,79 @@ comment on column app_user.actor_kind is
 -- cp_app's column grants (0011) do not include actor_kind: inserts by the app get the
 -- default 'human' and it cannot change the value. cp_admin has table-level INSERT/UPDATE.
 
-create or replace function review_check_reviewer() returns trigger
+-- ---------------------------------------------------------------------------------------
+-- D4 / rule 11: review_kind
+-- ---------------------------------------------------------------------------------------
+
+-- Reviews before 0012 were all recorded by human accounts (actor_kind did not exist), so
+-- they are agronomist_approved. The default only fills existing rows (no rewrite, no UPDATE
+-- of the immutable table) and is dropped at once: new rows get the value from the trigger.
+alter table review
+  add column review_kind text not null default 'agronomist_approved'
+    constraint review_kind_check check (review_kind in ('agronomist_approved', 'ai_reviewed')),
+  -- The AI gives an opinion only; it never produces a new version (service accounts cannot
+  -- author agronomist recommendations) and always says why.
+  add constraint review_ai_no_edit
+    check (review_kind = 'agronomist_approved' or decision <> 'edit'),
+  add constraint review_ai_reason
+    check (review_kind = 'agronomist_approved' or char_length(btrim(coalesce(reason, ''))) > 0);
+
+alter table review alter column review_kind drop default;
+
+comment on column review.review_kind is
+  'agronomist_approved = human reviewer (the review gate, calibration data); ai_reviewed = '
+  'service account (AI reviewer): opinion only, never final, never an approval. Set from '
+  'app_user.actor_kind by trigger review_check_kind; a mismatch raises.';
+
+-- Named so that it fires first among the BEFORE INSERT triggers on review (PostgreSQL fires
+-- them in name order): review_check_kind < review_check_no_child < review_check_reviewer.
+create function review_check_kind() returns trigger
 language plpgsql as $$
 declare
-  v_kind text;
+  v_actor    text;
+  v_expected text;
+begin
+  select u.actor_kind into v_actor from app_user u where u.id = new.reviewer_id;
+  v_expected := case v_actor when 'human' then 'agronomist_approved'
+                             when 'service' then 'ai_reviewed' end;
+  if v_expected is null then
+    raise exception 'reviewer % does not exist', new.reviewer_id
+      using errcode = 'foreign_key_violation';
+  end if;
+  if new.review_kind is null then
+    new.review_kind := v_expected;
+  elsif new.review_kind not in ('agronomist_approved', 'ai_reviewed') then
+    return new;  -- review_kind_check rejects it
+  elsif new.review_kind <> v_expected then
+    if v_actor = 'service' then
+      raise exception 'a service account cannot record an agronomist_approved review; its reviews are ai_reviewed'
+        using errcode = 'insufficient_privilege';
+    end if;
+    raise exception 'only a service account can record an ai_reviewed review'
+      using errcode = 'insufficient_privilege';
+  end if;
+  return new;
+end
+$$;
+
+create trigger review_check_kind
+  before insert on review
+  for each row execute function review_check_kind();
+
+create or replace function review_check_reviewer() returns trigger
+language plpgsql as $$
 begin
   if not exists (select 1 from member_organisation_ids(new.reviewer_id) o where o = new.organisation_id) then
     raise exception 'reviewer % is not an active member of organisation %',
       new.reviewer_id, new.organisation_id
       using errcode = 'insufficient_privilege';
   end if;
-  select u.actor_kind into v_kind from app_user u where u.id = new.reviewer_id;
-  if new.decision::text = 'ai_reviewed' then
-    if v_kind is distinct from 'service' then
-      raise exception 'only a service account can record an ai_reviewed review'
-        using errcode = 'insufficient_privilege';
-    end if;
-    return new;
+  if new.review_kind = 'ai_reviewed' then
+    return new;  -- service account (review_check_kind); opinion only, never final
   end if;
-  -- approve, edit, reject: the review gate (hard rule 8, D4).
-  if v_kind is distinct from 'human' then
-    raise exception 'a service account cannot approve, edit or reject a recommendation; record ai_reviewed instead'
+  -- agronomist_approved: the review gate (hard rule 8, N16) for approve, edit and reject.
+  if (select u.actor_kind from app_user u where u.id = new.reviewer_id) is distinct from 'human' then
+    raise exception 'a service account cannot approve, edit or reject a recommendation'
       using errcode = 'insufficient_privilege';
   end if;
   if not has_org_role(new.reviewer_id, new.organisation_id, 'agronomist') then
@@ -92,11 +145,99 @@ end
 $$;
 
 comment on table review is
-  'Immutable. UPDATE/DELETE/TRUNCATE raise; cp_app has SELECT, INSERT only. approve/edit/reject '
-  'require a human agronomist; ai_reviewed only a service account and is never final.';
+  'Immutable. UPDATE/DELETE/TRUNCATE raise; cp_app has SELECT, INSERT only. review_kind '
+  'agronomist_approved requires a human agronomist; ai_reviewed (service account) is never final.';
 
--- proof_document_check_approved (0008) and recommendation_diff (0009) look only at
--- decision = 'approve', so ai_reviewed never unlocks a proof and never enters calibration.
+-- Only an agronomist_approved approve unlocks a proof (replaces 0008).
+create or replace function proof_document_check_approved() returns trigger
+language plpgsql as $$
+begin
+  if not exists (
+    select 1 from review r
+    where r.recommendation_id = new.recommendation_id and r.decision = 'approve'
+      and r.review_kind = 'agronomist_approved'
+  ) then
+    raise exception 'recommendation % is not approved; no proof document allowed',
+      new.recommendation_id
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end
+$$;
+
+-- Calibration dataset: human approvals only (replaces 0009; same columns).
+create or replace view recommendation_diff with (security_invoker = true) as
+with recursive lineage as (
+  select r.id as recommendation_id, r.id as engine_recommendation_id, 0 as edit_depth
+  from recommendation r
+  where r.parent_id is null
+  union all
+  select c.id, l.engine_recommendation_id, l.edit_depth + 1
+  from recommendation c
+  join lineage l on c.parent_id = l.recommendation_id
+)
+select
+  f.organisation_id,
+  f.crop_plan_id,
+  e.id                            as engine_recommendation_id,
+  f.id                            as final_recommendation_id,
+  f.parent_id                     as edited_from_id,
+  f.kind                          as final_kind,
+  l.edit_depth,
+  e.engine_version,
+  e.pack_id,
+  e.pack_version,
+  e.pack_status,
+  e.pack_sha256,
+  e.n_rate_kg_ha                  as engine_n_rate_kg_ha,
+  f.n_rate_kg_ha                  as final_n_rate_kg_ha,
+  f.n_rate_kg_ha - e.n_rate_kg_ha as n_rate_delta_kg_ha,
+  e.confidence                    as engine_confidence,
+  f.confidence                    as final_confidence,
+  f.reason                        as edit_reason,
+  f.created_by                    as final_created_by,
+  f.created_at                    as final_created_at,
+  a.reviewer_id                   as approved_by,
+  a.created_at                    as approved_at,
+  a.minutes_spent                 as approval_minutes_spent,
+  e.result                        as engine_result,
+  f.result                        as final_result
+from lineage l
+join recommendation f on f.id = l.recommendation_id
+join recommendation e on e.id = l.engine_recommendation_id
+left join review a on a.recommendation_id = f.id and a.decision = 'approve'
+  and a.review_kind = 'agronomist_approved';
+
+comment on view recommendation_diff is
+  'Engine vs final per recommendation version; approvals by human agronomists only '
+  '(ai_reviewed rows never appear). Filter by organisation_id like any table.';
+
+-- AI reviews, reported separately from human ones (CLAUDE.md "Key metric"); each with the
+-- human final decision on the same version, if any, for AI-vs-human agreement.
+create view ai_review with (security_invoker = true) as
+select
+  v.organisation_id,
+  r.crop_plan_id,
+  v.recommendation_id,
+  v.id               as review_id,
+  v.decision,
+  v.reason,
+  v.reviewer_id,
+  v.created_at,
+  h.decision         as agronomist_decision,
+  h.reviewer_id      as agronomist_reviewer_id,
+  h.created_at       as agronomist_decided_at
+from review v
+join recommendation r on r.organisation_id = v.organisation_id and r.id = v.recommendation_id
+left join review h on h.recommendation_id = v.recommendation_id
+  and h.review_kind = 'agronomist_approved' and h.decision in ('approve', 'reject')
+where v.review_kind = 'ai_reviewed';
+
+comment on view ai_review is
+  'Reviews by service accounts (ai_reviewed) with the human final decision on the same '
+  'version. Never part of the calibration dataset or the agreement gate.';
+
+grant select on ai_review to cp_app;
 
 -- ---------------------------------------------------------------------------------------
 -- F1: one version line, one final review
@@ -105,9 +246,14 @@ comment on table review is
 create unique index recommendation_one_child_idx
   on recommendation (parent_id) where parent_id is not null;
 
--- review_one_approval_idx (0007) stays; this one also covers approve + reject and reject twice.
+-- review_one_approval_idx (0007) is rebuilt for human reviews only (several AI opinions are
+-- allowed); review_one_final_idx also covers approve + reject and reject twice.
+drop index review_one_approval_idx;
+create unique index review_one_approval_idx
+  on review (recommendation_id) where decision = 'approve' and review_kind = 'agronomist_approved';
 create unique index review_one_final_idx
-  on review (recommendation_id) where decision in ('approve', 'reject');
+  on review (recommendation_id)
+  where decision in ('approve', 'reject') and review_kind = 'agronomist_approved';
 
 -- An edit review points at exactly one new version.
 create unique index review_one_edit_idx
@@ -121,7 +267,7 @@ create unique index review_one_edit_idx
 create function review_check_no_child() returns trigger
 language plpgsql as $$
 begin
-  if new.decision::text in ('approve', 'reject') then
+  if new.decision in ('approve', 'reject') and new.review_kind = 'agronomist_approved' then
     perform pg_advisory_xact_lock(12012, hashtext(new.recommendation_id::text));
     if exists (select 1 from recommendation c where c.parent_id = new.recommendation_id) then
       raise exception 'recommendation % already has a newer version; review the latest version',
@@ -144,7 +290,8 @@ begin
     perform pg_advisory_xact_lock(12012, hashtext(new.parent_id::text));
     if exists (
       select 1 from review r
-      where r.recommendation_id = new.parent_id and r.decision::text in ('approve', 'reject')
+      where r.recommendation_id = new.parent_id and r.decision in ('approve', 'reject')
+        and r.review_kind = 'agronomist_approved'
     ) then
       raise exception 'recommendation % is already approved or rejected; it cannot be edited',
         new.parent_id

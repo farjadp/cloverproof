@@ -1,8 +1,9 @@
 """Human vs service accounts (migration 0012, security review B1 / D4) and N11 expiry.
 
 A service account (e.g. the AI reviewer `cp-agronomist`) may hold an agronomist membership
-but can never approve, edit or reject, never author an agronomist recommendation and never
-hold a password. Only cp_admin (CLI) sets `actor_kind`.
+but its reviews are always `ai_reviewed` (opinion only, never edit, never final); it never
+authors an agronomist recommendation and never holds a password. Only cp_admin (CLI) sets
+`actor_kind`.
 """
 
 from datetime import timedelta
@@ -58,8 +59,42 @@ def test_actor_kind_values_are_checked(db: psycopg.Connection) -> None:
         insert(db, "app_user", email="x@example.org", display_name="X", actor_kind="ai")
 
 
+def kind_of(db: psycopg.Connection, review_id: UUID) -> tuple[str, str]:
+    row = db.execute(
+        "select decision::text, review_kind from review where id = %s", (review_id,)
+    ).fetchone()
+    assert row is not None
+    return row
+
+
+# review_kind (CLAUDE.md rule 11): the reviewer's actor_kind decides it; the trigger fills
+# it when omitted and refuses a mismatch.
+
+
 @pytest.mark.parametrize("decision", ["approve", "reject"])
-def test_service_agronomist_cannot_approve_or_reject(
+def test_human_agronomist_review_is_agronomist_approved(
+    db: psycopg.Connection, org_a: Org, decision: str
+) -> None:
+    rid = review(db, org_a, org_a.agronomist, decision)
+    assert kind_of(db, rid) == (decision, "agronomist_approved")
+
+
+def test_explicit_agronomist_approved_is_accepted(db: psycopg.Connection, org_a: Org) -> None:
+    rid = review(db, org_a, org_a.agronomist, "approve", review_kind="agronomist_approved")
+    assert kind_of(db, rid) == ("approve", "agronomist_approved")
+
+
+@pytest.mark.parametrize("decision", ["approve", "reject"])
+def test_service_review_is_ai_reviewed(db: psycopg.Connection, org_a: Org, decision: str) -> None:
+    service = make_service(db, org_a)
+    rid = review(db, org_a, service, decision)
+    assert kind_of(db, rid) == (decision, "ai_reviewed")
+    again = review(db, org_a, service, decision, review_kind="ai_reviewed")
+    assert kind_of(db, again) == (decision, "ai_reviewed")
+
+
+@pytest.mark.parametrize("decision", ["approve", "reject"])
+def test_service_cannot_claim_agronomist_approved(
     db: psycopg.Connection, org_a: Org, decision: str
 ) -> None:
     service = make_service(db, org_a)
@@ -67,35 +102,7 @@ def test_service_agronomist_cannot_approve_or_reject(
         pytest.raises(errors.InsufficientPrivilege, match="service account"),
         db.transaction(),
     ):
-        review(db, org_a, service, decision)
-
-
-def test_service_cannot_author_agronomist_recommendation(
-    db: psycopg.Connection, org_a: Org, engine_result: dict[str, Any]
-) -> None:
-    service = make_service(db, org_a)
-    with (
-        pytest.raises(errors.InsufficientPrivilege, match="service account"),
-        db.transaction(),
-    ):
-        insert(
-            db,
-            "recommendation",
-            organisation_id=org_a.id,
-            crop_plan_id=org_a.crop_plan,
-            parent_id=org_a.engine_rec,
-            kind="agronomist",
-            reason="AI suggestion (test)",
-            created_by=service,
-            **recommendation_values(edited(engine_result, 80.0)),
-        )
-
-
-def test_service_records_ai_reviewed(db: psycopg.Connection, org_a: Org) -> None:
-    service = make_service(db, org_a)
-    rid = review(db, org_a, service, "ai_reviewed")
-    row = db.execute("select decision::text from review where id = %s", (rid,)).fetchone()
-    assert row == ("ai_reviewed",)
+        review(db, org_a, service, decision, review_kind="agronomist_approved")
 
 
 def test_human_agronomist_cannot_record_ai_reviewed(db: psycopg.Connection, org_a: Org) -> None:
@@ -103,7 +110,43 @@ def test_human_agronomist_cannot_record_ai_reviewed(db: psycopg.Connection, org_
         pytest.raises(errors.InsufficientPrivilege, match="only a service account"),
         db.transaction(),
     ):
-        review(db, org_a, org_a.agronomist, "ai_reviewed")
+        review(db, org_a, org_a.agronomist, "approve", review_kind="ai_reviewed")
+
+
+def test_review_kind_values_are_checked(db: psycopg.Connection, org_a: Org) -> None:
+    with pytest.raises(errors.CheckViolation, match="review_kind"), db.transaction():
+        review(db, org_a, org_a.agronomist, "approve", review_kind="human")
+
+
+def test_ai_reviewed_is_not_a_decision(db: psycopg.Connection, org_a: Org) -> None:
+    service = make_service(db, org_a)
+    with pytest.raises(errors.InvalidTextRepresentation), db.transaction():
+        review(db, org_a, service, "ai_reviewed")
+
+
+def test_ai_review_needs_a_reason(db: psycopg.Connection, org_a: Org) -> None:
+    service = make_service(db, org_a)
+    with pytest.raises(errors.CheckViolation, match="review_ai_reason"), db.transaction():
+        review(db, org_a, service, "approve", reason=None)
+
+
+def test_service_cannot_edit(
+    db: psycopg.Connection, org_a: Org, engine_result: dict[str, Any]
+) -> None:
+    service = make_service(db, org_a)
+    child = insert(
+        db,
+        "recommendation",
+        organisation_id=org_a.id,
+        crop_plan_id=org_a.crop_plan,
+        parent_id=org_a.engine_rec,
+        kind="agronomist",
+        reason="Human edit (test)",
+        created_by=org_a.agronomist,
+        **recommendation_values(edited(engine_result, 80.0)),
+    )
+    with pytest.raises(errors.CheckViolation, match="review_ai_no_edit"), db.transaction():
+        review(db, org_a, service, "edit", resulting_recommendation_id=child)
 
 
 def test_staff_cannot_reject(db: psycopg.Connection, org_a: Org) -> None:

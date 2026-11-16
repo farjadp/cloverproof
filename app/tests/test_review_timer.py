@@ -67,3 +67,13 @@ def test_only_a_human_agronomist_may_review() -> None:
             plan_web.require_agronomist(context(kind, roles))
         assert error.value.status_code == 403
         assert not plan_web.is_agronomist(context(kind, roles))
+
+
+def test_review_kind_follows_actor_kind() -> None:
+    def user(kind: str) -> CurrentUser:
+        return CurrentUser(uuid4(), "a@example.org", "A", uuid4(), "h", actor_kind=kind)
+
+    assert plan_web.review_kind_for(user("human")) == "agronomist_approved"
+    assert plan_web.review_kind_for(user("service")) == "ai_reviewed"
+    with pytest.raises(ValueError, match="actor_kind"):
+        plan_web.review_kind_for(user("robot"))

@@ -118,7 +118,8 @@ def test_documented_names_cover_every_case() -> None:
     assert STALE_VERSION.isdisjoint(ALREADY_REVIEWED)
 
 
-# D4: ai_reviewed is never a final review.
+# D4 / rule 11: a review of kind ai_reviewed (service account) is never final, never an
+# approval, never unlocks a proof and never enters recommendation_diff.
 
 
 def service_reviewer(db: psycopg.Connection, org: Org) -> UUID:
@@ -130,20 +131,21 @@ def service_reviewer(db: psycopg.Connection, org: Org) -> UUID:
     return user
 
 
-def ai_review(db: psycopg.Connection, org: Org, reviewer: UUID) -> UUID:
+def ai_review(db: psycopg.Connection, org: Org, reviewer: UUID, decision: str = "approve") -> UUID:
     return insert(
         db,
         "review",
         organisation_id=org.id,
         recommendation_id=org.engine_rec,
-        decision="ai_reviewed",
+        decision=decision,
+        review_kind="ai_reviewed",
         reason="AI check (test)",
         reviewer_id=reviewer,
         minutes_spent=0,
     )
 
 
-def test_ai_reviewed_does_not_unlock_proof_document(db: psycopg.Connection, org_a: Org) -> None:
+def test_ai_approve_does_not_unlock_proof_document(db: psycopg.Connection, org_a: Org) -> None:
     ai_review(db, org_a, service_reviewer(db, org_a))
     sha = "a" * 64
     with pytest.raises(errors.CheckViolation, match="not approved"), db.transaction():
@@ -158,13 +160,14 @@ def test_ai_reviewed_does_not_unlock_proof_document(db: psycopg.Connection, org_
         )
 
 
-def test_ai_reviewed_is_not_final(
+def test_ai_reviews_are_not_final(
     db: psycopg.Connection, org_a: Org, engine_result: dict[str, Any]
 ) -> None:
     service = service_reviewer(db, org_a)
-    ai_review(db, org_a, service)
-    ai_review(db, org_a, service)  # several AI passes are fine
-    # Neither blocks the human: edit, then approve the edit.
+    ai_review(db, org_a, service, "approve")
+    ai_review(db, org_a, service, "reject")
+    ai_review(db, org_a, service, "approve")  # several AI passes are fine
+    # None of them blocks the human: edit, then approve the edit.
     rec = child(db, org_a, engine_result, 80.0)
     final(db, org_a, "approve", rec)
     rows = db.execute(
@@ -175,7 +178,18 @@ def test_ai_reviewed_is_not_final(
     assert rows == [(rec, org_a.agronomist)]
 
 
-def test_ai_reviewed_absent_from_diff(db: psycopg.Connection, org_a: Org) -> None:
+def test_ai_review_after_human_final_is_allowed(db: psycopg.Connection, org_a: Org) -> None:
+    final(db, org_a, "approve")
+    ai_review(db, org_a, service_reviewer(db, org_a), "reject")
+    row = db.execute(
+        "select count(*) from review where recommendation_id = %s"
+        " and review_kind = 'agronomist_approved'",
+        (org_a.engine_rec,),
+    ).fetchone()
+    assert row == (1,)
+
+
+def test_ai_approve_absent_from_diff(db: psycopg.Connection, org_a: Org) -> None:
     ai_review(db, org_a, service_reviewer(db, org_a))
     row = db.execute(
         "select approved_by, approved_at from recommendation_diff"
@@ -183,6 +197,18 @@ def test_ai_reviewed_absent_from_diff(db: psycopg.Connection, org_a: Org) -> Non
         (org_a.engine_rec,),
     ).fetchone()
     assert row == (None, None)
+
+
+def test_ai_review_view_lists_only_ai_reviews(db: psycopg.Connection, org_a: Org) -> None:
+    service = service_reviewer(db, org_a)
+    ai = ai_review(db, org_a, service, "reject")
+    final(db, org_a, "approve")
+    rows = db.execute(
+        "select review_id, decision::text, reviewer_id, agronomist_decision::text"
+        " from ai_review where organisation_id = %s",
+        (org_a.id,),
+    ).fetchall()
+    assert rows == [(ai, "reject", service, "approve")]
 
 
 # F4: the signed timer start is stored with the review.

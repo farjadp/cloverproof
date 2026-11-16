@@ -21,7 +21,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 
 from cloverproof_app import planning, timer
-from cloverproof_app.auth import INTERNAL_ROLES, Conn, OrgContext, SettingsDep, require_org_role
+from cloverproof_app.auth import (
+    INTERNAL_ROLES,
+    Conn,
+    CurrentUser,
+    OrgContext,
+    SettingsDep,
+    require_org_role,
+)
 from cloverproof_app.repo import farms, plans
 from cloverproof_app.web import render
 from cloverproof_engine.pack import Pack
@@ -34,8 +41,22 @@ ALREADY_REVIEWED = "This plan version is already reviewed. Nothing was saved."
 STALE_VERSION = "A newer version of this plan exists. Reload the plan; nothing was saved."
 TIMER_MISSING = "The plan timer is missing. Open the plan again, then review. Nothing was saved."
 FINAL_DECISIONS = frozenset({"approve", "reject"})
-HUMAN_DECISIONS = frozenset({"approve", "edit", "reject"})  # not ai_reviewed (D4)
 DECISION_LABELS = {"approve": "Approved", "reject": "Rejected", "edit": "Edited"}
+AI_DECISION_LABELS = {"approve": "would approve", "reject": "would reject"}
+# CLAUDE.md rule 11: the reviewer's actor_kind fixes the review kind (also enforced by the
+# database trigger review_check_kind). Only agronomist_approved reviews are final.
+HUMAN_REVIEW = "agronomist_approved"
+AI_REVIEW = "ai_reviewed"
+REVIEW_KIND_BY_ACTOR = {"human": HUMAN_REVIEW, "service": AI_REVIEW}
+
+
+def review_kind_for(user: CurrentUser) -> str:
+    """review_kind for a review recorded by this signed-in user."""
+    try:
+        return REVIEW_KIND_BY_ACTOR[user.actor_kind]
+    except KeyError:
+        raise ValueError(f"unknown actor_kind {user.actor_kind!r}") from None
+
 
 STATUS_LABELS = {
     "draft": "Draft",
@@ -316,13 +337,13 @@ class PlanView:
         """AI reviews of the version on screen (D4): shown, never an approval."""
         return [
             r for r in self.reviews
-            if r.decision == "ai_reviewed" and r.recommendation_id == self.latest.id
+            if r.review_kind == AI_REVIEW and r.recommendation_id == self.latest.id
         ]  # fmt: skip
 
     @property
     def last_review_at(self) -> datetime | None:
         """When the agronomist last recorded a review on this plan (F4 timer restart)."""
-        return max((r.created_at for r in self.reviews if r.decision in HUMAN_DECISIONS),
+        return max((r.created_at for r in self.reviews if r.review_kind == HUMAN_REVIEW),
                    default=None)  # fmt: skip
 
 
@@ -353,7 +374,13 @@ def load_plan(conn: Conn, context: OrgContext, plan_id: UUID) -> PlanView:
     latest = leaves[-1]
     reviews = plans.reviews(conn, org, plan_id)
     final = next(
-        (r for r in reviews if r.recommendation_id == latest.id and r.decision in FINAL_DECISIONS),
+        (
+            r
+            for r in reviews
+            if r.recommendation_id == latest.id
+            and r.review_kind == HUMAN_REVIEW
+            and r.decision in FINAL_DECISIONS
+        ),
         None,
     )
     status = "in_review" if final is None else ("approved" if final.decision == "approve"
@@ -404,6 +431,7 @@ def plan_page(request: Request, conn: Conn, context: OrgContext, settings: Setti
         "minutes": minutes,
         "can_review": is_agronomist(context),
         "decision_labels": DECISION_LABELS,
+        "ai_decision_labels": AI_DECISION_LABELS,
         "errors": errors or {},
         "values": values or {},
         "status_labels": STATUS_LABELS,
@@ -564,6 +592,7 @@ async def plan_edit_save(request: Request, conn: Conn, context: InternalOrg,
         )  # fmt: skip
         plans.insert_review(
             conn, org, recommendation_id=view.latest.id, decision="edit",
+            review_kind=review_kind_for(context.user),
             reason=with_cap_note(reason, spent), reviewer_id=context.user.id,
             minutes_spent=spent.minutes, started_at=spent.started_at,
             resulting_recommendation_id=new_id,
@@ -596,6 +625,7 @@ async def plan_review(request: Request, conn: Conn, context: InternalOrg, settin
     with conflicts_as_409(conn):
         plans.insert_review(
             conn, context.org.id, recommendation_id=view.latest.id, decision=decision,
+            review_kind=review_kind_for(context.user),
             reason=with_cap_note(reason or None, spent), reviewer_id=context.user.id,
             minutes_spent=spent.minutes, started_at=spent.started_at,
         )  # fmt: skip
