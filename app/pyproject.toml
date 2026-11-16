@@ -1,0 +1,22 @@
+[project]
+name = "cloverproof-app"
+version = "0.0.0"
+description = "CloverProof internal concierge tool (FastAPI + Jinja2 + HTMX)."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "cloverproof-engine",
+    "fastapi>=0.115",
+    "jinja2>=3.1",
+    "pydantic>=2.9",
+    "uvicorn[standard]>=0.32",
+]
+
+[tool.uv.sources]
+cloverproof-engine = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.9,<0.13"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
