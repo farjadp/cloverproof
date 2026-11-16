@@ -14,6 +14,8 @@ from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import Depends, FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -27,6 +29,7 @@ from cloverproof_app.db.pool import Database, PooledDatabase, check_least_privil
 from cloverproof_app.plan_web import router as plan_router
 from cloverproof_app.ratelimit import LoginGuard, UnlockListener
 from cloverproof_app.web import (
+    LOGIN_FAILED,
     LOGIN_FORM_EXPIRED,
     LOGIN_PAUSED,
     clear_cookie,
@@ -188,6 +191,13 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
                 error.status_code,
             )  # fmt: skip
         return PlainTextResponse(str(error.detail), status_code=error.status_code)
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid_request(request: Request, error: RequestValidationError) -> Response:
+        # N3: an over-long login field must not come back as JSON echoing the input.
+        if request.url.path == "/login":
+            return login_page(request, settings, error=LOGIN_FAILED, status=422)
+        return await request_validation_exception_handler(request, error)
 
     @app.exception_handler(security.HashingBusy)
     async def hashing_busy(request: Request, _: security.HashingBusy) -> Response:

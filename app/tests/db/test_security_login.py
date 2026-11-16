@@ -135,3 +135,19 @@ def test_cli_user_unlock_command(
     assert cli.main(["user-unlock", "--email", "farjad@example.org"]) == 0
     out = capsys.readouterr().out
     assert "unlock sent" in out
+
+
+def test_oversized_login_input_rerenders_login_page_without_echo(
+    db: psycopg.Connection, agronomist: str
+) -> None:
+    client = build_client(db)
+    token = login_csrf(client)
+    secret = "p" * 2000
+    response = client.post(
+        "/login", data={"email": agronomist, "password": secret, "csrf_token": token}
+    )
+    assert response.status_code == 422
+    assert response.headers["content-type"].startswith("text/html")
+    assert "Email or password is incorrect" in response.text
+    assert secret not in response.text
+    assert 'name="csrf_token"' in response.text  # a usable form again
