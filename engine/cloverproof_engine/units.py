@@ -9,6 +9,8 @@ Only chemistry and unit-definition facts live here, never agronomy:
 All other engine code must convert through this module.
 """
 
+from datetime import date
+
 from cloverproof_engine.models import NutrientForm, nutrient_of
 
 # Standard atomic weights, g/mol (IUPAC conventional values). Chemistry facts.
@@ -107,3 +109,12 @@ def convert_form(value: float, from_form: NutrientForm, to_form: NutrientForm) -
     if element_of(from_form) != element_of(to_form):
         raise ValueError(f"cannot convert {from_form.value} to {to_form.value}")
     return to_elemental(value, from_form) / _TO_ELEMENTAL[to_form]
+
+
+# Julian year (unit definition, IAU): exactly 365.25 days.
+DAYS_PER_JULIAN_YEAR = 365.25
+
+
+def years_between(earlier: date, later: date) -> float:
+    """Elapsed time in Julian years (negative if `later` is before `earlier`)."""
+    return (later - earlier).days / DAYS_PER_JULIAN_YEAR

@@ -92,3 +92,12 @@ def test_to_elemental() -> None:
     assert units.to_elemental(10.0, NutrientForm.P2O5) == pytest.approx(10.0 * units.P2O5_TO_P)
     assert units.to_elemental(10.0, NutrientForm.K) == 10.0
     assert math.isclose(units.to_elemental(10.0, NutrientForm.NO3_N), 10.0)
+
+
+def test_years_between_dates() -> None:
+    from datetime import date
+
+    # Julian year = 365.25 days (unit definition).
+    assert units.DAYS_PER_JULIAN_YEAR == 365.25
+    assert units.years_between(date(2024, 1, 1), date(2025, 1, 1)) == pytest.approx(366 / 365.25)
+    assert units.years_between(date(2025, 1, 1), date(2024, 1, 1)) < 0
