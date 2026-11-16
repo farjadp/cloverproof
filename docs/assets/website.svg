@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 360" width="560" height="360">
+  <rect width="560" height="360" rx="16" fill="#273125"/>
+  <rect x="16" y="16" width="528" height="328" rx="10" fill="#FAF6EB"/>
+  <rect x="16" y="16" width="528" height="30" rx="10" fill="#E9E3D2"/><rect x="16" y="36" width="528" height="10" fill="#E9E3D2"/>
+  <g fill="#A7B58A"><circle cx="34" cy="31" r="5"/><circle cx="50" cy="31" r="5"/><circle cx="66" cy="31" r="5"/></g>
+  <rect x="150" y="23" width="260" height="16" rx="8" fill="#FAF6EB"/>
+  <text x="280" y="35" font-family="&apos;Avenir Next&apos;, &apos;Segoe UI&apos;, system-ui, sans-serif" font-size="10" fill="#273125" opacity="0.6" text-anchor="middle">cloverproof.com</text>
+  <g fill="#4C610B" transform="translate(40 66)"><circle cx="8" cy="4" r="4"/><circle cx="12" cy="8" r="4"/><circle cx="8" cy="12" r="4"/><circle cx="4" cy="8" r="4"/></g>
+  <text x="62" y="80" font-family="Georgia, &apos;Iowan Old Style&apos;, serif" font-size="14" font-weight="700" fill="#273125">CloverProof</text>
+  <g font-family="&apos;Avenir Next&apos;, &apos;Segoe UI&apos;, system-ui, sans-serif" font-size="11" fill="#273125" opacity="0.7"><text x="330" y="79">How it works</text><text x="410" y="79">Pricing</text><text x="466" y="79">Contact</text></g>
+  <text x="40" y="140" font-family="Georgia, &apos;Iowan Old Style&apos;, serif" font-size="24" font-weight="700" fill="#273125">Know what your field</text>
+  <text x="40" y="174" font-family="Georgia, &apos;Iowan Old Style&apos;, serif" font-size="24" font-weight="700" fill="#4C610B">actually needs.</text>
+  <g fill="#273125" opacity="0.2"><rect x="40" y="194" width="230" height="8" rx="4"/><rect x="40" y="210" width="190" height="8" rx="4"/></g>
+  <rect x="40" y="236" width="130" height="34" rx="17" fill="#4C610B"/>
+  <text x="105" y="258" font-family="&apos;Avenir Next&apos;, &apos;Segoe UI&apos;, system-ui, sans-serif" font-size="12" font-weight="700" fill="#FAF6EB" text-anchor="middle">Get a field plan</text>
+  <g transform="translate(352 116) scale(0.88)"><rect width="190" height="190" rx="95" fill="#A7B58A" opacity="0.45"/>
+    <g stroke="#4C610B" stroke-width="3" fill="none"><path d="M30 120 Q95 80 160 120"/><path d="M25 140 Q95 100 165 140"/><path d="M30 160 Q95 120 160 160"/></g>
+    <g fill="#4C610B"><circle cx="95" cy="50" r="14"/><circle cx="111" cy="66" r="14"/><circle cx="95" cy="82" r="14"/><circle cx="79" cy="66" r="14"/></g></g>
+</svg>

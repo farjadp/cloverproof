@@ -1,0 +1,6 @@
+{
+  "agent": "cloverproof-lead",
+  "permissions": {
+    "deny": ["Read(./.env)", "Read(./.env.*)"]
+  }
+}

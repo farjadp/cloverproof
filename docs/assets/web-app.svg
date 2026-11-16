@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 360" width="560" height="360">
+  <rect width="560" height="360" rx="16" fill="#273125"/>
+  <rect x="16" y="16" width="528" height="328" rx="10" fill="#FAF6EB"/>
+  <rect x="16" y="16" width="120" height="328" rx="10" fill="#4C610B"/><rect x="126" y="16" width="10" height="328" fill="#4C610B"/>
+  <g font-family="&apos;Avenir Next&apos;, &apos;Segoe UI&apos;, system-ui, sans-serif" font-size="11" fill="#FAF6EB"><text x="32" y="48" font-weight="700" font-size="12">CloverProof</text>
+    <rect x="26" y="66" width="100" height="24" rx="6" fill="#FAF6EB" opacity="0.15"/><text x="36" y="82">Farmers</text><text x="36" y="110" opacity="0.7">Fields</text><text x="36" y="134" opacity="0.7">Plans</text><text x="36" y="158" opacity="0.7">Reviews</text></g>
+  <text x="156" y="52" font-family="Georgia, &apos;Iowan Old Style&apos;, serif" font-size="17" font-weight="700" fill="#273125">Field 12 · Winter wheat</text>
+  <rect x="440" y="36" width="88" height="24" rx="12" fill="#fff" stroke="#A7B58A"/><text x="484" y="52" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#4C610B" text-anchor="middle">⏱ 12:40</text>
+  <g font-family="&apos;Avenir Next&apos;, &apos;Segoe UI&apos;, system-ui, sans-serif">
+    <rect x="156" y="74" width="176" height="150" rx="10" fill="#fff" stroke="#A7B58A"/>
+    <text x="170" y="96" font-size="10" letter-spacing="1" fill="#4C610B" font-weight="700">ENGINE</text>
+    <text x="170" y="130" font-family="Georgia, &apos;Iowan Old Style&apos;, serif" font-size="24" font-weight="700" fill="#273125">— kg N/ha</text>
+    <rect x="170" y="142" width="64" height="20" rx="10" fill="#A7B58A"/><text x="202" y="156" font-size="10" font-weight="700" fill="#273125" text-anchor="middle">MEDIUM</text>
+    <g fill="#273125" opacity="0.18"><rect x="170" y="176" width="146" height="6" rx="3"/><rect x="170" y="190" width="120" height="6" rx="3"/><rect x="170" y="204" width="134" height="6" rx="3"/></g>
+    <rect x="346" y="74" width="182" height="150" rx="10" fill="#fff" stroke="#4C610B" stroke-width="2"/>
+    <text x="360" y="96" font-size="10" letter-spacing="1" fill="#4C610B" font-weight="700">AGRONOMIST · v2</text>
+    <rect x="360" y="108" width="154" height="32" rx="6" fill="#FAF6EB" stroke="#A7B58A"/><text x="370" y="130" font-family="Georgia, &apos;Iowan Old Style&apos;, serif" font-size="16" fill="#273125">— kg N/ha</text>
+    <text x="360" y="160" font-size="10" fill="#273125" opacity="0.6">Reason</text>
+    <rect x="360" y="166" width="154" height="44" rx="6" fill="#FAF6EB" stroke="#A7B58A"/>
+    <rect x="156" y="240" width="372" height="56" rx="10" fill="#fff" stroke="#A7B58A"/>
+    <text x="170" y="262" font-size="10" letter-spacing="1" fill="#4C610B" font-weight="700">SPLIT PLAN</text>
+    <g fill="#A7B58A"><rect x="170" y="272" width="110" height="12" rx="6"/><rect x="286" y="272" width="150" height="12" rx="6" fill="#4C610B"/><rect x="442" y="272" width="70" height="12" rx="6"/></g>
+    <rect x="388" y="306" width="140" height="28" rx="14" fill="#4C610B"/><text x="458" y="324" font-size="11" font-weight="700" fill="#FAF6EB" text-anchor="middle">Approve version</text>
+  </g>
+</svg>

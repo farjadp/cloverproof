@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300">
+  <rect width="1200" height="300" rx="20" fill="#FAF6EB"/>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#4C610B"/></marker></defs>
+  <g font-family="&apos;Avenir Next&apos;, &apos;Segoe UI&apos;, system-ui, sans-serif">
+    <g transform="translate(40 70)"><rect width="230" height="160" rx="14" fill="#fff" stroke="#A7B58A" stroke-width="2"/>
+      <text x="20" y="38" font-size="13" letter-spacing="1.5" fill="#4C610B" font-weight="700">1 · FARM DATA</text>
+      <text x="20" y="72" font-size="16" fill="#273125">Field, crop, target yield</text>
+      <text x="20" y="98" font-size="16" fill="#273125">Previous crop</text>
+      <text x="20" y="124" font-size="16" fill="#273125">Soil test (optional)</text></g>
+    <g transform="translate(330 70)"><rect width="230" height="160" rx="14" fill="#fff" stroke="#A7B58A" stroke-width="2"/>
+      <text x="20" y="38" font-size="13" letter-spacing="1.5" fill="#4C610B" font-weight="700">2 · ENGINE</text>
+      <text x="20" y="72" font-size="16" fill="#273125">Pure Python methods</text>
+      <text x="20" y="98" font-size="16" fill="#273125">Versioned country pack</text>
+      <text x="20" y="124" font-size="16" fill="#273125">Confidence + reasons</text></g>
+    <g transform="translate(620 70)"><rect width="230" height="160" rx="14" fill="#4C610B"/>
+      <text x="20" y="38" font-size="13" letter-spacing="1.5" fill="#A7B58A" font-weight="700">3 · AGRONOMIST GATE</text>
+      <text x="20" y="72" font-size="16" fill="#FAF6EB">Approve / edit / reject</text>
+      <text x="20" y="98" font-size="16" fill="#FAF6EB">Edit = new version</text>
+      <text x="20" y="124" font-size="16" fill="#FAF6EB">Minutes per plan</text></g>
+    <g transform="translate(910 70)"><rect width="250" height="160" rx="14" fill="#fff" stroke="#A7B58A" stroke-width="2"/>
+      <text x="20" y="38" font-size="13" letter-spacing="1.5" fill="#4C610B" font-weight="700">4 · PROOF</text>
+      <text x="20" y="72" font-size="16" fill="#273125">What · how much · when · why</text>
+      <text x="20" y="98" font-size="16" fill="#273125">PDF with SHA-256</text>
+      <text x="20" y="124" font-size="16" fill="#273125">Calibration dataset</text></g>
+  </g>
+  <g stroke="#4C610B" stroke-width="2.5" marker-end="url(#a)"><line x1="274" y1="150" x2="324" y2="150"/><line x1="564" y1="150" x2="614" y2="150"/><line x1="854" y1="150" x2="904" y2="150"/></g>
+</svg>
