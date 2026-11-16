@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+/* CloverProof brand tokens (CLAUDE.md). Light only for v1: an editorial paper look. */
+@theme {
+  --color-olive: #4c610b;
+  --color-olive-deep: #3b4b08;
+  --color-sage: #a7b58a;
+  --color-sage-soft: #e6eadb;
+  --color-ivory: #faf6eb;
+  --color-sand: #f1ecdd;
+  --color-ink: #273125;
+  --color-ink-soft: #4d5a4a;
+  --color-rule: #ddd6c3;
+
+  --font-serif: var(--font-source-serif), "Iowan Old Style", Georgia, serif;
+  --font-sans: var(--font-source-sans), "Segoe UI", system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+  body {
+    @apply bg-ivory font-sans text-ink antialiased;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-olive;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}

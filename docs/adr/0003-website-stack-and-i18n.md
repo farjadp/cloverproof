@@ -1,6 +1,6 @@
 # ADR 0003 — Website stack and internationalisation
 
-- Status: Proposed
+- Status: Accepted (2026-11-16)
 - Date: 2026-11-16
 - Decider: Farjad Iranmehr
 
@@ -9,9 +9,10 @@ Farjad Iranmehr changed the build order to website → web app → mobile. The w
 
 ## Decision
 - Website lives in `website/` in the monorepo: Next.js (App Router) + TypeScript + Tailwind.
-- `next-intl` with locale-prefixed routes (`/en`, `/fr`, … `/ar`), messages in `website/messages/<locale>.json`.
+- Next.js 16 built-in i18n pattern (no extra library): `src/proxy.ts` redirects to a locale prefix (`/en`, `/fr`, … `/ar`), `app/[lang]/` routes, dictionaries in `website/src/messages/<locale>.json` loaded server-side. `next-intl` was dropped: one less dependency, and it is not needed for static marketing copy.
+- Locale list and launch status live in `website/src/i18n/config.ts`; a locale is `enabled` only after native review.
 - RTL-ready from the first commit: `dir` set per locale, Tailwind logical utilities only (`ms-*`, `me-*`, `ps-*`, `pe-*`, `start-*`, `end-*`, `text-start`); no `left`/`right` physical properties.
-- Fonts chosen to cover Latin, Cyrillic (Bulgarian), Turkish and Arabic scripts.
+- Fonts: Source Serif 4 + Source Sans 3 (Latin, Latin-ext, Cyrillic). An Arabic face is added when `ar` is enabled.
 - A locale goes live only after native-speaker review; machine/AI drafts are marked draft until then.
 - `hreflang` + per-locale sitemap from the start.
 

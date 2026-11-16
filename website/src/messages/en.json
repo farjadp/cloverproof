@@ -1,0 +1,192 @@
+{
+  "meta": {
+    "title": "CloverProof — Field-specific fertilizer decisions, with proof",
+    "description": "CloverProof turns your field and soil-test data into a fertilizer plan — what, how much, when and why — reviewed by an agronomist and recorded in a proof document. Vendor-neutral, software only."
+  },
+  "nav": {
+    "how": "How it works",
+    "proof": "Sample proof",
+    "principles": "Principles",
+    "faq": "FAQ",
+    "cta": "Request a pilot plan",
+    "skip": "Skip to content",
+    "menu": "Menu"
+  },
+  "hero": {
+    "eyebrow": "Pilot season 2027 · Applications open",
+    "title": "A clearer plan for every field.",
+    "lead": "CloverProof connects your soil tests, field history and crop goals into one fertilizer plan — what to apply, how much, when, and why — checked by an agronomist before it reaches you.",
+    "ctaPrimary": "Request a pilot plan",
+    "ctaSecondary": "See a sample proof",
+    "note": "Early-stage product. Pilot availability depends on location and fit.",
+    "figureCaption": "Every recommendation is tied to one field, one season and one set of inputs."
+  },
+  "problem": {
+    "title": "The practical problem",
+    "intro": "Fertilizer decisions are often made from scattered records and general advice, with no trace of the reasoning.",
+    "items": [
+      {
+        "title": "Records live in different places.",
+        "body": "Lab reports in email, spreader logs in a notebook, crop history in someone's memory. Nothing is joined up for the field in front of you."
+      },
+      {
+        "title": "Advice is generic — or tied to a product.",
+        "body": "Blanket rates ignore the field. Advice from a supplier is shaped by what they sell. Neither shows its working."
+      },
+      {
+        "title": "No record of why.",
+        "body": "When a season goes well or badly, there is nothing to look back on: which inputs were used, which assumptions were made, who signed off."
+      }
+    ]
+  },
+  "how": {
+    "title": "How it works",
+    "intro": "Four steps, the same every time. Nothing reaches you without a person checking it.",
+    "steps": [
+      {
+        "title": "Farm data",
+        "body": "Your field, crop, target yield and previous crop. A lab soil test if you have one — with its method, depth and date."
+      },
+      {
+        "title": "Engine",
+        "body": "A transparent calculation runs against a versioned set of regional rules. Every number gets a written reason and a confidence level."
+      },
+      {
+        "title": "Agronomist review",
+        "body": "An agronomist approves, adjusts or rejects the plan. Any change is saved as a new version with the reason — the original is never overwritten."
+      },
+      {
+        "title": "Proof document",
+        "body": "You receive a plan document: what, how much, when and why, with the reviewer, the versions used and a digital fingerprint."
+      }
+    ]
+  },
+  "proof": {
+    "title": "What a proof document shows",
+    "intro": "A sample layout. Values are left blank on purpose — real values only appear once an agronomist has reviewed your field.",
+    "docTitle": "Field plan · Proof",
+    "docId": "Document ID",
+    "field": "Field",
+    "fieldValue": "North field",
+    "crop": "Crop",
+    "cropValue": "Winter wheat",
+    "season": "Season",
+    "seasonValue": "—",
+    "soilTest": "Soil test",
+    "soilTestValue": "Method, depth and date recorded",
+    "nutrient": "Nutrient",
+    "rate": "Rate",
+    "timing": "Timing",
+    "confidence": "Confidence",
+    "rows": [
+      { "nutrient": "Nitrogen (N)", "rate": "— kg/ha", "timing": "Split · —", "confidence": "Medium" },
+      { "nutrient": "Phosphorus (P)", "rate": "Soil test needed", "timing": "—", "confidence": "—" },
+      { "nutrient": "Potassium (K)", "rate": "Soil test needed", "timing": "—", "confidence": "—" }
+    ],
+    "whyTitle": "Why this rate",
+    "whyLines": [
+      "Crop need for the target yield, from the regional rule set.",
+      "Credit from the previous crop.",
+      "Supply already in the soil, from the lab test."
+    ],
+    "reviewer": "Reviewed by",
+    "reviewerValue": "Agronomist · date",
+    "versions": "Engine / rule-set version",
+    "versionsValue": "— / —",
+    "fingerprint": "SHA-256 fingerprint",
+    "fingerprintValue": "—",
+    "disclaimer": "A proof document records what was recommended and why. It is not a certification and is not issued or endorsed by any third party."
+  },
+  "principles": {
+    "title": "Principles we don't bend",
+    "items": [
+      { "title": "Vendor-neutral", "body": "We don't sell fertilizer and we don't take commissions on it." },
+      { "title": "Software only", "body": "No sensors or hardware to buy. We work from your field information and lab results." },
+      { "title": "Confidence on every number", "body": "Each recommendation is marked high, medium or low confidence, with the reason." },
+      { "title": "No soil test, nitrogen only", "body": "Without a lab test we only advise on nitrogen, and recommend a test for phosphorus and potassium." },
+      { "title": "Every edit is versioned", "body": "Plans are never overwritten. Changes are saved as new versions with who changed what, and why." }
+    ]
+  },
+  "pilot": {
+    "title": "Join the 2027 pilot",
+    "intro": "We're working with a small number of farms for the coming season. Tell us about your operation and we'll get back to you.",
+    "name": "Full name",
+    "email": "Email",
+    "country": "Country",
+    "farmSize": "Farm size",
+    "farmSizeHint": "Approximate, with units (ha or acres)",
+    "crop": "Main crop",
+    "notes": "Anything we should know (optional)",
+    "consent": "I agree that CloverProof may store these details and contact me about the pilot. I can ask for them to be deleted at any time.",
+    "privacyLink": "Privacy notice",
+    "submit": "Request a pilot plan",
+    "submitting": "Sending…",
+    "required": "Required",
+    "success": "Thank you. We've received your request and will be in touch.",
+    "notConnected": "Pilot requests aren't connected yet. Please check back soon.",
+    "invalid": "Please fill in the required fields and accept the consent statement."
+  },
+  "faq": {
+    "title": "Questions",
+    "items": [
+      {
+        "q": "Do you sell fertilizer?",
+        "a": "No. CloverProof is independent of any supplier. The plan names nutrients and rates, not brands."
+      },
+      {
+        "q": "Do I need sensors or special equipment?",
+        "a": "No. CloverProof is software only. We work from your field details and, where available, a laboratory soil test."
+      },
+      {
+        "q": "What if I don't have a soil test?",
+        "a": "We can still advise on nitrogen, at medium confidence at most. For phosphorus and potassium we'll recommend getting a test first."
+      },
+      {
+        "q": "Who checks the recommendations?",
+        "a": "Every plan is reviewed by an agronomist before you see it. If they change a number, the reason is recorded."
+      },
+      {
+        "q": "What is the proof document for?",
+        "a": "It's your record of what was recommended, on what inputs, and why. It is not a certification and no third party has endorsed it."
+      },
+      {
+        "q": "Where is the pilot available?",
+        "a": "We're starting with a small number of farms. Availability depends on location, crop and fit — request a plan and we'll tell you honestly."
+      }
+    ]
+  },
+  "footer": {
+    "tagline": "Field-specific fertilizer decisions, with proof.",
+    "privacy": "Privacy",
+    "languages": "Languages",
+    "comingSoon": "coming soon",
+    "rights": "© 2026 CloverProof"
+  },
+  "privacy": {
+    "title": "Privacy notice",
+    "draft": "Draft — under review before launch.",
+    "updated": "Last updated: November 2026",
+    "sections": [
+      {
+        "h": "What we collect",
+        "p": "When you request a pilot plan we collect the details you enter: name, email, country, approximate farm size, main crop and any notes."
+      },
+      {
+        "h": "Why we collect it",
+        "p": "Only to assess whether we can include your farm in the pilot and to contact you about it. We don't sell or share your details for marketing."
+      },
+      {
+        "h": "Where it is stored",
+        "p": "Your details are stored in our database provider with access limited to the CloverProof team."
+      },
+      {
+        "h": "How long we keep it",
+        "p": "Until the pilot selection is complete, or longer if you join the pilot. You can ask us to delete your details at any time."
+      },
+      {
+        "h": "Your rights",
+        "p": "You can ask to see, correct or delete your data, and withdraw consent at any time."
+      }
+    ]
+  }
+}

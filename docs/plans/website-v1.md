@@ -24,13 +24,18 @@ Credibility + recruit 5–10 pilot farms for Feb–Apr 2027. Primary CTA: **Requ
 - Stitch mockups contain invented numbers — layout reference only, never copied.
 
 ## Steps
-1. Design landing page (desktop + mobile) in Stitch → Farjad Iranmehr approves.
-2. ADR 0003 (website stack + i18n) accepted.
-3. Scaffold `website/` with i18n + RTL-ready layout (logical CSS properties only).
-4. Build landing + privacy in English.
+1. ✅ Design landing page in Stitch → approved by Farjad Iranmehr (2026-11-16).
+2. ✅ ADR 0003 accepted.
+3. ✅ Scaffold `website/` with i18n + RTL-ready layout.
+4. ✅ Landing + privacy (draft) in English. Run: `npm --prefix website run dev`.
 5. Pilot form → Supabase, with consent and spam protection.
 6. QA: Lighthouse ≥ 90, mobile, keyboard/a11y, form end to end → preview deploy.
 7. Then one locale at a time (fr, it, es, bg, fi, tr, ar), each reviewed by a native speaker before going live.
+
+## Open items
+- Contact email and legal entity name for the privacy notice and footer.
+- Privacy notice needs legal review before launch (`legal-compliance-specialist`).
+- Field image is an SVG illustration; swap for a licensed photo later if wanted.
 
 ## Owners
 Design `product-designer` · copy `content-seo-strategist` · code `frontend-developer` · form/db `cp-database` · QA `cp-qa` · lead `cloverproof-lead`.
