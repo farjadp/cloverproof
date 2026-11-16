@@ -1,0 +1,73 @@
+{# Shared UI pieces (docs/design/webapp-ui.md §4). #}
+
+{% macro num(value, digits=1) -%}
+{{ "{:,.{}f}".format(value | float, digits) }}
+{%- endmacro %}
+
+{# An explained number: value + unit + placeholder badge, explanation directly below.
+   Takes an ExplainedNumber dict, so a value can never render without its explanation. #}
+{% macro explained(n, size="", digits=1) -%}
+<div class="explained {{ size }}">
+  {%- if n.explanation %}
+  <span class="value">{{ num(n.value, digits) }} {{ n.unit }}</span>{% if n.uses_placeholder %} {{ placeholder() }}{% endif %}
+  <p class="why">{{ n.explanation }}</p>
+  {%- else %}
+  <span class="value">—</span>
+  <p class="why">No explanation recorded</p>
+  {%- endif %}
+</div>
+{%- endmacro %}
+
+{% macro share(n) -%}
+<div class="explained">
+  {%- if n.explanation %}
+  <span class="value">{{ num(n.value * 100, 0) }}%</span>{% if n.uses_placeholder %} {{ placeholder() }}{% endif %}
+  <p class="why">{{ n.explanation }}</p>
+  {%- else %}
+  <span class="value">—</span>
+  <p class="why">No explanation recorded</p>
+  {%- endif %}
+</div>
+{%- endmacro %}
+
+{% macro placeholder() -%}
+<span class="badge placeholder" title="Uses an unvalidated constant">Placeholder</span>
+{%- endmacro %}
+
+{% macro confidence(level) -%}
+<span class="badge conf-{{ level }}">{{ level | capitalize }} confidence</span>
+{%- endmacro %}
+
+{% macro status(code, labels) -%}
+<span class="badge status-{{ code }}">{{ labels[code] }}</span>
+{%- endmacro %}
+
+{% macro error(errors, name) -%}
+{% if errors[name] %}<p class="field-error" id="{{ name }}-error">Error: {{ errors[name] }}</p>{% endif %}
+{%- endmacro %}
+
+{# Attributes for an input that may be in error. #}
+{% macro invalid(errors, name) -%}
+{% if errors[name] %} aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}
+{%- endmacro %}
+
+{% macro error_summary(errors, action) -%}
+{% if errors %}
+<div class="notice error" role="alert" id="error-summary" tabindex="-1">
+  <p class="notice-title">Fix {{ errors | length }} field{{ "s" if errors | length != 1 }} before {{ action }}.</p>
+  <ul>
+    {% for name, message in errors.items() %}
+    <li>{% if name in ("form", "splits") %}{{ message }}{% else %}<a href="#{{ name }}">{{ message }}</a>{% endif %}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{%- endmacro %}
+
+{% macro breadcrumb(items) -%}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  {%- for label, href in items -%}
+  {% if not loop.first %} / {% endif %}{% if href %}<a href="{{ href }}">{{ label }}</a>{% else %}<span aria-current="page">{{ label }}</span>{% endif %}
+  {%- endfor -%}
+</nav>
+{%- endmacro %}
