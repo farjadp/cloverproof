@@ -7,7 +7,7 @@ import pytest
 import cloverproof_engine
 from cloverproof_engine import recommend
 from cloverproof_engine.confidence import Confidence
-from cloverproof_engine.models import ExtractionMethod, NutrientForm
+from cloverproof_engine.models import ExtractionMethod, NutrientForm, SoilTestSource
 from cloverproof_engine.results import Recommendation
 
 
@@ -41,6 +41,51 @@ def test_soil_test_present_pk_still_not_recommended(
     lab_soil_test, make_input, validated_pack
 ) -> None:
     rec = recommend(make_input(soil_test=lab_soil_test()), validated_pack)
+    assert rec.phosphorus_potassium.code == "PK_NOT_CALCULATED_V0"
+
+
+def test_estimated_soil_test_recommends_soil_test_for_pk(
+    lab_soil_test, make_input, validated_pack
+) -> None:
+    soil = lab_soil_test(source=SoilTestSource.ESTIMATE)
+    rec = recommend(make_input(soil_test=soil), validated_pack)
+    assert rec.phosphorus_potassium.code == "PK_SOIL_TEST_RECOMMENDED"
+    assert "estimate" in rec.phosphorus_potassium.text.lower()
+
+
+def test_lab_test_without_p_or_k_recommends_soil_test_for_pk(
+    lab_soil_test, soil_value, make_input, validated_pack
+) -> None:
+    nitrate = soil_value(
+        NutrientForm.NO3_N, 8.0, ExtractionMethod.OTHER, extraction_method_detail="2 M KCl"
+    )
+    rec = recommend(make_input(soil_test=lab_soil_test(values=[nitrate])), validated_pack)
+    assert rec.phosphorus_potassium.code == "PK_SOIL_TEST_RECOMMENDED"
+    assert "no p or k value" in rec.phosphorus_potassium.text.lower()
+
+
+def test_lab_test_with_no_values_recommends_soil_test_for_pk(
+    lab_soil_test, make_input, validated_pack
+) -> None:
+    rec = recommend(make_input(soil_test=lab_soil_test(values=[])), validated_pack)
+    assert rec.phosphorus_potassium.code == "PK_SOIL_TEST_RECOMMENDED"
+
+
+def test_lab_test_with_p_only_is_not_calculated_v0(
+    lab_soil_test, soil_value, make_input, validated_pack
+) -> None:
+    soil = lab_soil_test(values=[soil_value(NutrientForm.P, 12.0)])
+    rec = recommend(make_input(soil_test=soil), validated_pack)
+    assert rec.phosphorus_potassium.code == "PK_NOT_CALCULATED_V0"
+
+
+def test_lab_test_with_k_only_is_not_calculated_v0(
+    lab_soil_test, soil_value, make_input, validated_pack
+) -> None:
+    k2o = soil_value(
+        NutrientForm.K2O, 180.0, ExtractionMethod.OTHER, extraction_method_detail="ammonium acetate"
+    )
+    rec = recommend(make_input(soil_test=lab_soil_test(values=[k2o])), validated_pack)
     assert rec.phosphorus_potassium.code == "PK_NOT_CALCULATED_V0"
 
 

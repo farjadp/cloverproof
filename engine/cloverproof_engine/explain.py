@@ -109,10 +109,20 @@ def split_total(index: int, split: float, area_ha: float, total: float) -> str:
 # --- notes ---------------------------------------------------------------------
 
 
-def pk_soil_test_recommended() -> str:
+PkTestMissing = Literal["no_test", "estimate", "no_p_or_k_value"]
+
+_PK_TEST_MISSING: dict[str, str] = {
+    "no_test": "No soil test",
+    "estimate": "The soil test is an estimate, not a lab result",
+    "no_p_or_k_value": "The lab soil test has no P or K value",
+}
+
+
+def pk_soil_test_recommended(reason: PkTestMissing) -> str:
     return (
-        "No soil test: phosphorus (P) and potassium (K) are not recommended. "
-        "Recommend a soil test for P and K (record extraction method, depth and date)."
+        f"{_PK_TEST_MISSING[reason]}: phosphorus (P) and potassium (K) are not recommended. "
+        "Recommend a lab soil test for P and K (record extraction method per nutrient, "
+        "depth and date)."
     )
 
 
