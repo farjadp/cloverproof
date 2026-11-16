@@ -1,4 +1,4 @@
-.PHONY: help setup hooks test lint fmt dev golden db-up db-down
+.PHONY: help setup hooks test lint fmt dev golden db-up db-down db-migrate db-seed db-test
 
 help:
 	@echo "make setup    install Python 3.12 and locked deps (uv)"
@@ -10,6 +10,9 @@ help:
 	@echo "make golden   golden report (engine vs expected, report only)"
 	@echo "make db-up    start local Postgres + PostGIS (docker compose)"
 	@echo "make db-down  stop local Postgres (data volume kept)"
+	@echo "make db-migrate  apply db/migrations to DATABASE_URL"
+	@echo "make db-seed     load db/seeds/dev.sql into DATABASE_URL (local hosts only)"
+	@echo "make db-test     DB tests against TEST_DATABASE_URL (superuser, disposable server)"
 
 setup:
 	uv python install 3.12
@@ -42,3 +45,15 @@ db-up:
 
 db-down:
 	docker compose down
+
+# No default URLs on purpose: a wrong default can hit another local Postgres on 5432.
+# Local example: postgresql://postgres:postgres@127.0.0.1:5432/cloverproof
+db-migrate:
+	uv run python -m cloverproof_app.db.migrate up
+
+db-seed:
+	uv run python -m cloverproof_app.db.migrate seed db/seeds/dev.sql
+
+db-test:
+	@test -n "$$TEST_DATABASE_URL" || { echo "TEST_DATABASE_URL is not set"; exit 1; }
+	CP_DB_TESTS_REQUIRED=1 uv run pytest app/tests/db -rs
