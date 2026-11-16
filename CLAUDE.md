@@ -76,4 +76,4 @@ Agronomist minutes per plan. Record it on every review.
 UI source: Google Stitch project https://stitch.google.com/projects/16684636636144399285. Brand: #4C610B, #A7B58A, #FAF6EB, #273125.
 
 ## Agent team
-Farjad Iranmehr talks to **`cloverproof-lead`** only, in a Claude desktop chat. It routes work to the specialists in `.claude/agents/` and returns one result. See `docs/agents.md`.
+Farjad Iranmehr talks to **`product-manager`** (CPO / VP Product) in a Claude desktop chat. The CPO briefs the group heads (`cto`, `head-of-mobile`, `cro`, `coo`, `head-of-data`, `cso`, `ciso`); heads brief specialists; every head reports to `documentation-manager` (Notion). Full roster and cascade: `docs/org.md`. Project agents in `.claude/agents/` override global ones with the same name.

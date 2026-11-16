@@ -1,6 +1,9 @@
 {
-  "agent": "cloverproof-lead",
+  "agent": "product-manager",
   "permissions": {
-    "deny": ["Read(./.env)", "Read(./.env.*)"]
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)"
+    ]
   }
 }
