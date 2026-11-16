@@ -35,7 +35,7 @@ test:
 	uv run pytest
 
 dev:
-	uv run uvicorn cloverproof_app.main:app --reload --host 127.0.0.1 --port 8000
+	uv run uvicorn cloverproof_app.main:create_app --factory --reload --host 127.0.0.1 --port 8000
 
 golden:
 	uv run python -m cloverproof_engine.golden_report --golden-dir engine/tests/golden --packs-dir packs
