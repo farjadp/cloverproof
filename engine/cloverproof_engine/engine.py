@@ -9,7 +9,7 @@ from cloverproof_engine.models import (
     SoilTest,
     SoilTestSource,
 )
-from cloverproof_engine.pack import Pack
+from cloverproof_engine.pack import Pack, pack_sha256
 from cloverproof_engine.results import Note, Recommendation
 from cloverproof_engine.version import ENGINE_VERSION
 
@@ -45,6 +45,7 @@ def recommend(inputs: RecommendationInput, pack: Pack) -> Recommendation:
         pack_id=pack.id,
         pack_version=pack.version,
         pack_status=pack.status,
+        pack_sha256=pack_sha256(pack),
         crop=inputs.crop.value,
         nitrogen=nitrogen,
         phosphorus_potassium=pk,

@@ -8,6 +8,7 @@ import cloverproof_engine
 from cloverproof_engine import recommend
 from cloverproof_engine.confidence import Confidence
 from cloverproof_engine.models import ExtractionMethod, NutrientForm, SoilTestSource
+from cloverproof_engine.pack import pack_sha256
 from cloverproof_engine.results import Recommendation
 
 
@@ -19,6 +20,7 @@ def test_envelope(make_input, placeholder_pack) -> None:
     assert rec.pack_id == "placeholder"
     assert rec.pack_version == "v0"
     assert rec.pack_status == "placeholder"
+    assert rec.pack_sha256 == pack_sha256(placeholder_pack)
     assert rec.crop == "wheat"
     assert rec.nitrogen.rate.value == pytest.approx(175.0)
     assert rec.input_snapshot == inputs.model_dump(mode="json")

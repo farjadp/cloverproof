@@ -76,6 +76,8 @@ class Recommendation(_Frozen):
     pack_id: str
     pack_version: str
     pack_status: str
+    # SHA-256 of the canonical parsed pack (cloverproof_engine.pack.pack_sha256).
+    pack_sha256: str
     crop: str
     nitrogen: NutrientResult
     phosphorus_potassium: Note

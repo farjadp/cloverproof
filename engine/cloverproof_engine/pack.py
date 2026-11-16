@@ -2,8 +2,17 @@
 
 Parsing takes an already-loaded mapping (`parse_pack`); file reading lives in
 `loaders.py` so calculation code never does I/O.
+
+Pack fingerprint (`pack_sha256`): SHA-256 of the *parsed, validated* pack in
+canonical JSON, not of the YAML bytes. Canonical form = `Pack.model_dump(mode="json")`
+serialised with sorted keys, no whitespace (separators "," and ":"), UTF-8,
+ensure_ascii off. Consequences: comments, YAML layout, mapping key order and
+int-vs-float spelling (30 vs 30.0) do not change the hash; any value, unit,
+status, source, label, description, method id or list order (e.g. splits) does.
 """
 
+import hashlib
+import json
 import math
 from collections.abc import Iterator
 from enum import StrEnum
@@ -163,3 +172,19 @@ def _walk(node: Any) -> Iterator[PackConstant]:
 def parse_pack(data: dict[str, Any]) -> Pack:
     """Validate an already-loaded pack mapping."""
     return Pack.model_validate(data)
+
+
+def canonical_pack_json(pack: Pack) -> str:
+    """Deterministic JSON of the parsed pack (see module docstring)."""
+    return json.dumps(
+        pack.model_dump(mode="json"),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
+
+
+def pack_sha256(pack: Pack) -> str:
+    """Hex SHA-256 of `canonical_pack_json(pack)`. Recorded on every recommendation."""
+    return hashlib.sha256(canonical_pack_json(pack).encode("utf-8")).hexdigest()

@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from cloverproof_engine.loaders import load_pack
 from cloverproof_engine.models import Crop
-from cloverproof_engine.pack import ConstantStatus, Pack, parse_pack
+from cloverproof_engine.pack import ConstantStatus, Pack, pack_sha256, parse_pack
 
 PACK_PATH = Path(__file__).resolve().parents[2] / "packs" / "placeholder" / "v0.yaml"
 
@@ -155,3 +155,57 @@ def test_previous_crop_options_come_from_pack() -> None:
     options = pack.crops[Crop.WHEAT].nitrogen.previous_crop_credits
     assert options, "pack lists no previous crops"
     assert all(key == key.strip().lower() for key in options)
+
+
+# --- pack_sha256 ---------------------------------------------------------------
+
+
+def test_pack_sha256_is_stable() -> None:
+    first, second = load_pack(PACK_PATH), load_pack(PACK_PATH)
+    digest = pack_sha256(first)
+    assert digest == pack_sha256(second)
+    assert len(digest) == 64
+    assert all(ch in "0123456789abcdef" for ch in digest)
+
+
+def test_pack_sha256_same_from_file_and_from_mapping(raw: dict[str, Any]) -> None:
+    assert pack_sha256(parse_pack(raw)) == pack_sha256(load_pack(PACK_PATH))
+
+
+def test_pack_sha256_ignores_yaml_layout_comments_and_key_order(
+    raw: dict[str, Any], tmp_path: Path
+) -> None:
+    reordered = copy.deepcopy(raw)
+    credits = reordered["crops"]["wheat"]["nitrogen"]["previous_crop_credits"]
+    reordered["crops"]["wheat"]["nitrogen"]["previous_crop_credits"] = dict(
+        reversed(list(credits.items()))
+    )
+    path = tmp_path / "v0.yaml"
+    path.write_text(yaml.safe_dump(reordered, sort_keys=False), encoding="utf-8")
+    assert pack_sha256(load_pack(path)) == pack_sha256(load_pack(PACK_PATH))
+
+
+def test_pack_sha256_int_and_float_values_hash_the_same(raw: dict[str, Any]) -> None:
+    as_float = copy.deepcopy(raw)
+    supply = as_float["crops"]["wheat"]["nitrogen"]["soil_n_supply"]
+    supply["value"] = float(supply["value"])
+    assert pack_sha256(parse_pack(as_float)) == pack_sha256(parse_pack(raw))
+
+
+def test_pack_sha256_changes_when_a_value_changes(raw: dict[str, Any]) -> None:
+    changed = copy.deepcopy(raw)
+    changed["crops"]["wheat"]["nitrogen"]["soil_n_supply"]["value"] += 1
+    assert pack_sha256(parse_pack(changed)) != pack_sha256(parse_pack(raw))
+
+
+def test_pack_sha256_changes_when_a_label_changes(raw: dict[str, Any]) -> None:
+    changed = copy.deepcopy(raw)
+    supply = changed["crops"]["wheat"]["nitrogen"]["soil_n_supply"]
+    supply["status"], supply["source"] = "VALIDATED", "TEST FIXTURE ONLY"
+    assert pack_sha256(parse_pack(changed)) != pack_sha256(parse_pack(raw))
+
+
+def test_pack_sha256_changes_when_split_order_changes(raw: dict[str, Any]) -> None:
+    changed = copy.deepcopy(raw)
+    changed["crops"]["wheat"]["nitrogen"]["splits"].reverse()
+    assert pack_sha256(parse_pack(changed)) != pack_sha256(parse_pack(raw))
