@@ -21,7 +21,7 @@ Every plan must record: the engine output AND the agronomist's final numbers + r
 10. No secrets in git. Use `.env` (and `.env.example` with empty values).
 
 ## Stack (Phase 0–3)
-- **Database:** Supabase (Postgres + PostGIS, Auth, Storage). RLS by organisation from day one.
+- **Hosting + database:** Railway (ADR 0004). Railway Postgres; server-only DB access. Auth/storage for the web app decided in its own ADR. (Supabase was the original choice.)
 - **Engine:** pure Python package (`engine/`), no I/O, no DB calls. Fully unit-tested.
 - **Internal tool:** one Python service — FastAPI + Jinja2 + HTMX (`app/`).
 - **PDF:** HTML templates → WeasyPrint (`app/pdf/`), SHA-256 hash stored per document.
@@ -44,7 +44,7 @@ engine/                 pure calculation library
     golden/             agronomist-approved cases (YAML: input -> expected)
 packs/
   placeholder/v0.yaml   NOT real agronomy; labelled placeholder
-supabase/migrations/    SQL migrations (schema, RLS)
+website/db/migrations/  SQL migrations (moves to a shared location when the web app arrives)
 app/                    FastAPI internal tool + PDF templates
 docs/
   adr/                  architecture decision records (one file per decision)
