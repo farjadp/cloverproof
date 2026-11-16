@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="htmx-config" content='{"includeIndicatorStyles": false, "allowEval": false}'>
+  <meta name="htmx-config" content='{"includeIndicatorStyles": false, "allowEval": false, "historyCacheSize": 0}'>
   <title>{% block title %}CloverProof{% endblock %} · CloverProof</title>
-  <link rel="preload" href="{{ url_for('static', path='fonts/source-sans-3-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="{{ url_for('static', path='fonts/source-serif-4-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
-  <link rel="icon" href="{{ url_for('static', path='logo.svg') }}" type="image/svg+xml">
-  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}">
-  <script src="{{ url_for('static', path='vendor/htmx-2.0.11.min.js') }}" defer></script>
+  <link rel="preload" href="/static/fonts/source-sans-3-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/source-serif-4-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/vendor/htmx-2.0.11.min.js" defer></script>
 </head>
 <body{% if csrf_token %} hx-headers='{{ {"X-CSRF-Token": csrf_token} | tojson }}'{% endif %}>
   <a class="skip-link" href="#main">Skip to content</a>

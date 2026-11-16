@@ -21,6 +21,9 @@ MIN_SECRET_LENGTH = 32
 ALLOWED_ENVS = frozenset({"development", "test", "staging", "production"})
 _HEADER_NAME = re.compile(r"^[A-Za-z0-9-]+$")
 LOCAL_DB_HOSTS = frozenset({"", "localhost", "127.0.0.1", "::1"})
+DEPLOYED_ENVS = frozenset({"staging", "production"})
+DEV_ALLOWED_HOSTS = ("localhost", "127.0.0.1")
+TEST_ALLOWED_HOSTS = ("testserver", *DEV_ALLOWED_HOSTS)  # Starlette TestClient's host
 
 
 class ConfigError(RuntimeError):
@@ -81,6 +84,12 @@ class Settings:
     db_pool_max_size: int = 5
     # Empty = the repo's packs/placeholder/v0.yaml (resolved in main.py).
     pack_path: str = ""
+    # S6: Host header allow-list (TrustedHostMiddleware). Required in staging/production;
+    # empty in development/test = localhost and 127.0.0.1 (+ testserver for tests).
+    allowed_hosts: tuple[str, ...] = ()
+    # S8: HSTS max-age=31536000 in staging/production; includeSubDomains only when every
+    # subdomain of the custom domain serves HTTPS.
+    hsts_include_subdomains: bool = False
 
     def __post_init__(self) -> None:
         if not self.database_url.strip():
@@ -93,6 +102,15 @@ class Settings:
             raise ConfigError(f"ENV must be one of {', '.join(sorted(ALLOWED_ENVS))}")
         if self.env in {"staging", "production"} and not self.cookie_secure:
             raise ConfigError("COOKIE_SECURE cannot be false in staging or production")
+        if self.env in DEPLOYED_ENVS:
+            if not self.allowed_hosts or "*" in self.allowed_hosts:
+                raise ConfigError(
+                    "ALLOWED_HOSTS is required in staging or production"
+                    " (comma-separated host names, no *)"
+                )
+        elif not self.allowed_hosts:
+            default = TEST_ALLOWED_HOSTS if self.env == "test" else DEV_ALLOWED_HOSTS
+            object.__setattr__(self, "allowed_hosts", default)
         if self.trusted_proxy_header and not _HEADER_NAME.match(self.trusted_proxy_header):
             raise ConfigError("TRUSTED_PROXY_HEADER must be one header name, e.g. X-Real-IP")
 
@@ -113,6 +131,13 @@ class Settings:
             )
         if env.get("COOKIE_SECURE"):
             optional["cookie_secure"] = _bool("COOKIE_SECURE", env["COOKIE_SECURE"])
+        if env.get("HSTS_INCLUDE_SUBDOMAINS"):
+            optional["hsts_include_subdomains"] = _bool(
+                "HSTS_INCLUDE_SUBDOMAINS", env["HSTS_INCLUDE_SUBDOMAINS"]
+            )
+        hosts = tuple(h.strip() for h in env.get("ALLOWED_HOSTS", "").split(",") if h.strip())
+        if hosts:
+            optional["allowed_hosts"] = hosts
         if env.get("TRUSTED_PROXY_HEADER"):
             optional["trusted_proxy_header"] = env["TRUSTED_PROXY_HEADER"].strip()
         if env.get("PACK_PATH"):

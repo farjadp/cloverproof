@@ -17,10 +17,11 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.responses import PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from cloverproof_app import account, security
 from cloverproof_app.auth import SESSION_COOKIE, NotAuthenticated, OrgSelectionRequired, csrf_guard
-from cloverproof_app.config import ConfigError, Settings
+from cloverproof_app.config import DEPLOYED_ENVS, ConfigError, Settings
 from cloverproof_app.db.migrate import REPO_ROOT
 from cloverproof_app.db.pool import Database, PooledDatabase, check_least_privilege
 from cloverproof_app.plan_web import router as plan_router
@@ -37,7 +38,7 @@ from cloverproof_engine.loaders import load_pack
 from cloverproof_engine.pack import Pack
 
 STATIC_DIR = Path(__file__).parent / "static"
-DEPLOYED_ENVS = frozenset({"staging", "production"})
+HSTS = "max-age=31536000"
 DEFAULT_PACK_PATH = REPO_ROOT / "packs" / "placeholder" / "v0.yaml"
 SERVER_ERROR = (
     "Something went wrong and nothing was saved. Try again."
@@ -140,12 +141,18 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
     app.state.login_guard = login_guard
     app.state.login_limiter = login_guard.pair  # (email, IP) limit, also used by account.py
 
+    headers = dict(SECURITY_HEADERS)
+    if settings.env in DEPLOYED_ENVS:  # S8: TLS ends at the proxy; browsers must stay on https
+        headers["Strict-Transport-Security"] = HSTS + (
+            "; includeSubDomains" if settings.hsts_include_subdomains else ""
+        )
+
     @app.middleware("http")
     async def security_headers(
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         response = await call_next(request)
-        for name, value in SECURITY_HEADERS.items():
+        for name, value in headers.items():
             response.headers.setdefault(name, value)
         if not request.url.path.startswith("/static/"):
             response.headers.setdefault("Cache-Control", "no-store")
@@ -210,6 +217,8 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
     def healthz() -> dict[str, str]:
         return {"status": "ok"}
 
+    # S6: refuse requests for other Host names (added last, so it runs first).
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.allowed_hosts))
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     app.include_router(router)
     app.include_router(plan_router)

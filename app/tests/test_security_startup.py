@@ -81,7 +81,7 @@ class FakeDatabase:
 
 
 def production(**overrides: object) -> Settings:
-    values: dict[str, object] = {"env": "production"}
+    values: dict[str, object] = {"env": "production", "allowed_hosts": ("testserver",)}
     values.update(overrides)
     return make_settings(**values)
 
