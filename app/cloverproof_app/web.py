@@ -151,7 +151,8 @@ def login(
 
     creds = users.get_credentials_by_email(conn, email) if email else None
     ok, new_hash = security.verify_password(password, creds.password_hash if creds else None)
-    if not ok or creds is None or creds.disabled_at is not None:
+    # Disabled, service (B1) and expired temporary passwords (N11) look like a wrong password.
+    if not ok or creds is None or not creds.can_sign_in:
         guard.record_failure(email, ip)
         log.info("login failed")  # no email or IP in logs (PII)
         return login_page(
@@ -159,6 +160,7 @@ def login(
         )
 
     guard.record_success(email, ip)
+    users.set_actor(conn, creds.id)
     if new_hash:
         users.set_password_hash(conn, creds.id, new_hash)
     old = session_token_hash(request)

@@ -8,6 +8,8 @@ logged. Without a terminal it reads one line from stdin (for scripted setup).
 Running it again for an existing email adds the membership; `--reset-password` also
 replaces the password with a temporary one: all the user's sessions are revoked and they
 must choose a new password at next sign-in (owners can also reset in /admin/users).
+Accounts created here are human (actor_kind = 'human'); service accounts are refused (B1).
+Changes are recorded in admin_event by trigger with the database login as the actor (F2).
 
     ... cli user-unlock --email name@example.org
         Clears the per-account sign-in pause (security review S1) in the running app,
@@ -95,6 +97,10 @@ def user_create(
             created_user = password_set = True
         else:
             user_id, created_user = existing.id, False
+            if existing.actor_kind != "human":
+                # B1/D4: this command manages people. A service account (AI reviewer) gets
+                # no password and no roles from here.
+                raise CliError("that is a service account; this command manages human accounts")
             if existing.disabled_at is not None:
                 raise CliError("that account is disabled; re-enable it in /admin/users first")
             if reset_password:

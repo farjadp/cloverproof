@@ -61,6 +61,11 @@ class CurrentUser:
     display_name: str
     session_id: UUID
     token_sha256: str
+    actor_kind: str = "human"
+
+    @property
+    def is_human(self) -> bool:
+        return self.actor_kind == "human"
 
 
 @dataclass(frozen=True)
@@ -102,7 +107,10 @@ def optional_user(request: Request, conn: Conn, settings: SettingsDep) -> Curren
         return None
     if datetime.now(UTC) - live.last_seen_at > TOUCH_EVERY:
         sessions.touch_session(conn, live.session_id)
-    user = CurrentUser(live.user_id, live.email, live.display_name, live.session_id, token_hash)
+    user = CurrentUser(
+        live.user_id, live.email, live.display_name, live.session_id, token_hash, live.actor_kind
+    )
+    users.set_actor(conn, user.id)  # F2: admin_event records this user for the request
     request.state.user = user
     request.state.csrf_token = security.csrf_token(settings.session_secret, token_hash)
     return user
