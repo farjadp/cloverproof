@@ -14,16 +14,18 @@
   --ivory: #faf6eb;
   --ink: #273125;
   --ink-soft: #4d5a4a;
-  --danger: #8a1c12;
-  --danger-soft: #f6e3df;
-  --white: #fffdf7;
+  --rule: #ddd6c3;
+  --border-input: #8f8a78; /* form control borders, 3:1 non-text contrast */
+  --danger: #9a2a1e;
+  --danger-soft: #f7e1da;
+  --white: #ffffff;
 
   --font-serif: "Source Serif 4", "Source Serif Pro", "Iowan Old Style", "Palatino Linotype",
     Palatino, "Book Antiqua", Georgia, serif;
   --font-sans: "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans",
     sans-serif;
 
-  --radius: 6px;
+  --radius: 4px;
   --space: 1rem;
 }
 
@@ -58,7 +60,7 @@ a:hover { color: var(--olive-deep); }
   display: flex; align-items: center; justify-content: space-between; gap: var(--space);
   padding: 0.75rem 1.5rem;
   background: var(--white);
-  border-bottom: 1px solid var(--sage);
+  border-bottom: 1px solid var(--rule);
 }
 .brand { display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; color: var(--ink); }
 .brand img { width: 28px; height: 31px; }
@@ -79,7 +81,7 @@ input[type="email"], input[type="password"], input[type="text"], select {
   padding: 0.55rem 0.7rem;
   color: var(--ink);
   background: var(--white);
-  border: 1px solid var(--ink-soft);
+  border: 1px solid var(--border-input);
   border-radius: var(--radius);
 }
 input:focus-visible, select:focus-visible { border-color: var(--olive); }
@@ -103,7 +105,7 @@ input:focus-visible, select:focus-visible { border-color: var(--olive); }
 .alert {
   margin: 0 0 1rem;
   padding: 0.75rem 1rem;
-  border-left: 4px solid var(--danger);
+  border-left: 3px solid var(--danger);
   background: var(--danger-soft);
   color: var(--danger);
   border-radius: 0 var(--radius) var(--radius) 0;
@@ -112,7 +114,7 @@ input:focus-visible, select:focus-visible { border-color: var(--olive); }
 /* Panels: one level only, never nested. */
 .panel {
   background: var(--white);
-  border: 1px solid var(--sage);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: 1.5rem;
 }
@@ -132,3 +134,19 @@ td.num, th.num { text-align: right; }
 .org-list { list-style: none; padding: 0; margin: 0; }
 .org-list li + li { margin-top: 0.5rem; }
 .org-list button { width: 100%; text-align: left; }
+
+.notice {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--olive);
+  background: var(--sage-soft);
+}
+
+/* Login: two columns from 960px, one below. */
+main.login { max-width: 60rem; }
+.login-grid { display: grid; gap: 2rem; align-items: start; }
+@media (min-width: 960px) { .login-grid { grid-template-columns: 1fr 24rem; gap: 3rem; } }
+.login-intro { color: var(--ink-soft); max-width: 42rem; }
+.login-intro h1 { color: var(--ink); font-size: 2.125rem; }
+.kicker { font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 0.5rem; }
+.footer-line { font-size: 0.8125rem; color: var(--ink-soft); margin-top: 3rem; }

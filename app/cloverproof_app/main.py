@@ -16,11 +16,11 @@ from fastapi.responses import PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from cloverproof_app.auth import NotAuthenticated, OrgSelectionRequired, csrf_guard
+from cloverproof_app.auth import SESSION_COOKIE, NotAuthenticated, OrgSelectionRequired, csrf_guard
 from cloverproof_app.config import Settings
 from cloverproof_app.db.pool import Database, PooledDatabase
 from cloverproof_app.ratelimit import LoginRateLimiter
-from cloverproof_app.web import render, router
+from cloverproof_app.web import LOGIN_FORM_EXPIRED, clear_cookie, login_page, render, router
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -94,8 +94,15 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
         target = request.url.path
         if request.url.query:
             target += "?" + request.url.query
-        url = "/login" if target == "/" else f"/login?next={quote(target, safe='')}"
-        return redirect(request, url, 401)
+        params = [] if target == "/" else [f"next={quote(target, safe='')}"]
+        stale = SESSION_COOKIE in request.cookies  # had a session that is no longer valid
+        if stale:
+            params.append("expired=1")
+        url = "/login" + ("?" + "&".join(params) if params else "")
+        response = redirect(request, url, 401)
+        if stale:
+            clear_cookie(response, request.app.state.settings, SESSION_COOKIE)
+        return response
 
     @app.exception_handler(OrgSelectionRequired)
     async def org_selection_required(request: Request, _: OrgSelectionRequired) -> Response:
@@ -103,6 +110,9 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request: Request, error: StarletteHTTPException) -> Response:
+        if request.url.path == "/login" and error.status_code == 403:
+            settings_ = request.app.state.settings
+            return login_page(request, settings_, error=LOGIN_FORM_EXPIRED, status=403)
         if wants_html(request):
             return render(
                 request, "error.html", {"status": error.status_code, "detail": error.detail},

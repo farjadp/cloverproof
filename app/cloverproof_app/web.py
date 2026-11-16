@@ -37,9 +37,12 @@ log = logging.getLogger(__name__)
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 router = APIRouter()
 
-LOGIN_FAILED = "Email or password is incorrect, or the account is disabled."
-LOGIN_BLOCKED = "Too many failed attempts. Wait {minutes} minutes, then try again."
-LOGIN_EXPIRED = "The login form expired. Please sign in again."
+# Copy from docs/design/webapp-ui.md §3.1. One generic failure message (unknown email,
+# wrong password and disabled account look the same).
+LOGIN_FAILED = "Email or password is incorrect."
+LOGIN_BLOCKED = "Too many attempts. Wait {minutes} minutes and try again."
+LOGIN_FORM_EXPIRED = "This form expired. Reload the page and sign in again."
+SIGNED_OUT = "You were signed out. Sign in again to continue."
 
 
 def render(request: Request, name: str, context: dict[str, Any], status: int = 200) -> Response:
@@ -84,13 +87,19 @@ def client_ip(request: Request) -> str:
 
 def login_page(
     request: Request, settings: Settings, *, email: str = "", next_url: str = "/",
-    error: str | None = None, status: int = 200,
+    error: str | None = None, info: str | None = None, status: int = 200,
 ) -> Response:  # fmt: skip
     token = security.new_token()
     response = render(
         request,
         "login.html",
-        {"login_csrf": token, "email": email, "next": safe_next(next_url), "error": error},
+        {
+            "login_csrf": token,
+            "email": email,
+            "next": safe_next(next_url),
+            "error": error,
+            "info": info,
+        },
         status,
     )
     set_cookie(response, settings, LOGIN_CSRF_COOKIE, token, max_age=3600)
@@ -103,10 +112,11 @@ def login_form(
     settings: SettingsDep,
     user: Annotated[CurrentUser | None, Depends(optional_user)],
     next: str = "/",
+    expired: bool = False,
 ) -> Response:
     if user is not None:
         return RedirectResponse(safe_next(next), status_code=303)
-    return login_page(request, settings, next_url=next)
+    return login_page(request, settings, next_url=next, info=SIGNED_OUT if expired else None)
 
 
 @router.post("/login")

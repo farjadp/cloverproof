@@ -152,7 +152,7 @@ def test_rate_limit_blocks_even_the_right_password(db: psycopg.Connection, agron
         assert login(client, agronomist, "wrong password here").status_code == 401
     blocked = login(client, agronomist, PASSWORD)
     assert blocked.status_code == 429
-    assert "Too many failed attempts" in blocked.text
+    assert "Too many attempts" in blocked.text
     assert "cp_session" not in client.cookies
     # Another email from the same client is not blocked.
     assert login(client, "other@example.org", "x" * 12).status_code == 401
@@ -164,7 +164,8 @@ def test_idle_session_expires(db: psycopg.Connection, agronomist: str) -> None:
     assert client.get("/").status_code == 200
     db.execute("update user_session set last_seen_at = now() - interval '31 minutes'")
     response = client.get("/", headers={"accept": "text/html"})
-    assert response.status_code == 303 and response.headers["location"] == "/login"
+    assert response.status_code == 303 and response.headers["location"] == "/login?expired=1"
+    assert "You were signed out" in client.get("/login?expired=1").text
 
 
 def test_absolute_session_expiry(db: psycopg.Connection, agronomist: str) -> None:
@@ -230,6 +231,7 @@ def test_login_post_needs_login_csrf(db: psycopg.Connection, agronomist: str) ->
     login_csrf(client)
     response = client.post("/login", data={"email": agronomist, "password": PASSWORD})
     assert response.status_code == 403
+    assert "This form expired" in response.text
     assert "cp_session" not in client.cookies
 
 
