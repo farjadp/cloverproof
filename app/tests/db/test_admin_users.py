@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from cloverproof_app import account, cli, security
 from cloverproof_app.repo import admin_users
 
-from .conftest import Org, insert
+from .conftest import Org, as_role, insert
 from .test_account import NEW_PASSWORD, change, client, signed_in
 from .test_web_auth import PASSWORD, email_of, login, page_csrf, with_password
 
@@ -120,7 +120,7 @@ def test_owner_creates_user_and_temp_login_forces_change(
         "/admin/users",
         email="New.Person@example.org",
         display_name="New Person",
-        role="agronomist",
+        role="staff",
     )
     assert response.status_code == 200 and "shown only now" in response.text
     match = TEMP_RE.search(response.text)
@@ -135,7 +135,7 @@ def test_owner_creates_user_and_temp_login_forces_change(
     user_id, stored, required = row
     assert required is True and stored.startswith("$argon2id$") and temp not in stored
     member = admin_users.get_member(db, org_a.id, user_id)
-    assert member is not None and member.roles == ["agronomist"]
+    assert member is not None and member.roles == ["staff"]
     # Shown once: the list page does not show it again.
     assert temp not in c.get("/admin/users").text
 
@@ -171,6 +171,10 @@ def test_create_user_validation_and_duplicate(
     assert bad.status_code == 422
     for text in ("Enter an email address", "1 to 200 characters", "Choose a role"):
         assert text in bad.text
+    for role in ("agronomist", "owner"):
+        cli_only = post(c, "/admin/users", email="z@example.org", display_name="Z", role=role)
+        assert cli_only.status_code == 422 and "user-create command" in cli_only.text
+    assert not admin_users.email_exists(db, "z@example.org")
     # Exists already (even in another org, any case): refused, nothing changed.
     dup = post(c, "/admin/users", email="AGRO-B@example.org", display_name="Dup", role="staff")
     assert dup.status_code == 409 and "already exists" in dup.text
@@ -238,47 +242,80 @@ def test_disable_revokes_sessions_and_enable_restores(
     assert login(client(db), staff_email).status_code == 303
 
 
-def test_last_owner_cannot_demote_or_disable_self(
+def test_owner_cannot_change_agronomist_or_owner_roles(
     db: psycopg.Connection, org_a: Org, owner: UUID
 ) -> None:
     c = owner_client(db)
-    demote = post(c, f"/admin/users/{owner}/roles", roles="agronomist")
-    assert demote.status_code == 409 and "last owner" in demote.text
+    page = c.get(f"/admin/users/{org_a.agronomist}")
+    assert "change via CLI" in page.text
+    assert 'name="roles" value="agronomist"' not in page.text
+    assert 'name="roles" value="owner"' not in page.text
+    for target, roles in (
+        (org_a.staff, ["staff", "agronomist"]),
+        (org_a.staff, ["staff", "owner"]),
+        (owner, ["agronomist", "owner"]),
+    ):
+        response = post(c, f"/admin/users/{target}/roles", roles=roles)
+        assert response.status_code == 409 and "user-create command" in response.text
+    assert admin_users.get_member(db, org_a.id, org_a.staff).roles == ["staff"]  # type: ignore[union-attr]
+    # Not posting a CLI-only role does not remove it.
+    assert post(c, f"/admin/users/{owner}/roles").status_code == 303
+    assert post(c, f"/admin/users/{org_a.agronomist}/roles", roles="staff").status_code == 303
+    assert admin_users.get_member(db, org_a.id, owner).roles == ["owner"]  # type: ignore[union-attr]
+    assert admin_users.get_member(db, org_a.id, org_a.agronomist).roles == [  # type: ignore[union-attr]
+        "agronomist",
+        "staff",
+    ]
+    # Re-posting a CLI-only role the member already holds is a no-op, not an error.
+    kept = post(c, f"/admin/users/{org_a.agronomist}/roles", roles=["agronomist"])
+    assert kept.status_code == 303
+    assert admin_users.get_member(db, org_a.id, org_a.agronomist).roles == ["agronomist"]  # type: ignore[union-attr]
+
+
+def test_owner_cannot_reset_agronomist_or_owner_password(
+    db: psycopg.Connection, org_a: Org, owner: UUID
+) -> None:
+    second = insert(db, "app_user", email="owner2-a@example.org", display_name="Owner 2")
+    insert(db, "membership", organisation_id=org_a.id, user_id=second, role="owner")
+    c = owner_client(db)
+    assert "Reset password" not in c.get(f"/admin/users/{org_a.agronomist}").text
+    for target in (org_a.agronomist, second):
+        before = flags(db, target)
+        response = post(c, f"/admin/users/{target}/reset-password")
+        assert response.status_code == 409 and "--reset-password" in response.text
+        assert flags(db, target) == before
+
+
+def test_last_owner_cannot_disable_self(db: psycopg.Connection, org_a: Org, owner: UUID) -> None:
+    c = owner_client(db)
     disable = post(c, f"/admin/users/{owner}/disable")
     assert disable.status_code == 409 and "last owner" in disable.text
-    assert admin_users.get_member(db, org_a.id, owner).roles == ["owner"]  # type: ignore[union-attr]
     assert flags(db, owner)[1] is False
     assert c.get("/admin/users").status_code == 200
 
-    # With a second enabled owner, demoting yourself is allowed.
-    assert (
-        post(c, f"/admin/users/{org_a.agronomist}/roles", roles=["owner", "agronomist"]).status_code
-        == 303
-    )
-    assert post(c, f"/admin/users/{owner}/roles", roles="staff").status_code == 303
-    assert c.get("/admin/users", headers={"accept": "text/html"}).status_code == 403
+    # With a second enabled owner (added by an operator), disabling yourself is allowed.
+    insert(db, "membership", organisation_id=org_a.id, user_id=org_a.agronomist, role="owner")
+    response = post(c, f"/admin/users/{owner}/disable")
+    assert response.status_code == 303 and response.headers["location"] == "/login"
+    assert flags(db, owner)[1] is True
 
 
 def test_disabled_owner_does_not_count(db: psycopg.Connection, org_a: Org, owner: UUID) -> None:
     insert(db, "membership", organisation_id=org_a.id, user_id=org_a.staff, role="owner")
     db.execute("update app_user set disabled_at = now() where id = %s", (org_a.staff,))
-    demote = post(owner_client(db), f"/admin/users/{owner}/roles", roles="agronomist")
-    assert demote.status_code == 409
+    disable = post(owner_client(db), f"/admin/users/{owner}/disable")
+    assert disable.status_code == 409 and "last owner" in disable.text
 
 
-def test_roles_replace_internal_roles_and_keep_farmer(
-    db: psycopg.Connection, org_a: Org, owner: UUID
-) -> None:
+def test_roles_set_staff_and_keep_farmer(db: psycopg.Connection, org_a: Org, owner: UUID) -> None:
     insert(db, "membership", organisation_id=org_a.id, user_id=org_a.staff, role="farmer")
     c = owner_client(db)
     none = post(c, f"/admin/users/{org_a.staff}/roles")
     assert none.status_code == 409 and "at least one role" in none.text
     unknown = post(c, f"/admin/users/{org_a.staff}/roles", roles=["farmer"])
     assert unknown.status_code == 409
-    ok = post(c, f"/admin/users/{org_a.staff}/roles", roles=["agronomist", "owner"])
-    assert ok.status_code == 303
     member = admin_users.get_member(db, org_a.id, org_a.staff)
-    assert member is not None and member.roles == ["owner", "agronomist", "farmer"]
+    assert member is not None and member.roles == ["staff", "farmer"]
 
 
 def test_admin_posts_need_csrf(db: psycopg.Connection, org_a: Org, owner: UUID) -> None:
@@ -295,10 +332,11 @@ def test_cli_reset_password_sets_flag_and_revokes(db: psycopg.Connection, org_a:
     with_password(db, org_a.agronomist)
     agro_email = email_of(db, org_a.agronomist)
     signed = signed_in(db, agro_email)
-    result = cli.user_create(
-        db, email=agro_email, org=str(org_a.id), role="agronomist", display_name=None,
-        create_org=False, reset_password=True, read_password=lambda: "temporary password 1",
-    )  # fmt: skip
+    with as_role(db, "cp_admin"):  # the CLI logs in as cp_admin_login (ADR 0006)
+        result = cli.user_create(
+            db, email=agro_email, org=str(org_a.id), role="agronomist", display_name=None,
+            create_org=False, reset_password=True, read_password=lambda: "temporary password 1",
+        )  # fmt: skip
     assert result.password_set
     required, _, stored = flags(db, org_a.agronomist)
     assert required is True and security.verify_password("temporary password 1", stored)[0]

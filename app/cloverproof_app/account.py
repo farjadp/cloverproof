@@ -32,7 +32,7 @@ from cloverproof_app.auth import (
 )
 from cloverproof_app.ratelimit import LoginRateLimiter
 from cloverproof_app.repo import admin_users
-from cloverproof_app.repo.admin_users import MANAGED_ROLES, AdminError
+from cloverproof_app.repo.admin_users import CLI_ONLY, CLI_ONLY_ROLES, WEB_ROLES, AdminError
 from cloverproof_app.web import client_ip, render
 
 log = logging.getLogger(__name__)
@@ -208,7 +208,8 @@ def _users_page(
         {
             "members": admin_users.list_members(conn, context.org.id),
             "role_label": role_label,
-            "roles": [(r, ROLE_LABELS[r]) for r in MANAGED_ROLES],
+            "roles": [(r, ROLE_LABELS[r]) for r in WEB_ROLES],
+            "cli_roles": [ROLE_LABELS[r] for r in CLI_ONLY_ROLES],
             "form": form or {"email": "", "display_name": "", "role": "staff"},
             "errors": errors or {},
             "created": created,
@@ -237,7 +238,9 @@ def users_create(
         errors["email"] = "Enter an email address like name@example.org."
     if not 1 <= len(form["display_name"]) <= 200:
         errors["display_name"] = "Enter a name of 1 to 200 characters."
-    if role not in MANAGED_ROLES:
+    if role in CLI_ONLY_ROLES:
+        errors["role"] = CLI_ONLY
+    elif role not in WEB_ROLES:
         errors["role"] = "Choose a role."
     if errors:
         return _users_page(request, conn, context, form=form, errors=errors, status=422)
@@ -247,6 +250,7 @@ def users_create(
         with conn.transaction():
             user_id = admin_users.create_member(
                 conn,
+                actor_id=context.user.id,
                 org_id=context.org.id,
                 email=form["email"],
                 display_name=form["display_name"],
@@ -281,7 +285,8 @@ def _member_page(
             "member": member,
             "is_self": member.id == context.user.id,
             "role_label": role_label,
-            "roles": [(r, ROLE_LABELS[r]) for r in MANAGED_ROLES],
+            "roles": [(r, ROLE_LABELS[r]) for r in WEB_ROLES],
+            "cli_roles": [(r, ROLE_LABELS[r]) for r in CLI_ONLY_ROLES],
             "error": error,
             "notice": notice,
             "temp_password": temp_password,
@@ -333,7 +338,9 @@ def member_roles(
         conn,
         context,
         user_id,
-        lambda: admin_users.set_roles(conn, org_id=context.org.id, user_id=user_id, roles=chosen),
+        lambda: admin_users.set_roles(
+            conn, actor_id=context.user.id, org_id=context.org.id, user_id=user_id, roles=chosen
+        ),
         "roles",
     )
 

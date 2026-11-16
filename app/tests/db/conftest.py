@@ -6,10 +6,12 @@ never touch a database by accident. Without it, or if the server is unreachable,
 test here is skipped and CI stays green (unless CP_DB_TESTS_REQUIRED=1, as in `make db-test`).
 
 Each session creates a throwaway database `cp_test_<random>`, migrates it and drops it.
-The cluster-wide roles cp_migrator and cp_app are created on that server if missing.
+The cluster-wide roles (cp_migrator, cp_app, cp_admin, cp_website) are created on that
+server if missing.
 
 Tests run inside one transaction per test (rolled back), acting as `cp_app` unless they
-switch with `as_owner`.
+switch with `as_owner` / `as_role`. `insert()` writes `organisation` and `membership` as the
+superuser (operator setup): cp_app has no write grant there (ADR 0006).
 """
 
 from __future__ import annotations
@@ -18,7 +20,7 @@ import copy
 import os
 import secrets
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import dataclass
 from datetime import date
 from typing import Any
@@ -26,6 +28,7 @@ from uuid import UUID
 
 import psycopg
 import pytest
+from psycopg import sql
 from psycopg.conninfo import make_conninfo
 from psycopg.types.json import Jsonb
 
@@ -93,23 +96,38 @@ def db(migrated_db: MigratedDb) -> Iterator[psycopg.Connection]:
 
 
 @contextmanager
-def as_owner(conn: psycopg.Connection) -> Iterator[None]:
-    """Run the block as the connecting superuser instead of cp_app, inside a savepoint."""
-    # On error the savepoint rolls back, which also restores the cp_app role.
+def as_role(conn: psycopg.Connection, role: str | None) -> Iterator[None]:
+    """Run the block as `role` (None = the connecting superuser), inside a savepoint.
+
+    Afterwards the previous role is restored; on error the savepoint rollback restores it.
+    """
+    row = conn.execute("select current_user").fetchone()
+    assert row is not None
     with conn.transaction():
-        conn.execute("reset role")
+        if role is None:
+            conn.execute("reset role")
+        else:
+            conn.execute(sql.SQL("set local role {}").format(sql.Identifier(role)))
         yield
-        conn.execute("set local role cp_app")
+        conn.execute(sql.SQL("set local role {}").format(sql.Identifier(row[0])))
+
+
+def as_owner(conn: psycopg.Connection) -> AbstractContextManager[None]:
+    """Run the block as the connecting superuser instead of cp_app, inside a savepoint."""
+    return as_role(conn, None)
+
+
+# Identity tables only an operator (cp_admin / superuser) may write (migration 0011).
+OPERATOR_TABLES = frozenset({"organisation", "membership"})
 
 
 def insert(conn: psycopg.Connection, table: str, **values: Any) -> UUID:
     cols = ", ".join(values)
     marks = ", ".join(["%s"] * len(values))
     params = [Jsonb(v) if isinstance(v, dict) else v for v in values.values()]
-    row = conn.execute(
-        f"insert into {table} ({cols}) values ({marks}) returning id",  # type: ignore[arg-type]
-        params,
-    ).fetchone()
+    query = f"insert into {table} ({cols}) values ({marks}) returning id"
+    with as_owner(conn) if table in OPERATOR_TABLES else nullcontext():
+        row = conn.execute(query, params).fetchone()  # type: ignore[arg-type]
     assert row is not None
     return row[0]
 

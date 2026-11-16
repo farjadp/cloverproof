@@ -38,8 +38,14 @@
         <label for="role-{{ value }}">{{ label }}</label>
       </div>
       {% endfor %}
+      {% for value, label in cli_roles %}
+      <div>
+        <input id="role-{{ value }}" type="checkbox" disabled{% if value in member.roles %} checked{% endif %} aria-describedby="cli-roles-note">
+        <label for="role-{{ value }}">{{ label }} (change via CLI)</label>
+      </div>
+      {% endfor %}
     </fieldset>
-    <p class="muted">Only Agronomist can approve plans. The organisation always keeps at least one Owner.</p>
+    <p class="muted" id="cli-roles-note">Only Agronomist can approve plans. Agronomist and Owner are granted and removed only with the <code>user-create</code> command, never on this page.</p>
     <button class="button" type="submit">Save roles</button>
   </form>
 </section>
@@ -47,11 +53,15 @@
 {% if not is_self %}
 <section aria-labelledby="reset-heading">
   <h2 id="reset-heading">Password</h2>
+  {% if 'agronomist' in member.roles or 'owner' in member.roles %}
+  <p class="muted">Agronomist and Owner passwords are reset only with <code>user-create --reset-password</code> (change via CLI).</p>
+  {% else %}
   <p class="muted">Creates a new temporary password, shown once, and signs this person out everywhere.</p>
   <form method="post" action="/admin/users/{{ member.id }}/reset-password">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <button class="button quiet" type="submit">Reset password</button>
   </form>
+  {% endif %}
 </section>
 {% endif %}
 

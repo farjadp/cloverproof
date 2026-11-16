@@ -6,7 +6,7 @@ import pytest
 from cloverproof_app import cli, security
 from cloverproof_app.repo import users
 
-from .conftest import Org
+from .conftest import Org, as_role
 
 pytestmark = pytest.mark.db
 
@@ -24,7 +24,8 @@ def run(db: psycopg.Connection, **overrides: object) -> cli.UserCreateResult:
         "read_password": lambda: PASSWORD,
     }
     values.update(overrides)
-    return cli.user_create(db, **values)  # type: ignore[arg-type]
+    with as_role(db, "cp_admin"):  # the CLI logs in as cp_admin_login (ADR 0006)
+        return cli.user_create(db, **values)  # type: ignore[arg-type]
 
 
 def test_creates_org_user_and_membership(db: psycopg.Connection) -> None:
