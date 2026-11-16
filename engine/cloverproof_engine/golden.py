@@ -1,32 +1,55 @@
-"""Golden cases (input -> expected) and their comparison. Pure: no file access.
+"""Golden cases (input -> expected or reference) and their comparison. Pure: no file access.
 
-Golden YAML lives in engine/tests/golden/. `sample_*.yaml` are SAMPLE cases
-derived from the placeholder pack; the agronomist's real cases replace them.
-The report is informational: it never fails the build (yet).
+Golden YAML lives in engine/tests/golden/. Every case declares a `kind`:
 
-`status` is SAMPLE or AGRONOMIST_APPROVED. An AGRONOMIST_APPROVED case must
-carry `reviewer` and `reviewed_on` (top level) and a non-empty
-`expected.reason`; otherwise loading fails and the report shows an ERROR line.
+- `sample`: expected numbers derived from the placeholder pack, only to exercise
+  the report. Never counts toward the agreement gate.
+- `agronomist_approved`: the agronomist's decision. Must carry `reviewer` and
+  `reviewed_on` (top level) and a non-empty `expected.reason`. The only kind that
+  counts toward the agreement gate.
+- `external_reference`: the output of a public tool, entered by hand. Must carry
+  `source` (tool + URL and/or version), `accessed_on`, `entered_by`, `region`
+  (metadata, not an engine input) and `reference_output`. Information only: the
+  reference is not ground truth and never counts toward the gate.
+
+A missing `kind` or a missing required field fails loading; the report shows an
+ERROR line. The report is informational: it never fails the build (yet).
 """
 
 from datetime import date
 from enum import StrEnum
-from typing import Literal, Self
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    TypeAdapter,
+    model_validator,
+)
 
+from cloverproof_engine import units
 from cloverproof_engine.confidence import Confidence
-from cloverproof_engine.models import RecommendationInput
+from cloverproof_engine.models import (
+    NonNegativeFloat,
+    NutrientForm,
+    RecommendationInput,
+    nutrient_of,
+)
 from cloverproof_engine.results import Recommendation
+
+NonBlankStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 class _Frozen(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
 
-class GoldenStatus(StrEnum):
-    SAMPLE = "SAMPLE"
-    AGRONOMIST_APPROVED = "AGRONOMIST_APPROVED"
+class GoldenKind(StrEnum):
+    SAMPLE = "sample"
+    AGRONOMIST_APPROVED = "agronomist_approved"
+    EXTERNAL_REFERENCE = "external_reference"
 
 
 class PackRef(_Frozen):
@@ -50,9 +73,11 @@ class GoldenExpected(_Frozen):
     reason: str | None = None
 
 
-class GoldenCase(_Frozen):
+class ExpectedCase(_Frozen):
+    """A `sample` or `agronomist_approved` case: input -> expected engine output."""
+
     id: str
-    status: GoldenStatus
+    kind: Literal["sample", "agronomist_approved"]
     reviewer: str | None = None
     reviewed_on: date | None = None
     description: str = ""
@@ -63,7 +88,7 @@ class GoldenCase(_Frozen):
 
     @model_validator(mode="after")
     def _check_review(self) -> Self:
-        if self.status is not GoldenStatus.AGRONOMIST_APPROVED:
+        if self.kind != GoldenKind.AGRONOMIST_APPROVED:
             return self
         missing = [
             name
@@ -75,8 +100,101 @@ class GoldenCase(_Frozen):
             if value is None or (isinstance(value, str) and not value.strip())
         ]
         if missing:
-            raise ValueError(f"AGRONOMIST_APPROVED case needs non-empty: {', '.join(missing)}")
+            raise ValueError(f"agronomist_approved case needs non-empty: {', '.join(missing)}")
         return self
+
+
+class RateUnit(StrEnum):
+    """Application-rate units a reference tool may report in."""
+
+    KG_PER_HA = "kg/ha"
+    LB_PER_AC = "lb/ac"
+
+
+class ReferenceRate(_Frozen):
+    value: NonNegativeFloat
+    unit: RateUnit
+
+    @property
+    def kg_per_ha(self) -> float:
+        """The value in kg/ha, converted only through `units.py`."""
+        if self.unit is RateUnit.LB_PER_AC:
+            return units.lb_per_ac_to_kg_per_ha(self.value)
+        return self.value
+
+
+class ReferenceSplit(ReferenceRate):
+    timing: str | None = None
+
+
+class ReferenceNutrient(ReferenceRate):
+    """A P or K rate from the reference tool, with its form (elemental or oxide)."""
+
+    form: NutrientForm
+
+
+class ReferenceOutput(_Frozen):
+    """What the external tool reported, as entered by hand. Stored for comparison only:
+    the engine compares N; P/K are kept for reference (the engine gives no P/K rate).
+    """
+
+    n_rate: ReferenceRate
+    n_splits: list[ReferenceSplit] = Field(default_factory=list)
+    phosphorus: ReferenceNutrient | None = None
+    potassium: ReferenceNutrient | None = None
+
+    @model_validator(mode="after")
+    def _check_forms(self) -> Self:
+        for slot, value, element in (
+            ("phosphorus", self.phosphorus, "P"),
+            ("potassium", self.potassium, "K"),
+        ):
+            if value is not None and nutrient_of(value.form) != element:
+                raise ValueError(f"{slot} form must express {element}, got {value.form.value}")
+        return self
+
+
+class ReferenceSource(_Frozen):
+    tool: NonBlankStr
+    url: str | None = None
+    version: str | None = None
+
+    @model_validator(mode="after")
+    def _check_locator(self) -> Self:
+        if not (self.url or "").strip() and not (self.version or "").strip():
+            raise ValueError("source needs a url or a version")
+        return self
+
+
+class ExternalReferenceCase(_Frozen):
+    """An `external_reference` case: input -> a public tool's output. Not ground truth."""
+
+    id: str
+    kind: Literal["external_reference"]
+    description: str = ""
+    pack: PackRef
+    source: ReferenceSource
+    accessed_on: date
+    entered_by: NonBlankStr
+    # Metadata only (where the reference tool applies); not an engine input.
+    region: NonBlankStr
+    tool_settings: dict[str, Any] | None = None
+    notes: str | None = None
+    input: RecommendationInput
+    reference_output: ReferenceOutput
+
+
+GoldenCase = Annotated[ExpectedCase | ExternalReferenceCase, Field(discriminator="kind")]
+_GOLDEN_CASE: TypeAdapter[ExpectedCase | ExternalReferenceCase] = TypeAdapter(GoldenCase)
+
+
+def parse_golden_case(data: dict[str, Any]) -> ExpectedCase | ExternalReferenceCase:
+    """Validate one golden case mapping. Raises ValueError (incl. ValidationError)."""
+    if "kind" not in data:
+        kinds = ", ".join(k.value for k in GoldenKind)
+        hint = " (`status` was replaced by `kind`)" if "status" in data else ""
+        raise ValueError(f"missing `kind`{hint}; one of: {kinds}")
+    return _GOLDEN_CASE.validate_python(data)
 
 
 class DiffRow(_Frozen):
@@ -115,7 +233,7 @@ def _label(field: str, expected: str, actual: str) -> DiffRow:
     )
 
 
-def compare(case: GoldenCase, rec: Recommendation) -> list[DiffRow]:
+def compare(case: ExpectedCase, rec: Recommendation) -> list[DiffRow]:
     exp, tol, n = case.expected, case.tolerance, rec.nitrogen
     rows = [
         _number("n_rate_kg_ha", exp.n_rate_kg_ha, n.rate.value, tol.kg_n_per_ha),
@@ -139,9 +257,9 @@ def _cell(value: float | str | None) -> str:
     return f"{value:.1f}"
 
 
-def format_case(case: GoldenCase, rows: list[DiffRow], rec: Recommendation) -> str:
+def format_case(case: ExpectedCase, rows: list[DiffRow], rec: Recommendation) -> str:
     header = (
-        f"== {case.id}  [{case.status.value}]  pack {rec.pack_id} {rec.pack_version}  "
+        f"== {case.id}  [{case.kind}]  pack {rec.pack_id} {rec.pack_version}  "
         f"engine {rec.engine_version}"
     )
     table = [("field", "expected", "actual", "diff", "ok")]

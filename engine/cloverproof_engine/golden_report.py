@@ -12,7 +12,7 @@ from pathlib import Path
 import yaml
 
 from cloverproof_engine import recommend
-from cloverproof_engine.golden import compare, format_case, format_error
+from cloverproof_engine.golden import ExpectedCase, compare, format_case, format_error
 from cloverproof_engine.loaders import golden_paths, load_golden_case, load_pack, pack_path
 from cloverproof_engine.version import ENGINE_VERSION
 
@@ -35,6 +35,9 @@ def run_report(golden_dir: str | Path, packs_dir: str | Path) -> str:
         except _CASE_ERRORS as exc:
             errors += 1
             blocks += [format_error(path.name, f"{type(exc).__name__}: {exc}"), ""]
+            continue
+        if not isinstance(case, ExpectedCase):
+            blocks += [f"== {case.id}  [{case.kind}]  information only", ""]
             continue
         rows = compare(case, rec)
         for r in rows:
