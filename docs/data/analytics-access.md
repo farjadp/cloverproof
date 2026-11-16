@@ -333,4 +333,4 @@ Data-quality checks to run with each export (SQL, results pasted into the sprint
 3. Who runs the per-sprint export: Farjad Iranmehr or `cp-platform`?
 4. Is a farm's *country/crop* slice with <5 rows acceptable inside the team (it is identifying at this scale)?
 5. ~~G4 (P/K) needs a product decision~~ Decided by R2 (2026-11-16): `recommendation_line`. Remaining: cp-database migrates it before Feb 1, 2027.
-6. D4: every analytics view must carry `reviewer_kind`; exports for calibration filter to human approvals (`counts_toward_calibration`).
+6. D4 + superadmin decision: every analytics view must carry `review_kind` (`agronomist_approved` / `superadmin_approved` / `ai_reviewed`); calibration exports read `calibration_delta` (`agronomist_approved` only); superadmin and AI exports are separate files, never combined.

@@ -12,15 +12,15 @@ Sprint: S2, Nov 30 – Dec 11, 2026 (work done early, Nov 16). Branch: `myca/dat
 
 ## What changed after D4 / R2 (2026-11-16)
 Source: `docs/plans/backend-plan-reconciliation.md` (D4, R2), `docs/plans/backend-plan.md` §6.4, `docs/plans/backend-traceability.md` (DM-16, A2, NB-DAT-01, NB-DAT-03).
-- **D4 — AI reviewer for now.** `cp-agronomist` signs `ai_reviewed`; a human `agronomist` signs `agronomist_approved`. Every metric M1–M6 and the calibration dataset are now segmented by reviewer kind; AI reviews never count toward the 90 % agreement gate, the calibration baseline, constant-change proposals or the approval / review-gate rates — they appear only as "AI review diagnostics" (`metrics.md` D4 section, `calibration-loop.md` update, report section H).
-- **Baseline (NB-DAT-03) needs human cases.** The S3 output is the baseline **method** plus "no human-approved cases yet" unless a human agronomist supplies cases (OQ-04).
+- **D4 — three review kinds** (updated 2026-11-16 after the superadmin decision). `review_kind` on every review row: `agronomist_approved` (human with the agronomist role), `superadmin_approved` (human superadmin), `ai_reviewed` (`cp-agronomist`). Every metric M1–M6 (and M7's last stage) and the calibration dataset are segmented by `review_kind`; only `agronomist_approved` counts toward the calibration dataset, the 90 % agreement gate, the baseline, constant-change proposals and the approval / review-gate rates. `superadmin_approved` and `ai_reviewed` appear only as two separate diagnostics, never pooled (`metrics.md` D4 section, `calibration-loop.md` update items 1–2 and 8, report sections H and I). A superadmin approval is not agronomic validation; a plan whose numbers a superadmin set or edited is a diagnostic.
+- **Baseline (NB-DAT-03) needs agronomist cases.** The S3 output is the baseline **method** plus "no agronomist-approved cases yet" unless a human agronomist supplies cases (OQ-04).
 - **R2 — per-line delta.** Engine-vs-final is now defined per `recommendation_line` (key nutrient + explicit form + split; added/removed lines are separate signals, not zero deltas; product and timing changes are attributes). **SG1 (P/K) is SOLVED BY R2** (decision); the migration is cp-database's.
-- **New spec for cp-database (DM-16):** `docs/data/calibration-delta-spec.md` — grain, columns, filters, reference SQL (target schema §6.4, not yet migrated; executed on a throwaway local stub), acceptance tests T1–T17, materialized view + nightly refresh in S5 (JB-04).
-- **New gaps:** SG13 reviewer kind on `review`, SG14 explicit form on `recommendation_line`, SG15 undefined 90 % agreement gate.
+- **New spec for cp-database (DM-16):** `docs/data/calibration-delta-spec.md` — grain, columns, filters, reference SQL (target schema §6.4, not yet migrated; executed on a throwaway local stub), acceptance tests T1–T19 (T18: `superadmin_approved` and `ai_reviewed` rows excluded from `calibration_delta`; T19: superadmin/AI-edited chains excluded), materialized view + nightly refresh in S5 (JB-04).
+- **New gaps:** SG13 `review_kind` (three values) on `review` + `recommendation.author_kind`, SG14 explicit form on `recommendation_line`, SG15 undefined 90 % agreement gate.
 
 ## Not done / blocked
 - ~~SG1~~ solved by R2 (decision); blocked only on cp-database migrating `recommendation_line` + explicit form before Feb 1, 2027.
-- SG13 (reviewer kind) blocks every headline metric: without it the report prints "reviewer kind not recorded".
+- SG13 (`review_kind`: agronomist_approved / superadmin_approved / ai_reviewed) blocks every headline metric: without it the report prints "review kind not recorded".
 - Schema gaps SG2–SG12 (see `docs/data/README.md`) are proposals awaiting CPO routing.
 - PROPOSED retention periods and the deletion option need Farjad Iranmehr's decision and legal review (coo → legal-compliance-specialist).
 
@@ -34,7 +34,7 @@ Source: `docs/plans/backend-plan-reconciliation.md` (D4, R2), `docs/plans/backen
 5. Are the Dec-18 cases also entered in the tool (double-count risk, SG7)?
 
 ## S3 plan (Dec 14 – Dec 24)
-- data-scientist: calibration baseline from the 5 real wheat cases (Dec 18) **only if they are human-approved** — per-case table, direction, reason codes; explicitly "anecdote, no proposal". Otherwise: baseline method + "no human-approved cases yet"; `cp-agronomist` reference cases only as a separate AI diagnostic.
+- data-scientist: calibration baseline from the 5 real wheat cases (Dec 18) **only if they are `agronomist_approved`** — per-case table, direction, reason codes; explicitly "anecdote, no proposal". Otherwise: baseline method + "no agronomist-approved cases yet"; `cp-agronomist` reference cases only as a separate AI diagnostic.
 - data-scientist / data-engineer: review cp-database's `calibration_delta` migration against `calibration-delta-spec.md` tests T1–T17.
 - data-analyst: first funnel + freshness sections of the report from `pilot_request`.
 - data-engineer: `cp_analyst` + views as a migration proposal handed to cto/cp-database (if CPO approves SG9).
