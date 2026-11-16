@@ -78,8 +78,8 @@ def n_rate(
             f"{num(min_rate.value)} kg N/ha {tag(min_rate)}."
         )
     return (
-        f"{base} It is within the pack limits {num(min_rate.value)}-{num(max_rate.value)} "
-        f"kg N/ha {tag(max_rate)}."
+        f"{base} It is within the pack limits: lower {num(min_rate.value)} kg N/ha "
+        f"{tag(min_rate)}, upper {num(max_rate.value)} kg N/ha {tag(max_rate)}."
     )
 
 
@@ -167,8 +167,9 @@ def c3_soil_test_stale(age_years: float, limit: PackConstant) -> str:
 
 def c4_target_yield_implausible(target: float, low: PackConstant, high: PackConstant) -> str:
     return (
-        f"Target yield {num(target)} t/ha is outside the expected range "
-        f"{num(low.value)}-{num(high.value)} t/ha {tag(low)}: confidence is low."
+        f"Target yield {num(target)} t/ha is outside the expected range: "
+        f"lower {num(low.value)} t/ha {tag(low)}, upper {num(high.value)} t/ha {tag(high)}. "
+        "Confidence is low."
     )
 
 
