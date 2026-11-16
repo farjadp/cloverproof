@@ -1,7 +1,7 @@
 # Inputs needed from Farjad Iranmehr (agronomist)
 
 Owned by `cp-agronomy-guard`. Nothing here is validated until Farjad Iranmehr signs it off.
-Last reviewed against engine v0 (`ENGINE_VERSION = "0.1.0"`, pack `placeholder` v0).
+Last reviewed against engine v0 (`ENGINE_VERSION = "0.2.0"`, pack `placeholder` v0).
 
 Every value in `packs/placeholder/v0.yaml` is `status: PLACEHOLDER`, `source: null`, with a
 `TODO(agronomist)` comment. They were picked only to make the arithmetic easy to check. They are
