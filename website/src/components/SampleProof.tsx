@@ -23,7 +23,7 @@ function Typed({ text, start }: { text: string; start: boolean }) {
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-[0.12em] text-ink-soft">{label}</dt>
+      <dt className="hyphens-auto text-xs uppercase tracking-[0.12em] text-ink-soft wrap-anywhere">{label}</dt>
       <dd className="mt-1 font-semibold text-ink">{value}</dd>
     </div>
   );
@@ -33,9 +33,9 @@ export function SampleProof({ t }: { t: Dictionary }) {
   const p = t.proof;
   const { ref, inView } = useInView<HTMLElement>(0.3);
   const step = ["delay-[200ms]", "delay-[500ms]", "delay-[800ms]"];
-  const show = (i: number) => `transition-all duration-500 ${step[i] ?? ""} ${inView ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-3"}`;
+  const show = (i: number) => `transition-all duration-500 ${step[i] ?? ""} ${inView ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-3 rtl:translate-x-3"}`;
   return (
-    <section id="proof" aria-labelledby="proof-title" className="border-t border-rule">
+    <section id="proof" aria-labelledby="proof-title" className="overflow-x-clip border-t border-rule">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1fr_1.6fr] lg:px-8 [&>*]:min-w-0">
         <div>
           <h2 id="proof-title" className="font-serif text-3xl text-ink sm:text-4xl">{p.title}</h2>
@@ -46,7 +46,7 @@ export function SampleProof({ t }: { t: Dictionary }) {
         <article ref={ref} aria-label={p.docTitle} className="relative rotate-[0.4deg] border border-rule bg-white transition-transform duration-500 hover:rotate-0 shadow-[0_1px_0_var(--color-rule),0_12px_32px_-24px_var(--color-ink)]">
           <header className="flex items-center justify-between gap-4 border-b border-rule px-6 py-4">
             <div className="flex items-center gap-3">
-              <CloverMark className="size-6" />
+              <CloverMark className="h-6 w-auto" />
               <span className="font-serif text-lg text-ink">{p.docTitle}</span>
               <span className="rounded bg-sand px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-ink-soft">{p.sampleTag}</span>
             </div>
@@ -60,7 +60,7 @@ export function SampleProof({ t }: { t: Dictionary }) {
             <Meta label={p.soilTest} value={p.soilTestValue} />
           </dl>
 
-          <div className="overflow-x-auto px-6">
+          <div className="overflow-x-auto px-6" tabIndex={0} role="region" aria-label={p.docTitle}>
             <table className="w-full min-w-[30rem] text-start text-sm">
               <thead>
                 <tr className="border-y border-rule text-xs uppercase tracking-[0.12em] text-ink-soft">
@@ -98,14 +98,14 @@ export function SampleProof({ t }: { t: Dictionary }) {
             </ul>
           </div>
 
-          <footer className="grid grid-cols-2 gap-4 border-t border-rule px-6 py-4 text-sm sm:grid-cols-3">
+          <dl className="grid grid-cols-2 gap-4 border-t border-rule px-6 py-4 text-sm sm:grid-cols-3">
             <Meta label={p.reviewer} value={p.reviewerValue} />
             <Meta label={p.versions} value={p.versionsValue} />
             <div>
-              <dt className="text-xs uppercase tracking-[0.12em] text-ink-soft">{p.fingerprint}</dt>
+              <dt className="hyphens-auto text-xs uppercase tracking-[0.12em] text-ink-soft wrap-anywhere">{p.fingerprint}</dt>
               <dd className="mt-1 font-mono text-olive"><Typed text={p.fingerprintValue} start={inView} /></dd>
             </div>
-          </footer>
+          </dl>
 
           {inView && (
             <div aria-hidden="true" className="pointer-events-none absolute bottom-5 end-5 animate-stamp rounded-md border-[3px] border-olive bg-white/70 px-3 py-0.5 font-serif text-base font-bold uppercase tracking-widest text-olive opacity-90 [animation-delay:1.3s] sm:bottom-28 sm:end-10 sm:border-4 sm:px-4 sm:py-1 sm:text-2xl">

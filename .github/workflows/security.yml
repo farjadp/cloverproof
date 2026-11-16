@@ -1,0 +1,210 @@
+name: security
+
+# Free for public repositories: no paid service, no licence key, no third-party token.
+# Every action is pinned to a full commit SHA (tag in the trailing comment); Dependabot
+# (.github/dependabot.yml, github-actions ecosystem) proposes SHA bumps weekly.
+
+on:
+  push:
+  pull_request:
+  schedule:
+    # Weekly, Monday 07:17 UTC: full-history secret scan and fresh advisory data.
+    - cron: "17 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets:
+    name: gitleaks (secret scan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITLEAKS_VERSION: "8.30.1"
+      # sha256 of gitleaks_8.30.1_linux_x64.tar.gz from the release's checksums.txt.
+      GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history: the repo is small, so every run scans every commit reachable
+          # from the checked-out ref. Narrow to a commit range if this gets slow.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install gitleaks (checksum verified)
+        run: |
+          set -euo pipefail
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o "$RUNNER_TEMP/$tarball" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/$tarball" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" version
+
+      - name: Scan git history (redacted output)
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          # Scheduled and manual runs scan every branch on origin; push/PR runs scan the
+          # history of the checked-out ref. --redact keeps secret values out of logs.
+          if [ "$EVENT_NAME" = "schedule" ] || [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            git fetch --no-tags --prune origin '+refs/heads/*:refs/remotes/origin/*'
+            log_opts="--all"
+          else
+            log_opts="HEAD"
+          fi
+          "$RUNNER_TEMP/gitleaks" git . --log-opts="$log_opts" --redact --no-banner --exit-code 1
+
+  python-deps:
+    name: pip-audit (uv.lock)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Export locked dependencies
+        run: |
+          set -euo pipefail
+          # Workspace members are exported as editable paths; drop them, audit only
+          # the third-party pins from uv.lock (all members, all dependency groups).
+          uv export --frozen --no-hashes --all-packages --all-groups \
+            | grep -vE '^\s*#|^-e |^\./|^\.$' > "$RUNNER_TEMP/requirements.txt"
+          wc -l "$RUNNER_TEMP/requirements.txt"
+
+      - name: pip-audit (PyPI advisory DB + OSV)
+        run: |
+          set -euo pipefail
+          uvx pip-audit==2.10.1 -r "$RUNNER_TEMP/requirements.txt" --no-deps --disable-pip --strict
+          uvx pip-audit==2.10.1 -r "$RUNNER_TEMP/requirements.txt" --no-deps --disable-pip --strict -s osv
+
+  website-deps:
+    name: npm audit (website)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: lts/*
+
+      - name: npm audit (production deps, fail on high or critical)
+        # Reads package-lock.json only; nothing is installed, no install scripts run.
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: npm audit (all deps, fail on critical)
+        run: npm audit --audit-level=critical
+
+  licenses:
+    name: licence check (production deps)
+    # XD-07 / DD-06: no copyleft (GPL / AGPL / EUPL / LGPL / MPL ...) or unknown licence in
+    # production deps without an ADR + lawyer sign-off. Allowlists are exact names (no
+    # partial matching, so "GPL" can never slip in via a substring). Every exception is
+    # pinned to a named package AND its current licence, so a licence change fails the job.
+    # Current exceptions (both pending an ADR + lawyer review, not silently allowed):
+    #   - psycopg / psycopg-binary: LGPL-3.0-only (Python Postgres driver)
+    #   - @img/sharp-libvips-*: LGPL-3.0-or-later (libvips binary pulled in by next -> sharp)
+    #   - certifi: MPL-2.0 (Mozilla CA bundle, unmodified; arrives with data_sources deps)
+    # Adding any other exception requires an ADR first.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PY_ALLOW: "MIT;MIT License;BSD License;BSD-2-Clause;BSD-3-Clause;0BSD;Zlib;CC0-1.0;Apache-2.0;Apache Software License;ISC;ISC License (ISCL);PSF-2.0;Python Software Foundation License"
+      NPM_ALLOW: "MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;CC-BY-4.0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Sync Python production deps from uv.lock
+        # --no-dev: dev group (pytest, ruff, pre-commit, httpx) is not shipped.
+        run: uv sync --frozen --all-packages --no-dev
+
+      - name: Licence checker self-test (SPDX AND/OR/WITH)
+        run: python3 -I .github/scripts/check_licences.py --self-test
+
+      - name: Python licences (allowlist, SPDX expressions evaluated)
+        run: |
+          set -euo pipefail
+          # Ignored: our own workspace members (cloverproof-*, no licence metadata) and the documented
+          # LGPL exception (checked in the next step). pip-licenses --allow-only matches
+          # whole strings, so compound SPDX expressions (numpy: "BSD-3-Clause AND 0BSD AND
+          # MIT AND Zlib AND CC0-1.0") are evaluated by our checker instead.
+          # certifi (Mozilla CA bundle, MPL-2.0, used unmodified) is a named exception
+          # pinned to its exact licence string, pending ADR + lawyer like psycopg.
+          uvx pip-licenses==5.5.5 --python .venv/bin/python --from=mixed --format=json \
+            --ignore-packages psycopg psycopg-binary > "$RUNNER_TEMP/pip-licenses.json"
+          python3 -I .github/scripts/check_licences.py --allow "$PY_ALLOW" \
+            --ignore-prefix cloverproof- \
+            --exception "certifi=Mozilla Public License 2.0 (MPL 2.0)" \
+            "$RUNNER_TEMP/pip-licenses.json"
+
+      - name: Python licence exception (psycopg is LGPL-3.0-only, pending ADR + lawyer)
+        # Used as an unmodified, dynamically imported library in a hosted service (no
+        # distribution). Fails if the licence changes or new packages appear under the name.
+        run: |
+          uvx pip-licenses==5.5.5 --python .venv/bin/python --from=mixed --format=plain \
+            --packages psycopg psycopg-binary --allow-only "LGPL-3.0-only"
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: lts/*
+
+      - name: Install website production deps (no install scripts)
+        working-directory: website
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: npm licences (allowlist)
+        working-directory: website
+        # Excluded: the private root package (UNLICENSED, our own code) and the sharp
+        # libvips binaries (LGPL-3.0-or-later exception, checked in the next step).
+        # CC-BY-4.0 is caniuse-lite data (attribution, not copyleft).
+        run: |
+          npx --yes license-checker-rseidelsohn@5.0.1 --production --excludePrivatePackages \
+            --excludePackagesStartingWith "@img/sharp-libvips-" \
+            --onlyAllow "$NPM_ALLOW" --summary
+
+      - name: npm licence exception (sharp-libvips is LGPL-3.0-or-later, pending ADR + lawyer)
+        working-directory: website
+        run: |
+          set -euo pipefail
+          npx --yes license-checker-rseidelsohn@5.0.1 --production --excludePrivatePackages \
+            --json > "$RUNNER_TEMP/npm-licenses.json"
+          jq -r 'to_entries[] | select(.key | startswith("@img/sharp-libvips-"))
+                 | "\(.key) \(.value.licenses)"' "$RUNNER_TEMP/npm-licenses.json"
+          jq -e '[to_entries[] | select(.key | startswith("@img/sharp-libvips-"))]
+                 | all(.value.licenses == "LGPL-3.0-or-later")' "$RUNNER_TEMP/npm-licenses.json"
+
+  dependency-review:
+    name: dependency review (PR)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Free on public repositories (uses the dependency graph). Blocks PRs that add
+      # a dependency with a known high/critical advisory.
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: never

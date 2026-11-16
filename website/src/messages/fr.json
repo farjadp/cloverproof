@@ -1,0 +1,351 @@
+{
+  "meta": {
+    "title": "CloverProof — Des décisions de fertilisation propres à chaque parcelle, preuves à l'appui",
+    "description": "CloverProof transforme les données de votre parcelle et de votre analyse de sol en un plan de fertilisation — quoi, combien, quand et pourquoi — validé par un agronome et consigné dans un document de preuve. Indépendant des fournisseurs, logiciel uniquement.",
+    "translationStatus": "machine — review pending"
+  },
+  "nav": {
+    "how": "Fonctionnement",
+    "proof": "Exemple de preuve",
+    "principles": "Principes",
+    "faq": "FAQ",
+    "cta": "Demander un plan pilote",
+    "skip": "Aller au contenu",
+    "menu": "Menu",
+    "check": "Diagnostic parcelle",
+    "language": "Langue"
+  },
+  "hero": {
+    "eyebrow": "Saison pilote 2027 · Candidatures ouvertes",
+    "title": "Un plan plus clair pour chaque parcelle.",
+    "lead": "CloverProof réunit vos analyses de sol, l'historique de la parcelle et vos objectifs de culture en un seul plan de fertilisation — quoi apporter, combien, quand et pourquoi — vérifié par un agronome avant de vous parvenir.",
+    "ctaPrimary": "Demander un plan pilote",
+    "ctaSecondary": "Faire le diagnostic parcelle en 2 minutes",
+    "note": "Produit en phase de démarrage. La participation au pilote dépend de votre localisation et de votre profil.",
+    "figureCaption": "Chaque recommandation est liée à une parcelle, une saison et un jeu de données.",
+    "imageAlt": "Jeune blé d'hiver en longs rangs au lever du soleil, avec des feuilles de trèfle au premier plan",
+    "chips": {
+      "confidence": "Confiance",
+      "confidenceValue": "Moyen",
+      "reviewed": "Validé par un agronome",
+      "version": "Version 2 · motif enregistré",
+      "ctaCheck": "Faire le diagnostic"
+    }
+  },
+  "problem": {
+    "title": "Le problème concret",
+    "intro": "Les décisions de fertilisation reposent souvent sur des données éparpillées et des conseils génériques, sans aucune trace du raisonnement.",
+    "items": [
+      {
+        "title": "Les données sont dispersées.",
+        "body": "Les résultats de laboratoire dans les e-mails, les épandages dans un carnet, l'historique des cultures dans la mémoire de quelqu'un. Rien n'est réuni pour la parcelle que vous avez sous les yeux."
+      },
+      {
+        "title": "Les conseils sont génériques — ou liés à un produit.",
+        "body": "Les doses standard ignorent la parcelle. Le conseil d'un fournisseur dépend de ce qu'il vend. Ni l'un ni l'autre ne montre son raisonnement."
+      },
+      {
+        "title": "Aucune trace du pourquoi.",
+        "body": "Quand une saison se passe bien ou mal, impossible de revenir en arrière : quelles données ont été utilisées, quelles hypothèses ont été faites, qui a validé."
+      }
+    ]
+  },
+  "how": {
+    "title": "Fonctionnement",
+    "intro": "Quatre étapes, toujours les mêmes. Rien ne vous parvient sans avoir été vérifié par une personne.",
+    "steps": [
+      {
+        "title": "Données de l'exploitation",
+        "body": "Votre parcelle, votre culture, votre objectif de rendement et le précédent cultural. Une analyse de sol en laboratoire si vous en avez une — avec sa méthode, sa profondeur et sa date."
+      },
+      {
+        "title": "Moteur de calcul",
+        "body": "Un calcul transparent s'appuie sur un référentiel régional versionné. Chaque chiffre est accompagné d'une justification écrite et d'un niveau de confiance."
+      },
+      {
+        "title": "Validation par un agronome",
+        "body": "Un agronome approuve, ajuste ou rejette le plan. Toute modification est enregistrée comme une nouvelle version avec son motif — l'original n'est jamais écrasé."
+      },
+      {
+        "title": "Document de preuve",
+        "body": "Vous recevez un document de plan : quoi, combien, quand et pourquoi, avec le nom du validateur, les versions utilisées et une empreinte numérique."
+      }
+    ],
+    "active": "Vous êtes ici"
+  },
+  "proof": {
+    "title": "Ce que montre un document de preuve",
+    "intro": "Exemple de mise en page. Les valeurs sont volontairement laissées vides — les vraies valeurs n'apparaissent qu'après la validation de votre parcelle par un agronome.",
+    "docTitle": "Plan de parcelle · Preuve",
+    "docId": "ID du document",
+    "field": "Parcelle",
+    "fieldValue": "Parcelle nord",
+    "crop": "Culture",
+    "cropValue": "Blé d'hiver",
+    "season": "Saison",
+    "seasonValue": "—",
+    "soilTest": "Analyse de sol",
+    "soilTestValue": "Méthode, profondeur et date enregistrées",
+    "nutrient": "Élément",
+    "rate": "Dose",
+    "timing": "Période",
+    "confidence": "Confiance",
+    "rows": [
+      {
+        "nutrient": "Azote (N)",
+        "rate": "— kg/ha",
+        "timing": "Fractionné · —",
+        "confidence": "Moyen"
+      },
+      {
+        "nutrient": "Phosphore (P)",
+        "rate": "Analyse de sol nécessaire",
+        "timing": "—",
+        "confidence": "—"
+      },
+      {
+        "nutrient": "Potassium (K)",
+        "rate": "Analyse de sol nécessaire",
+        "timing": "—",
+        "confidence": "—"
+      }
+    ],
+    "whyTitle": "Pourquoi cette dose",
+    "whyLines": [
+      "Besoin de la culture pour l'objectif de rendement, selon le référentiel régional.",
+      "Apport du précédent cultural.",
+      "Fourniture déjà présente dans le sol, selon l'analyse de laboratoire."
+    ],
+    "reviewer": "Validé par",
+    "reviewerValue": "Agronome · date",
+    "versions": "Version du moteur / du référentiel",
+    "versionsValue": "— / —",
+    "fingerprint": "Empreinte SHA-256",
+    "fingerprintValue": "9f2c41b7…e41a",
+    "disclaimer": "Un document de preuve consigne ce qui a été recommandé et pourquoi. Ce n'est pas une certification, et il n'est ni délivré ni approuvé par un tiers.",
+    "stamp": "Validé",
+    "sampleTag": "Exemple"
+  },
+  "principles": {
+    "title": "Des principes non négociables",
+    "items": [
+      {
+        "title": "Indépendant des fournisseurs",
+        "body": "Nous ne vendons pas d'engrais et ne touchons aucune commission dessus."
+      },
+      {
+        "title": "Logiciel uniquement",
+        "body": "Aucun capteur ni matériel à acheter. Nous travaillons à partir des informations sur votre parcelle et de vos résultats de laboratoire."
+      },
+      {
+        "title": "Un niveau de confiance pour chaque chiffre",
+        "body": "Chaque recommandation porte un niveau de confiance élevé, moyen ou faible, avec sa justification."
+      },
+      {
+        "title": "Sans analyse de sol, azote uniquement",
+        "body": "Sans analyse de laboratoire, nous ne conseillons que sur l'azote, et recommandons une analyse pour le phosphore et le potassium."
+      },
+      {
+        "title": "Chaque modification est versionnée",
+        "body": "Les plans ne sont jamais écrasés. Les modifications sont enregistrées comme de nouvelles versions, avec qui a modifié quoi, et pourquoi."
+      }
+    ]
+  },
+  "pilot": {
+    "title": "Rejoignez le pilote 2027",
+    "intro": "Nous travaillons avec un petit nombre d'exploitations pour la saison à venir. Présentez-nous votre exploitation et nous reviendrons vers vous.",
+    "name": "Nom complet",
+    "email": "E-mail",
+    "country": "Pays",
+    "farmSize": "Surface de l'exploitation",
+    "farmSizeHint": "Approximative, avec l'unité (ha ou acres)",
+    "crop": "Culture principale",
+    "notes": "Ce que nous devrions savoir (facultatif)",
+    "consent": "J'accepte que CloverProof conserve ces informations et me contacte au sujet du pilote. Je peux demander leur suppression à tout moment.",
+    "privacyLink": "Avis de confidentialité",
+    "submit": "Demander un plan pilote",
+    "submitting": "Envoi…",
+    "required": "Obligatoire",
+    "success": "Merci. Nous avons bien reçu votre demande et reviendrons vers vous.",
+    "notConnected": "Les demandes de pilote ne sont pas encore activées. Revenez bientôt.",
+    "error": "Une erreur s'est produite et votre demande n'a pas été enregistrée. Veuillez réessayer dans un instant.",
+    "invalid": "Veuillez remplir les champs obligatoires et accepter la déclaration de consentement.",
+    "steps": [
+      "Vous",
+      "Votre exploitation",
+      "Confirmation"
+    ],
+    "next": "Suivant",
+    "back": "Retour",
+    "stepOf": "Étape {current} sur {total}",
+    "successTitle": "Vous êtes inscrit.",
+    "successBody": "Merci. Nous avons bien reçu votre demande et reviendrons vers vous.",
+    "imageAlt": "Une carotte de sol, un sachet d'échantillon en papier et un carnet de terrain sur une table en bois au bord d'un champ de blé"
+  },
+  "faq": {
+    "title": "Questions",
+    "items": [
+      {
+        "q": "Vendez-vous des engrais ?",
+        "a": "Non. CloverProof est indépendant de tout fournisseur. Le plan indique des éléments nutritifs et des doses, pas des marques."
+      },
+      {
+        "q": "Ai-je besoin de capteurs ou d'un équipement particulier ?",
+        "a": "Non. CloverProof est un logiciel uniquement. Nous travaillons à partir des informations sur votre parcelle et, si elle existe, d'une analyse de sol en laboratoire."
+      },
+      {
+        "q": "Et si je n'ai pas d'analyse de sol ?",
+        "a": "Nous pouvons quand même vous conseiller sur l'azote, avec un niveau de confiance moyen au maximum. Pour le phosphore et le potassium, nous vous recommanderons d'abord de faire une analyse."
+      },
+      {
+        "q": "Qui vérifie les recommandations ?",
+        "a": "Chaque plan est validé par un agronome avant que vous ne le voyiez. S'il modifie un chiffre, le motif est enregistré."
+      },
+      {
+        "q": "À quoi sert le document de preuve ?",
+        "a": "C'est votre trace de ce qui a été recommandé, sur quelles données, et pourquoi. Ce n'est pas une certification et aucun tiers ne l'a approuvé."
+      },
+      {
+        "q": "Où le pilote est-il disponible ?",
+        "a": "Nous commençons avec un petit nombre d'exploitations. La disponibilité dépend de la localisation, de la culture et du profil — demandez un plan et nous vous répondrons franchement."
+      }
+    ]
+  },
+  "footer": {
+    "tagline": "Des décisions de fertilisation propres à chaque parcelle, preuves à l'appui.",
+    "privacy": "Confidentialité",
+    "languages": "Langues",
+    "comingSoon": "bientôt",
+    "rights": "© 2026 CloverProof"
+  },
+  "privacy": {
+    "title": "Avis de confidentialité",
+    "description": "Comment CloverProof collecte, utilise et protège les informations que vous communiquez lorsque vous demandez un plan pilote.",
+    "draft": "Brouillon — en cours de relecture avant le lancement.",
+    "updated": "Dernière mise à jour : novembre 2026",
+    "sections": [
+      {
+        "h": "Ce que nous collectons",
+        "p": "Lorsque vous demandez un plan pilote, nous collectons les informations que vous saisissez : nom, e-mail, pays, surface approximative de l'exploitation, culture principale et toute remarque."
+      },
+      {
+        "h": "Pourquoi nous les collectons",
+        "p": "Uniquement pour évaluer si nous pouvons inclure votre exploitation dans le pilote et pour vous contacter à ce sujet. Nous ne vendons ni ne partageons vos informations à des fins de marketing."
+      },
+      {
+        "h": "Où elles sont stockées",
+        "p": "Vos informations sont stockées chez notre fournisseur de base de données, avec un accès limité à l'équipe CloverProof."
+      },
+      {
+        "h": "Combien de temps nous les conservons",
+        "p": "Jusqu'à la fin de la sélection pour le pilote, ou plus longtemps si vous rejoignez le pilote. Vous pouvez nous demander de supprimer vos informations à tout moment."
+      },
+      {
+        "h": "Vos droits",
+        "p": "Vous pouvez demander à consulter, corriger ou supprimer vos données, et retirer votre consentement à tout moment."
+      }
+    ]
+  },
+  "check": {
+    "eyebrow": "Diagnostic parcelle en deux minutes",
+    "title": "Que pourrait couvrir votre plan ?",
+    "intro": "Répondez à quatre questions rapides. Chaque réponse remplit une feuille. À la fin, vous verrez quel type de plan nous pourrions établir pour cette parcelle — avant de partager quoi que ce soit.",
+    "progress": "Feuilles remplies",
+    "back": "Retour",
+    "restart": "Recommencer",
+    "questions": [
+      {
+        "id": "soilTest",
+        "q": "Avez-vous une analyse de sol en laboratoire pour cette parcelle ?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Oui"
+          },
+          {
+            "v": "no",
+            "label": "Non"
+          },
+          {
+            "v": "unsure",
+            "label": "Je ne sais pas"
+          }
+        ]
+      },
+      {
+        "id": "method",
+        "q": "Le rapport indique-t-il la méthode d'extraction et la profondeur de prélèvement ?",
+        "hint": "Par exemple Olsen, Bray-1 ou Mehlich-3, et la profondeur en cm ou en pouces.",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Oui, les deux"
+          },
+          {
+            "v": "no",
+            "label": "Non / je ne sais pas"
+          },
+          {
+            "v": "skip",
+            "label": "Je n'ai pas de rapport"
+          }
+        ]
+      },
+      {
+        "id": "previousCrop",
+        "q": "Savez-vous ce qui a été cultivé sur cette parcelle la saison dernière ?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Oui"
+          },
+          {
+            "v": "no",
+            "label": "Non"
+          }
+        ]
+      },
+      {
+        "id": "target",
+        "q": "Avez-vous un objectif de rendement réaliste pour cette saison ?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Oui"
+          },
+          {
+            "v": "no",
+            "label": "Pas encore"
+          }
+        ]
+      }
+    ],
+    "results": {
+      "full": {
+        "title": "Un plan complet azote, phosphore et potassium",
+        "body": "Avec un rapport de laboratoire complet, nous pouvons planifier les trois éléments, chacun avec son propre niveau de confiance et ses justifications.",
+        "tag": "N · P · K"
+      },
+      "confirm": {
+        "title": "Un plan complet, une fois la méthode du laboratoire confirmée",
+        "body": "Vous avez une analyse de sol. Nous vous demanderons le rapport pour lire la méthode d'extraction et la profondeur — puis nous planifierons les trois éléments.",
+        "tag": "N · P · K après vérification"
+      },
+      "nOnly": {
+        "title": "Un plan azote — et une analyse de sol pour le reste",
+        "body": "Sans analyse de laboratoire, nous ne conseillons que sur l'azote, avec un niveau de confiance moyen au maximum. Pour le phosphore et le potassium, nous recommanderons d'abord une analyse.",
+        "tag": "N uniquement"
+      }
+    },
+    "gapsTitle": "Ce qui le renforcerait",
+    "gaps": {
+      "previousCrop": "Le précédent cultural — il modifie la quantité d'azote déjà fournie par le sol.",
+      "target": "Un objectif de rendement — le plan est construit autour de lui.",
+      "method": "La méthode d'extraction et la profondeur de prélèvement du laboratoire.",
+      "soilTest": "Une analyse de sol en laboratoire pour le phosphore et le potassium."
+    },
+    "noGaps": "Rien ne manque. Cette parcelle est prête pour un plan.",
+    "cta": "Demander un plan pilote pour cette parcelle",
+    "disclaimer": "Ce diagnostic montre uniquement la portée d'un plan. Il ne donne aucune dose — celles-ci viennent après la validation de vos données par un agronome."
+  }
+}

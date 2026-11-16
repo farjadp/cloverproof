@@ -1,7 +1,8 @@
 {
   "meta": {
     "title": "CloverProof — Field-specific fertilizer decisions, with proof",
-    "description": "CloverProof turns your field and soil-test data into a fertilizer plan — what, how much, when and why — reviewed by an agronomist and recorded in a proof document. Vendor-neutral, software only."
+    "description": "CloverProof turns your field and soil-test data into a fertilizer plan — what, how much, when and why — reviewed by an agronomist and recorded in a proof document. Vendor-neutral, software only.",
+    "translationStatus": "source"
   },
   "nav": {
     "how": "How it works",
@@ -11,7 +12,8 @@
     "cta": "Request a pilot plan",
     "skip": "Skip to content",
     "menu": "Menu",
-    "check": "Field check"
+    "check": "Field check",
+    "language": "Language"
   },
   "hero": {
     "eyebrow": "Pilot season 2027 · Applications open",
@@ -218,6 +220,7 @@
   },
   "privacy": {
     "title": "Privacy notice",
+    "description": "How CloverProof collects, uses and protects the details you share when you request a pilot plan.",
     "draft": "Draft — under review before launch.",
     "updated": "Last updated: November 2026",
     "sections": [
