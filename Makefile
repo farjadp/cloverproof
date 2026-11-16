@@ -7,7 +7,7 @@ help:
 	@echo "make fmt      ruff format + autofix"
 	@echo "make test     pytest (engine + app)"
 	@echo "make dev      run the FastAPI app on http://127.0.0.1:8000"
-	@echo "make golden   golden report (not available yet)"
+	@echo "make golden   golden report (engine vs expected, report only)"
 	@echo "make db-up    start local Postgres + PostGIS (docker compose)"
 	@echo "make db-down  stop local Postgres (data volume kept)"
 
@@ -35,7 +35,7 @@ dev:
 	uv run uvicorn cloverproof_app.main:app --reload --host 127.0.0.1 --port 8000
 
 golden:
-	@echo "make golden: not available yet. The golden report arrives with engine v0 (web app plan, Step 3)."
+	uv run python -m cloverproof_engine.golden_report --golden-dir engine/tests/golden --packs-dir packs
 
 db-up:
 	docker compose up -d --wait db
