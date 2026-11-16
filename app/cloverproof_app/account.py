@@ -160,7 +160,7 @@ def change_password(
     new_password: Annotated[str, Form(max_length=MAX_PASSWORD)] = "",
     confirm_password: Annotated[str, Form(max_length=MAX_PASSWORD)] = "",
 ) -> Response:
-    limiter: LoginRateLimiter = request.app.state.login_limiter
+    limiter: LoginRateLimiter = request.app.state.password_limiter
     settings = request.app.state.settings
     ip = client_ip(request)
     if limiter.is_blocked(user.email, ip):

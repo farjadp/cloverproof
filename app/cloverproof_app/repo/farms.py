@@ -69,9 +69,15 @@ def get_farmer(conn: psycopg.Connection, org_id: UUID, farmer_id: UUID) -> Farme
         ).fetchone()
 
 
+def like_pattern(q: str) -> str:
+    """`%q%` for LIKE, with the user's `\\`, `%` and `_` matched literally (N15)."""
+    escaped = q.strip().lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+
+
 def overview(conn: psycopg.Connection, org_id: UUID, q: str = "") -> list[OverviewRow]:
     """Farmers with their farms; `q` filters by farmer, farm or field name."""
-    pattern = f"%{q.strip().lower()}%"
+    pattern = like_pattern(q)
     with conn.cursor(row_factory=class_row(OverviewRow)) as cur:
         return cur.execute(
             "select f.id as farmer_id, f.display_name as farmer_name,"
@@ -79,9 +85,10 @@ def overview(conn: psycopg.Connection, org_id: UUID, q: str = "") -> list[Overvi
             " from farmer f left join farm fa"
             "   on fa.organisation_id = f.organisation_id and fa.farmer_id = f.id"
             " where f.organisation_id = %(org)s and (%(all)s"
-            "   or lower(f.display_name) like %(q)s or lower(coalesce(fa.name, '')) like %(q)s"
+            "   or lower(f.display_name) like %(q)s escape '\\'"
+            "   or lower(coalesce(fa.name, '')) like %(q)s escape '\\'"
             "   or exists (select 1 from field fi where fi.organisation_id = f.organisation_id"
-            "     and fi.farm_id = fa.id and lower(fi.name) like %(q)s))"
+            "     and fi.farm_id = fa.id and lower(fi.name) like %(q)s escape '\\'))"
             " order by lower(f.display_name), f.id, lower(fa.name), fa.id",
             {"org": org_id, "q": pattern, "all": not q.strip()},
         ).fetchall()

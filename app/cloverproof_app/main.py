@@ -27,7 +27,7 @@ from cloverproof_app.config import DEPLOYED_ENVS, ConfigError, Settings
 from cloverproof_app.db.migrate import REPO_ROOT
 from cloverproof_app.db.pool import Database, PooledDatabase, check_least_privilege
 from cloverproof_app.plan_web import router as plan_router
-from cloverproof_app.ratelimit import LoginGuard, UnlockListener
+from cloverproof_app.ratelimit import LoginGuard, LoginRateLimiter, UnlockListener
 from cloverproof_app.web import (
     LOGIN_FAILED,
     LOGIN_FORM_EXPIRED,
@@ -142,7 +142,11 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
     app.state.database = database
     app.state.pack = load_configured_pack(settings)
     app.state.login_guard = login_guard
-    app.state.login_limiter = login_guard.pair  # (email, IP) limit, also used by account.py
+    app.state.login_limiter = login_guard.pair  # (email, IP) sign-in limit
+    # N13: wrong current passwords on /account/password count on their own keys.
+    app.state.password_limiter = LoginRateLimiter(
+        settings.login_max_failures, settings.login_window_minutes * 60, prefix="password-change"
+    )
 
     headers = dict(SECURITY_HEADERS)
     if settings.env in DEPLOYED_ENVS:  # S8: TLS ends at the proxy; browsers must stay on https
