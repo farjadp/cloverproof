@@ -1,0 +1,44 @@
+# SAMPLE golden case — NOT agronomist-approved.
+# Expected values are derived by hand from packs/placeholder/v0.yaml (PLACEHOLDER
+# constants), only to exercise the golden report. Replace with real cases from
+# Farjad Iranmehr (docs/agronomist-todo.md #1).
+#
+# Arithmetic: demand 7 x 30 = 210; net 210 - 40 - 20 (soybean) = 150;
+# rate 150 / 0.8 = 187.5 kg N/ha; total 187.5 x 25 = 4687.5 kg N; splits 0.4 / 0.6.
+# The soil test values are illustrative only; engine v0 does not use them for N.
+id: sample_wheat_lab_soil_test_after_soybean
+status: SAMPLE  # not agronomist-approved
+description: Wheat after soybean with a recent lab soil test (P Olsen, K ammonium acetate, 0-15 cm).
+pack:
+  id: placeholder
+  version: v0
+# TODO(agronomist): set agreement tolerances for real cases.
+tolerance:
+  kg_n_per_ha: 0.5
+  kg_n: 10
+input:
+  crop: wheat
+  target_yield_t_ha: 7.0
+  previous_crop: soybean
+  area_ha: 25.0
+  plan_date: "2027-02-20"
+  soil_test:
+    sample_date: "2026-09-20"
+    depth_top_cm: 0
+    depth_bottom_cm: 15
+    source: lab
+    lab: SAMPLE lab
+    values:
+      - {form: P, value: 14.0, unit: mg/kg, extraction_method: olsen}
+      - form: K
+        value: 160.0
+        unit: mg/kg
+        extraction_method: other
+        extraction_method_detail: ammonium acetate
+expected:
+  n_rate_kg_ha: 187.5
+  n_total_kg: 4687.5
+  split_rates_kg_ha: [75.0, 112.5]
+  confidence: low
+  pk_note: PK_NOT_CALCULATED_V0
+  reason: SAMPLE derived from the placeholder pack; not an agronomist decision.

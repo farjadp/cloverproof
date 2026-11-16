@@ -121,14 +121,18 @@ requires-dist = [
 
 [[package]]
 name = "cloverproof-engine"
-version = "0.0.0"
+version = "0.2.0"
 source = { editable = "engine" }
 dependencies = [
     { name = "pydantic" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pydantic", specifier = ">=2.9" }]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.9" },
+    { name = "pyyaml", specifier = ">=6.0" },
+]
 
 [[package]]
 name = "colorama"
