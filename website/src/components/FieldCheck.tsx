@@ -6,28 +6,27 @@ import type { Dictionary } from "@/i18n/dictionaries";
 type T = Dictionary["check"];
 type Answers = Partial<Record<"soilTest" | "method" | "previousCrop" | "target", string>>;
 
-/** Four-leaf clover; each leaf fills when a question is answered. */
+/**
+ * Interactive four-leaf clover for the field check; each heart-shaped leaf fills when a
+ * question is answered. Kept as its own SVG (the official mark is a raster image and can't
+ * fill leaf by leaf); leaf shape and stem echo the official mark.
+ */
+const LEAF = "M50 47C40 42 29 33 30 22C31 13 41 10 50 18C59 10 69 13 70 22C71 33 60 42 50 47Z";
+
 function Clover({ filled }: { filled: number }) {
-  const leaves = [
-    { cx: 50, cy: 28 },
-    { cx: 72, cy: 50 },
-    { cx: 50, cy: 72 },
-    { cx: 28, cy: 50 },
-  ];
   return (
-    <svg viewBox="0 0 100 120" className="size-40 drop-shadow-sm" aria-hidden="true">
-      <path d="M50 78c2 18 12 26 24 32" className="fill-none stroke-olive" strokeWidth="5" strokeLinecap="round" />
-      {leaves.map((l, i) => (
-        <circle
-          key={i}
-          cx={l.cx}
-          cy={l.cy}
-          r="20"
-          className={`origin-center transition-all duration-500 ease-out ${i < filled ? "fill-olive" : "fill-sage-soft stroke-sage"}`}
-          strokeWidth="2"
-        />
+    <svg viewBox="0 0 100 110" className="size-40 drop-shadow-sm" aria-hidden="true">
+      <path d="M53 53C58 70 60 86 70 104" className="fill-none stroke-olive" strokeWidth="5" strokeLinecap="round" />
+      {[0, 90, 180, 270].map((deg, i) => (
+        <g key={deg} transform={`rotate(${deg} 50 50)`}>
+          <path
+            d={LEAF}
+            className={`transition-colors duration-500 ease-out ${i < filled ? "fill-olive stroke-olive" : "fill-sage-soft stroke-sage"}`}
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+        </g>
       ))}
-      <circle cx="50" cy="50" r="6" className="fill-ivory" />
     </svg>
   );
 }

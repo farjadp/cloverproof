@@ -42,7 +42,7 @@ function LeafBurst() {
     <div aria-hidden="true" className="pointer-events-none absolute start-1/2 top-16">
       {leaves.map((v, i) => (
         <span key={i} className={`absolute animate-leaf ${v} ${i % 2 ? "[animation-delay:80ms]" : ""}`}>
-          <CloverMark className="size-6" />
+          <CloverMark className="h-6 w-auto" />
         </span>
       ))}
     </div>

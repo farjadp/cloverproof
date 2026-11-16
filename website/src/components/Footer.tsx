@@ -8,10 +8,8 @@ export function Footer({ t, lang }: { t: Dictionary; lang: Locale }) {
     <footer className="bg-ink text-ivory">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.5fr_1fr_1.5fr] lg:px-8">
         <div>
-          <span className="[&_span]:text-ivory">
-            <Logo name="CloverProof" />
-          </span>
-          <p className="mt-3 text-ivory/75">{t.footer.tagline}</p>
+          <Logo tone="white" className="h-10 w-auto" />
+          <p className="mt-4 text-ivory/75">{t.footer.tagline}</p>
         </div>
         <nav aria-label="Legal">
           <Link href={`/${lang}/privacy`} className="underline decoration-sage underline-offset-4 hover:text-sage">

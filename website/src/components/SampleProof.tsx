@@ -35,7 +35,7 @@ export function SampleProof({ t }: { t: Dictionary }) {
   const step = ["delay-[200ms]", "delay-[500ms]", "delay-[800ms]"];
   const show = (i: number) => `transition-all duration-500 ${step[i] ?? ""} ${inView ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-3"}`;
   return (
-    <section id="proof" aria-labelledby="proof-title" className="border-t border-rule">
+    <section id="proof" aria-labelledby="proof-title" className="overflow-x-clip border-t border-rule">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1fr_1.6fr] lg:px-8 [&>*]:min-w-0">
         <div>
           <h2 id="proof-title" className="font-serif text-3xl text-ink sm:text-4xl">{p.title}</h2>
@@ -46,7 +46,7 @@ export function SampleProof({ t }: { t: Dictionary }) {
         <article ref={ref} aria-label={p.docTitle} className="relative rotate-[0.4deg] border border-rule bg-white transition-transform duration-500 hover:rotate-0 shadow-[0_1px_0_var(--color-rule),0_12px_32px_-24px_var(--color-ink)]">
           <header className="flex items-center justify-between gap-4 border-b border-rule px-6 py-4">
             <div className="flex items-center gap-3">
-              <CloverMark className="size-6" />
+              <CloverMark className="h-6 w-auto" />
               <span className="font-serif text-lg text-ink">{p.docTitle}</span>
               <span className="rounded bg-sand px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-ink-soft">{p.sampleTag}</span>
             </div>

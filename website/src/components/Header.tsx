@@ -17,8 +17,8 @@ export function Header({ t, lang }: { t: Dictionary; lang: Locale }) {
         {t.nav.skip}
       </a>
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
-        <Link href={`/${lang}`} aria-label="CloverProof">
-          <Logo name="CloverProof" />
+        <Link href={`/${lang}`} className="shrink-0">
+          <Logo className="h-8 w-auto sm:h-9" />
         </Link>
         <nav aria-label="Main" className="hidden md:block">
           <ul className="flex items-center gap-7 text-[0.95rem] text-ink-soft">

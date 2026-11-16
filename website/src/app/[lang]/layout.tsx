@@ -10,6 +10,12 @@ import "../globals.css";
 const serif = Source_Serif_4({ subsets: ["latin", "latin-ext", "cyrillic"], variable: "--font-source-serif" });
 const sans = Source_Sans_3({ subsets: ["latin", "latin-ext", "cyrillic"], variable: "--font-source-sans" });
 
+// Absolute base for Open Graph and alternate URLs. SITE_URL wins (custom domain later);
+// Railway sets RAILWAY_PUBLIC_DOMAIN automatically.
+const siteUrl =
+  process.env.SITE_URL ??
+  (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : "http://localhost:3000");
+
 export function generateStaticParams() {
   return enabledLocales.map((lang) => ({ lang }));
 }
@@ -21,6 +27,7 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
   if (!isEnabledLocale(lang)) return {};
   const t = await getDictionary(lang);
   return {
+    metadataBase: new URL(siteUrl),
     title: t.meta.title,
     description: t.meta.description,
     alternates: {
