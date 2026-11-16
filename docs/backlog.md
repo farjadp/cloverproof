@@ -1464,3 +1464,6 @@ Result: no story contradicts D1–D4 or R1–R9. Stories that touch each:
 - PM-ST-ag: the plan says agronomists read soil tests; the concierge needs them to write. S2-DB-07 keeps write for the concierge and records it as a decision.
 - The agronomist "assigned" scoping (PM-FF-ag) is org-wide until grants exist (S9); recorded as a decision in S2-DB-06.
 - S2 load is above comfortable capacity (see sprint goals); RK-X12 overflow order is given there.
+
+## Phase 3/4 open-data items
+Tracked separately in [`docs/data/open-data-backlog.md`](data/open-data-backlog.md) (owner: head-of-data). Licences: [`docs/data-sources.md`](data-sources.md) is the single source of truth.
