@@ -24,7 +24,6 @@ from cloverproof_app import planning, timer
 from cloverproof_app.auth import (
     INTERNAL_ROLES,
     Conn,
-    CurrentUser,
     OrgContext,
     SettingsDep,
     require_org_role,
@@ -36,26 +35,35 @@ from cloverproof_engine.pack import Pack
 router = APIRouter()
 
 InternalOrg = Annotated[OrgContext, Depends(require_org_role(*INTERNAL_ROLES))]
-ONLY_AGRONOMIST = "Only the agronomist can review plans."
+ONLY_AGRONOMIST = "Only an agronomist or a superadmin can review plans."
 ALREADY_REVIEWED = "This plan version is already reviewed. Nothing was saved."
 STALE_VERSION = "A newer version of this plan exists. Reload the plan; nothing was saved."
 TIMER_MISSING = "The plan timer is missing. Open the plan again, then review. Nothing was saved."
 FINAL_DECISIONS = frozenset({"approve", "reject"})
 DECISION_LABELS = {"approve": "Approved", "reject": "Rejected", "edit": "Edited"}
 AI_DECISION_LABELS = {"approve": "would approve", "reject": "would reject"}
-# CLAUDE.md rule 11: the reviewer's actor_kind fixes the review kind (also enforced by the
-# database trigger review_check_kind). Only agronomist_approved reviews are final.
-HUMAN_REVIEW = "agronomist_approved"
+# CLAUDE.md rule 11 + decision 2026-11-16: the reviewer fixes the review kind (also
+# enforced by the database trigger review_check_kind). Human reviews (agronomist or
+# superadmin) are final; only agronomist_approved ones are calibration data.
+AGRONOMIST_REVIEW = "agronomist_approved"
+SUPERADMIN_REVIEW = "superadmin_approved"
 AI_REVIEW = "ai_reviewed"
-REVIEW_KIND_BY_ACTOR = {"human": HUMAN_REVIEW, "service": AI_REVIEW}
+HUMAN_REVIEWS = frozenset({AGRONOMIST_REVIEW, SUPERADMIN_REVIEW})
+REVIEWER_LABELS = {AGRONOMIST_REVIEW: "agronomist", SUPERADMIN_REVIEW: "superadmin"}
 
 
-def review_kind_for(user: CurrentUser) -> str:
-    """review_kind for a review recorded by this signed-in user."""
-    try:
-        return REVIEW_KIND_BY_ACTOR[user.actor_kind]
-    except KeyError:
-        raise ValueError(f"unknown actor_kind {user.actor_kind!r}") from None
+def review_kind_for(context: OrgContext) -> str:
+    """review_kind for a review by the signed-in user in this organisation."""
+    user = context.user
+    if user.actor_kind == "service":
+        return AI_REVIEW
+    if user.actor_kind != "human":
+        raise ValueError(f"unknown actor_kind {user.actor_kind!r}")
+    if "agronomist" in context.roles:
+        return AGRONOMIST_REVIEW  # even if also superadmin
+    if user.is_superadmin:
+        return SUPERADMIN_REVIEW
+    raise ValueError("not a reviewer: needs the agronomist role or superadmin")
 
 
 STATUS_LABELS = {
@@ -71,8 +79,9 @@ def pack_of(request: Request) -> Pack:
 
 
 def is_agronomist(context: OrgContext) -> bool:
-    """A human agronomist (B1/D4): a service account never edits, approves or rejects."""
-    return context.user.is_human and "agronomist" in context.roles
+    """May review: a human agronomist of the org or a human superadmin member of it
+    (B1/D4, decision 2026-11-16). A service account never edits, approves or rejects."""
+    return context.user.is_human and ("agronomist" in context.roles or context.user.is_superadmin)
 
 
 def require_agronomist(context: OrgContext) -> None:
@@ -343,7 +352,7 @@ class PlanView:
     @property
     def last_review_at(self) -> datetime | None:
         """When the agronomist last recorded a review on this plan (F4 timer restart)."""
-        return max((r.created_at for r in self.reviews if r.review_kind == HUMAN_REVIEW),
+        return max((r.created_at for r in self.reviews if r.review_kind in HUMAN_REVIEWS),
                    default=None)  # fmt: skip
 
 
@@ -378,7 +387,7 @@ def load_plan(conn: Conn, context: OrgContext, plan_id: UUID) -> PlanView:
             r
             for r in reviews
             if r.recommendation_id == latest.id
-            and r.review_kind == HUMAN_REVIEW
+            and r.review_kind in HUMAN_REVIEWS
             and r.decision in FINAL_DECISIONS
         ),
         None,
@@ -432,6 +441,7 @@ def plan_page(request: Request, conn: Conn, context: OrgContext, settings: Setti
         "can_review": is_agronomist(context),
         "decision_labels": DECISION_LABELS,
         "ai_decision_labels": AI_DECISION_LABELS,
+        "reviewer_labels": REVIEWER_LABELS,
         "errors": errors or {},
         "values": values or {},
         "status_labels": STATUS_LABELS,
@@ -592,7 +602,7 @@ async def plan_edit_save(request: Request, conn: Conn, context: InternalOrg,
         )  # fmt: skip
         plans.insert_review(
             conn, org, recommendation_id=view.latest.id, decision="edit",
-            review_kind=review_kind_for(context.user),
+            review_kind=review_kind_for(context),
             reason=with_cap_note(reason, spent), reviewer_id=context.user.id,
             minutes_spent=spent.minutes, started_at=spent.started_at,
             resulting_recommendation_id=new_id,
@@ -625,7 +635,7 @@ async def plan_review(request: Request, conn: Conn, context: InternalOrg, settin
     with conflicts_as_409(conn):
         plans.insert_review(
             conn, context.org.id, recommendation_id=view.latest.id, decision=decision,
-            review_kind=review_kind_for(context.user),
+            review_kind=review_kind_for(context),
             reason=with_cap_note(reason or None, spent), reviewer_id=context.user.id,
             minutes_spent=spent.minutes, started_at=spent.started_at,
         )  # fmt: skip

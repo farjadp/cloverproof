@@ -68,7 +68,7 @@ class ReviewRow:
     id: UUID
     recommendation_id: UUID
     decision: str
-    review_kind: str  # agronomist_approved | ai_reviewed (CLAUDE.md rule 11)
+    review_kind: str  # agronomist_approved | superadmin_approved | ai_reviewed (rule 11)
     reason: str | None
     reviewer_name: str
     minutes_spent: int
@@ -279,8 +279,8 @@ def last_plan_per_field(conn: psycopg.Connection, org_id: UUID) -> dict[UUID, Pl
 
 
 # Status of a plan = review state of its latest version (the one without a child).
-# Only agronomist_approved approve/reject are final; an `ai_reviewed` review (D4, rule 11)
-# leaves the plan in review.
+# Only human (agronomist_approved, superadmin_approved) approve/reject are final; an
+# `ai_reviewed` review (D4, rule 11) leaves the plan in review.
 _SUMMARY = (
     "select p.id, s.label as season_label, p.crop, p.plan_date,"
     " (select count(*) from recommendation r where r.organisation_id = p.organisation_id"
@@ -288,9 +288,9 @@ _SUMMARY = (
     " l.confidence::text as confidence,"
     " case when l.id is null then 'draft'"
     "   when exists (select 1 from review v where v.recommendation_id = l.id"
-    "     and v.review_kind = 'agronomist_approved' and v.decision = 'approve') then 'approved'"
+    "     and v.review_kind <> 'ai_reviewed' and v.decision = 'approve') then 'approved'"
     "   when exists (select 1 from review v where v.recommendation_id = l.id"
-    "     and v.review_kind = 'agronomist_approved' and v.decision = 'reject') then 'rejected'"
+    "     and v.review_kind <> 'ai_reviewed' and v.decision = 'reject') then 'rejected'"
     "   else 'in_review' end as status,"
     " coalesce(greatest(l.created_at, (select max(v.created_at) from review v"
     "   where v.recommendation_id = l.id)), p.created_at) as updated_at"

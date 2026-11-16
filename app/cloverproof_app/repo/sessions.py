@@ -18,6 +18,7 @@ class SessionUser:
     display_name: str
     last_seen_at: datetime
     actor_kind: str
+    platform_role: str | None  # None | 'superadmin' (migration 0012)
 
 
 def create_session(
@@ -41,7 +42,7 @@ def get_active_session(
     with conn.cursor(row_factory=class_row(SessionUser)) as cur:
         return cur.execute(
             "select s.id as session_id, u.id as user_id, u.email, u.display_name,"
-            " s.last_seen_at, u.actor_kind"
+            " s.last_seen_at, u.actor_kind, u.platform_role"
             " from user_session s join app_user u on u.id = s.user_id"
             " where s.token_sha256 = %s and s.revoked_at is null"
             " and s.expires_at > now() and s.last_seen_at > now() - %s"

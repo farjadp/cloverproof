@@ -47,6 +47,7 @@ def test_user_creation_and_memberships_are_recorded(db: psycopg.Connection, org_
     # No PII and no hash in the audit row.
     assert rows[0][4] == {
         "actor_kind": "human",
+        "platform_role": None,
         "has_password": False,
         "password_change_required": False,
         "disabled": False,

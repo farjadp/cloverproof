@@ -55,25 +55,44 @@ def test_cap_setting_default_and_env() -> None:
         Settings.from_env({**BASE, "REVIEW_MINUTES_CAP": "0"})
 
 
-def test_only_a_human_agronomist_may_review() -> None:
-    def context(kind: str, roles: tuple[str, ...]) -> OrgContext:
-        user = CurrentUser(uuid4(), "a@example.org", "A", uuid4(), "h", actor_kind=kind)
-        org = Organisation(uuid4(), "Org")
-        return OrgContext(user, org, roles, (org,))
+def context(kind: str, roles: tuple[str, ...], platform_role: str | None = None) -> OrgContext:
+    user = CurrentUser(
+        uuid4(), "a@example.org", "A", uuid4(), "h", actor_kind=kind, platform_role=platform_role
+    )
+    org = Organisation(uuid4(), "Org")
+    return OrgContext(user, org, roles, (org,))
 
-    plan_web.require_agronomist(context("human", ("agronomist",)))
-    for kind, roles in (("service", ("agronomist",)), ("human", ("staff",))):
+
+def test_only_a_human_agronomist_or_superadmin_may_review() -> None:
+    allowed = [
+        context("human", ("agronomist",)),
+        context("human", ("staff",), "superadmin"),
+        context("human", ("agronomist",), "superadmin"),
+    ]
+    for ctx in allowed:
+        plan_web.require_agronomist(ctx)
+        assert plan_web.is_agronomist(ctx)
+    denied = [
+        context("service", ("agronomist",)),
+        context("service", ("staff",), "superadmin"),
+        context("service", ("agronomist",), "superadmin"),
+        context("human", ("staff",)),
+        context("human", ("owner",)),
+    ]
+    for ctx in denied:
         with pytest.raises(HTTPException) as error:
-            plan_web.require_agronomist(context(kind, roles))
+            plan_web.require_agronomist(ctx)
         assert error.value.status_code == 403
-        assert not plan_web.is_agronomist(context(kind, roles))
+        assert not plan_web.is_agronomist(ctx)
 
 
-def test_review_kind_follows_actor_kind() -> None:
-    def user(kind: str) -> CurrentUser:
-        return CurrentUser(uuid4(), "a@example.org", "A", uuid4(), "h", actor_kind=kind)
-
-    assert plan_web.review_kind_for(user("human")) == "agronomist_approved"
-    assert plan_web.review_kind_for(user("service")) == "ai_reviewed"
+def test_review_kind_follows_actor_and_role() -> None:
+    kind = plan_web.review_kind_for
+    assert kind(context("human", ("agronomist",))) == "agronomist_approved"
+    assert kind(context("human", ("agronomist",), "superadmin")) == "agronomist_approved"
+    assert kind(context("human", ("staff",), "superadmin")) == "superadmin_approved"
+    assert kind(context("service", ("agronomist",), "superadmin")) == "ai_reviewed"
+    with pytest.raises(ValueError, match="not a reviewer"):
+        kind(context("human", ("staff",)))
     with pytest.raises(ValueError, match="actor_kind"):
-        plan_web.review_kind_for(user("robot"))
+        kind(context("robot", ("agronomist",)))

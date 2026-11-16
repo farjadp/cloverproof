@@ -68,6 +68,11 @@ def set_password_hash(conn: psycopg.Connection, user_id: UUID, password_hash: st
     conn.execute("update app_user set password_hash = %s where id = %s", (password_hash, user_id))
 
 
+def set_platform_role(conn: psycopg.Connection, user_id: UUID, platform_role: str | None) -> None:
+    """CLI only (cp_admin): cp_app has no grant on platform_role (migration 0012)."""
+    conn.execute("update app_user set platform_role = %s where id = %s", (platform_role, user_id))
+
+
 def find_organisation_by_name(conn: psycopg.Connection, name: str) -> list[Organisation]:
     with conn.cursor(row_factory=class_row(Organisation)) as cur:
         return cur.execute(

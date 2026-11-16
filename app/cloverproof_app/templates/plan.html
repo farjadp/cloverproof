@@ -24,9 +24,9 @@
 
 {% if v.final_review %}
   {% if v.final_review.decision == "approve" %}
-  <div class="notice success" role="status"><p class="notice-title">Approved by {{ v.final_review.reviewer_name }} on {{ v.final_review.created_at.strftime("%Y-%m-%d") }}. {{ v.final_review.minutes_spent }} minutes recorded.</p>{% if v.final_review.reason %}<p>{{ v.final_review.reason }}</p>{% endif %}</div>
+  <div class="notice success" role="status"><p class="notice-title">Approved by {{ v.final_review.reviewer_name }} ({{ reviewer_labels[v.final_review.review_kind] }}) on {{ v.final_review.created_at.strftime("%Y-%m-%d") }}. {{ v.final_review.minutes_spent }} minutes recorded.</p>{% if v.final_review.reason %}<p>{{ v.final_review.reason }}</p>{% endif %}</div>
   {% else %}
-  <div class="notice error" role="alert"><p class="notice-title">Rejected by {{ v.final_review.reviewer_name }} on {{ v.final_review.created_at.strftime("%Y-%m-%d") }}. {{ v.final_review.minutes_spent }} minutes recorded.</p><p>{{ v.final_review.reason }}</p></div>
+  <div class="notice error" role="alert"><p class="notice-title">Rejected by {{ v.final_review.reviewer_name }} ({{ reviewer_labels[v.final_review.review_kind] }}) on {{ v.final_review.created_at.strftime("%Y-%m-%d") }}. {{ v.final_review.minutes_spent }} minutes recorded.</p><p>{{ v.final_review.reason }}</p></div>
   {% endif %}
 {% endif %}
 
@@ -140,7 +140,7 @@
 <section id="review" aria-labelledby="review-h" class="review">
   <h2 id="review-h">Review</h2>
   {% for r in v.ai_reviews %}
-  <div class="notice warn" role="note"><p class="notice-title">AI review by {{ r.reviewer_name }} ({{ ai_decision_labels.get(r.decision, r.decision) }}): not an approval.</p>{% if r.reason %}<p>{{ r.reason }}</p>{% endif %}{% if not v.read_only %}<p>Only the agronomist's decision below counts.</p>{% endif %}</div>
+  <div class="notice warn" role="note"><p class="notice-title">AI review by {{ r.reviewer_name }} ({{ ai_decision_labels.get(r.decision, r.decision) }}): not an approval.</p>{% if r.reason %}<p>{{ r.reason }}</p>{% endif %}{% if not v.read_only %}<p>Only the human reviewer's decision below counts.</p>{% endif %}</div>
   {% endfor %}
   {% if v.read_only %}
   <p class="muted">This plan is reviewed and read-only.</p>
@@ -178,7 +178,7 @@
   {% if v.reviews %}
   <h3>History</h3>
   <ul class="history">
-    {% for r in v.reviews %}{% if r.review_kind == "ai_reviewed" %}<li class="ai-review">{{ r.created_at.strftime("%Y-%m-%d %H:%M") }} · {{ r.reviewer_name }} · <strong>AI review, {{ ai_decision_labels.get(r.decision, r.decision) }} (not an approval)</strong>{% if r.reason %} · “{{ r.reason }}”{% endif %}</li>{% else %}<li>{{ r.created_at.strftime("%Y-%m-%d %H:%M") }} · {{ r.reviewer_name }} · {{ decision_labels.get(r.decision, r.decision) }} · {{ r.minutes_spent }} min{% if r.reason %} · “{{ r.reason }}”{% endif %}</li>{% endif %}{% endfor %}
+    {% for r in v.reviews %}{% if r.review_kind == "ai_reviewed" %}<li class="ai-review">{{ r.created_at.strftime("%Y-%m-%d %H:%M") }} · {{ r.reviewer_name }} · <strong>AI review, {{ ai_decision_labels.get(r.decision, r.decision) }} (not an approval)</strong>{% if r.reason %} · “{{ r.reason }}”{% endif %}</li>{% else %}<li>{{ r.created_at.strftime("%Y-%m-%d %H:%M") }} · {{ r.reviewer_name }} ({{ reviewer_labels.get(r.review_kind, r.review_kind) }}) · {{ decision_labels.get(r.decision, r.decision) }} · {{ r.minutes_spent }} min{% if r.reason %} · “{{ r.reason }}”{% endif %}</li>{% endif %}{% endfor %}
   </ul>
   {% endif %}
 </section>
