@@ -110,6 +110,77 @@ jobs:
       - name: npm audit (all deps, fail on critical)
         run: npm audit --audit-level=critical
 
+  licenses:
+    name: licence check (production deps)
+    # XD-07 / DD-06: no copyleft (GPL / AGPL / EUPL / LGPL / MPL ...) or unknown licence in
+    # production deps without an ADR + lawyer sign-off. Allowlists are exact names (no
+    # partial matching, so "GPL" can never slip in via a substring). Every exception is
+    # pinned to a named package AND its current licence, so a licence change fails the job.
+    # Current exceptions (both pending an ADR + lawyer review, not silently allowed):
+    #   - psycopg / psycopg-binary: LGPL-3.0-only (Python Postgres driver)
+    #   - @img/sharp-libvips-*: LGPL-3.0-or-later (libvips binary pulled in by next -> sharp)
+    # Adding any other exception requires an ADR first.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PY_ALLOW: "MIT;MIT License;BSD License;BSD-2-Clause;BSD-3-Clause;Apache-2.0;Apache Software License;ISC;ISC License (ISCL);PSF-2.0;Python Software Foundation License"
+      NPM_ALLOW: "MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;CC-BY-4.0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Sync Python production deps from uv.lock
+        # --no-dev: dev group (pytest, ruff, pre-commit, httpx) is not shipped.
+        run: uv sync --frozen --all-packages --no-dev
+
+      - name: Python licences (allowlist)
+        run: |
+          set -euo pipefail
+          # Ignored: our own workspace members (no licence metadata) and the documented
+          # LGPL exception (checked in the next step).
+          uvx pip-licenses==5.5.5 --python .venv/bin/python --from=mixed --format=plain \
+            --ignore-packages cloverproof-app cloverproof-engine psycopg psycopg-binary \
+            --allow-only "$PY_ALLOW"
+
+      - name: Python licence exception (psycopg is LGPL-3.0-only, pending ADR + lawyer)
+        # Used as an unmodified, dynamically imported library in a hosted service (no
+        # distribution). Fails if the licence changes or new packages appear under the name.
+        run: |
+          uvx pip-licenses==5.5.5 --python .venv/bin/python --from=mixed --format=plain \
+            --packages psycopg psycopg-binary --allow-only "LGPL-3.0-only"
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: lts/*
+
+      - name: Install website production deps (no install scripts)
+        working-directory: website
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: npm licences (allowlist)
+        working-directory: website
+        # Excluded: the private root package (UNLICENSED, our own code) and the sharp
+        # libvips binaries (LGPL-3.0-or-later exception, checked in the next step).
+        # CC-BY-4.0 is caniuse-lite data (attribution, not copyleft).
+        run: |
+          npx --yes license-checker-rseidelsohn@5.0.1 --production --excludePrivatePackages \
+            --excludePackagesStartingWith "@img/sharp-libvips-" \
+            --onlyAllow "$NPM_ALLOW" --summary
+
+      - name: npm licence exception (sharp-libvips is LGPL-3.0-or-later, pending ADR + lawyer)
+        working-directory: website
+        run: |
+          set -euo pipefail
+          npx --yes license-checker-rseidelsohn@5.0.1 --production --excludePrivatePackages \
+            --json > "$RUNNER_TEMP/npm-licenses.json"
+          jq -r 'to_entries[] | select(.key | startswith("@img/sharp-libvips-"))
+                 | "\(.key) \(.value.licenses)"' "$RUNNER_TEMP/npm-licenses.json"
+          jq -e '[to_entries[] | select(.key | startswith("@img/sharp-libvips-"))]
+                 | all(.value.licenses == "LGPL-3.0-or-later")' "$RUNNER_TEMP/npm-licenses.json"
+
   dependency-review:
     name: dependency review (PR)
     if: github.event_name == 'pull_request'

@@ -47,3 +47,16 @@ Written 2026-11-16 (S2 work started early). Desk review only: no production, no 
 - Slowed us: Step 5 branch not pushed (reviewed locally); one specialist hit its turn limit before writing (re-briefed narrower from its artefacts); gov.ca sites blocked from this environment; no dashboard access ⇒ many "unknown".
 - Change for S3: brief specialists with one deliverable each and "write the file first"; get a read-only Railway viewer check done by Farjad Iranmehr (15 min) to close the "unknown" items.
 - Still open for S2 end: re-review Step 5B (approval route, reviewer_id from session) when it lands; run the 83 DB/auth tests against local PostGIS.
+
+## Addendum — CPO backend-plan scope (section 2: REC-R8, NB-SEC-01/02/04, SC-11; with cto SC-02, SC-03, REC-D1, XD-07, DD-06)
+| Item | File | Status |
+|---|---|---|
+| PR #7 delta review (c720eec→85814b6) | `docs/security/S2-review-pr7-delta.md` | 1 BLOCKER, 4 SHOULD-FIX, 6 NOTE; S1–S8: S3 fixed, 7 open (S5 worse) |
+| Website least-privilege DB role (runbook BLOCKER) | `docs/security/website-db-role-spec.md` | spec + SQL for `0011_website_role.sql` (cp-database to adopt) |
+| ADR 0006 RLS review criteria (NB-SEC-02) | `docs/security/adr-0006-rls-review-criteria.md` | ready; applied when cp-database drafts ADR 0006 |
+| Licence check in CI (XD-07, DD-06) | `.github/workflows/security.yml` job `licenses` | passes locally (macOS); LGPL exceptions psycopg + sharp-libvips → ADR + lawyer |
+| Secrets rotation (SC-03) | `docs/security/secrets-rotation.md` | done |
+
+**New BLOCKER (D4):** no human/service distinction — an owner can create an AI account with `agronomist` role and the approval trigger accepts it (`db/migrations/0007_review.sql:43-47`, `app/cloverproof_app/account.py:225-261` @85814b6). Fix: `app_user.account_kind` (human|service, immutable), DB trigger rejects approve unless human agronomist, AI output as `ai_reviewed` only. Must land before any AI reviewer account or real-farm plan.
+**Runbook:** step 4 must not run until `cp_website` exists, its checks pass, and the website pre-deploy `db:migrate` is removed (it will fail under `cp_website`; no migrator credential on the website service).
+**Still waiting:** S1–S8/F1–F4 fixes on #7 (web-app session) → re-review; ADR 0006 draft (cp-database); S3 residency + DPA with coo; backup plan already covers the bucket gap.
