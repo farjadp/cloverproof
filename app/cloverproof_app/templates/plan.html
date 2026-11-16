@@ -139,6 +139,9 @@
 
 <section id="review" aria-labelledby="review-h" class="review">
   <h2 id="review-h">Review</h2>
+  {% for r in v.ai_reviews %}
+  <div class="notice warn" role="note"><p class="notice-title">AI review by {{ r.reviewer_name }}: not an approval.</p>{% if r.reason %}<p>{{ r.reason }}</p>{% endif %}{% if not v.read_only %}<p>Only the agronomist's decision below counts.</p>{% endif %}</div>
+  {% endfor %}
   {% if v.read_only %}
   <p class="muted">This plan is reviewed and read-only.</p>
   {% elif not can_review %}
@@ -175,7 +178,7 @@
   {% if v.reviews %}
   <h3>History</h3>
   <ul class="history">
-    {% for r in v.reviews %}<li>{{ r.created_at.strftime("%Y-%m-%d %H:%M") }} · {{ r.reviewer_name }} · {{ {"approve": "Approved", "reject": "Rejected", "edit": "Edited"}[r.decision] }} · {{ r.minutes_spent }} min{% if r.reason %} · “{{ r.reason }}”{% endif %}</li>{% endfor %}
+    {% for r in v.reviews %}{% if r.decision == "ai_reviewed" %}<li class="ai-review">{{ r.created_at.strftime("%Y-%m-%d %H:%M") }} · {{ r.reviewer_name }} · <strong>AI review (not an approval)</strong>{% if r.reason %} · “{{ r.reason }}”{% endif %}</li>{% else %}<li>{{ r.created_at.strftime("%Y-%m-%d %H:%M") }} · {{ r.reviewer_name }} · {{ decision_labels.get(r.decision, r.decision) }} · {{ r.minutes_spent }} min{% if r.reason %} · “{{ r.reason }}”{% endif %}</li>{% endif %}{% endfor %}
   </ul>
   {% endif %}
 </section>

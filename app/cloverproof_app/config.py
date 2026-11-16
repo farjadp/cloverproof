@@ -90,6 +90,9 @@ class Settings:
     # S8: HSTS max-age=31536000 in staging/production; includeSubDomains only when every
     # subdomain of the custom domain serves HTTPS.
     hsts_include_subdomains: bool = False
+    # F4: minutes stored per review are capped here (a tab left open); capped reviews are
+    # flagged in the review reason.
+    review_minutes_cap: int = 240
 
     def __post_init__(self) -> None:
         if not self.database_url.strip():
@@ -154,6 +157,7 @@ class Settings:
             ("ARGON2_ACQUIRE_TIMEOUT_SECONDS", "argon2_acquire_timeout_seconds"),
             ("LOGIN_GLOBAL_MAX_FAILURES_PER_MINUTE", "login_global_max_failures_per_minute"),
             ("DB_POOL_MAX_SIZE", "db_pool_max_size"),
+            ("REVIEW_MINUTES_CAP", "review_minutes_cap"),
         ):
             if env.get(name):
                 optional[field] = _positive_int(name, env[name])

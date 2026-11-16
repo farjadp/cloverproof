@@ -164,6 +164,16 @@ def get_plan(conn: psycopg.Connection, org_id: UUID, plan_id: UUID) -> PlanRow |
         ).fetchone()
 
 
+def lock_plan(conn: psycopg.Connection, org_id: UUID, plan_id: UUID) -> bool:
+    """Row-lock the plan until commit (F1): edits and reviews of one plan run one at a time,
+    so the version read after this is still the latest when the new row is inserted."""
+    row = conn.execute(
+        "select id from crop_plan where organisation_id = %s and id = %s for update",
+        (org_id, plan_id),
+    ).fetchone()
+    return row is not None
+
+
 def insert_recommendation(conn: psycopg.Connection, org_id: UUID, *, crop_plan_id: UUID,
                           result: dict[str, Any], user_id: UUID, parent_id: UUID | None = None,
                           reason: str | None = None) -> UUID:  # fmt: skip
@@ -212,12 +222,13 @@ def reviews(conn: psycopg.Connection, org_id: UUID, plan_id: UUID) -> list[Revie
 
 def insert_review(conn: psycopg.Connection, org_id: UUID, *, recommendation_id: UUID,
                   decision: str, reason: str | None, reviewer_id: UUID, minutes_spent: int,
+                  started_at: datetime | None = None,
                   resulting_recommendation_id: UUID | None = None) -> UUID:  # fmt: skip
     row = conn.execute(
         "insert into review (organisation_id, recommendation_id, decision, reason, reviewer_id,"
-        " minutes_spent, resulting_recommendation_id) values (%s, %s, %s, %s, %s, %s, %s)"
-        " returning id",
-        (org_id, recommendation_id, decision, reason, reviewer_id, minutes_spent,
+        " minutes_spent, started_at, resulting_recommendation_id)"
+        " values (%s, %s, %s, %s, %s, %s, %s, %s) returning id",
+        (org_id, recommendation_id, decision, reason, reviewer_id, minutes_spent, started_at,
          resulting_recommendation_id),
     ).fetchone()  # fmt: skip
     assert row is not None
@@ -267,6 +278,7 @@ def last_plan_per_field(conn: psycopg.Connection, org_id: UUID) -> dict[UUID, Pl
 
 
 # Status of a plan = review state of its latest version (the one without a child).
+# Only approve/reject are final; an `ai_reviewed` row (D4) leaves the plan in review.
 _SUMMARY = (
     "select p.id, s.label as season_label, p.crop, p.plan_date,"
     " (select count(*) from recommendation r where r.organisation_id = p.organisation_id"
