@@ -1,5 +1,7 @@
 # CloverProof roadmap — sprints, test gates and the learning loop
 
+> **Dates superseded (2026-11-16):** the master calendar is now S1–S30 in `docs/plans/backend-plan.md` §15 (decision D3 in `docs/plans/backend-plan-reconciliation.md`). The test gates, learning loop and Definition of Done below still apply to every sprint.
+
 Owner: `product-manager` (CPO). Approved direction: Farjad Iranmehr, 2026-11-16.
 Cadence: **2-week sprints**, Monday → Friday of week 2. Every sprint ends with a review + retro (below).
 Build order stays: website → web app → mobile. Other groups (growth, operations, data, security, strategy) run in parallel from Sprint 2.
