@@ -12,7 +12,10 @@ Decisions: ADR 0002, ADR 0004, ADR 0006 (database roles), `docs/plans/webapp-v1.
 | Website (pilot form) | `cp_website_login` | `cp_website` | INSERT into `pilot_request` only |
 | Operator, migrations | `postgres` (superuser) | — | everything; never stored in a service |
 
-## 1. Create the `postgis` service — DONE 2026-11-16 by the CPO session with Farjad Iranmehr's approval (service id `65b71098-9811-4144-a98e-cf8e816914bc`, image `postgis/postgis:18-3.6`); first deploy was stuck, redeployed. Original instructions kept for a rebuild:
+## 1. Create the PostGIS service — DONE 2026-11-16 (CPO session, Farjad Iranmehr approved)
+Live service: **`PostGIS-cXKk`** (id `85ebd5a9-7fe9-4176-a377-34905ff81969`, image `postgis/postgis:18-3.7`, pre-18 `PGDATA` layout under `/var/lib/postgresql/data`, database **`railway`**). The first service `PostGIS` (`65b71098…`, 18-3.6) failed with a Railway infra error — do not use; delete only with Farjad Iranmehr's OK.
+`${{PostGIS-cXKk.DATABASE_PRIVATE_URL}}` is the **superuser** URL: never set it on the app or website service. Below, `postgis` means `PostGIS-cXKk` and `POSTGRES_DB` is `railway`.
+Original instructions, kept for a rebuild:
 Project `cloverproof`, environment `production`:
 - New service → Docker image `postgis/postgis:18-3.6` (same as local `docker-compose.yml` and CI), name `postgis`.
 - Variables: `POSTGRES_USER=postgres`, `POSTGRES_DB=cloverproof`, `POSTGRES_PASSWORD=<random, 32+ chars>`, `PGDATA=/var/lib/postgresql/data/pgdata`,
