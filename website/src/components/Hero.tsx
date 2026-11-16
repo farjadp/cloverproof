@@ -17,7 +17,8 @@ export function Hero({ t }: { t: Dictionary }) {
       <Image
         src={hero}
         alt={t.hero.imageAlt}
-        priority
+        preload
+        fetchPriority="high"
         placeholder="blur"
         sizes="100vw"
         className="absolute inset-0 -z-10 h-full w-full object-cover object-[center_70%]"

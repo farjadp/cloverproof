@@ -3,6 +3,7 @@
 import { isEnabledLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getDb } from "@/lib/db";
+import { safeError } from "@/lib/safe-error";
 
 export type PilotState = { status: "idle" | "success" | "invalid" | "notConnected" | "error" };
 
@@ -45,7 +46,8 @@ export async function requestPilot(_prev: PilotState, formData: FormData): Promi
     );
     return { status: "success" };
   } catch (error) {
-    console.error("requestPilot failed", error);
+    // Never log the raw error: pg errors can carry the submitted name/email.
+    console.error("requestPilot failed", safeError(error));
     return { status: "error" };
   }
 }
