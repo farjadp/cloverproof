@@ -3,7 +3,7 @@ import pytest
 from cloverproof_app.config import ConfigError, Settings
 
 SECRET = "s" * 40
-BASE = {"DATABASE_URL": "postgresql://u@h/db", "SESSION_SECRET": SECRET}
+BASE = {"DATABASE_URL": "postgresql://u@localhost/db", "SESSION_SECRET": SECRET}
 
 
 def test_defaults_are_secure() -> None:

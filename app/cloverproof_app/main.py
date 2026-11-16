@@ -22,7 +22,7 @@ from cloverproof_app import account, security
 from cloverproof_app.auth import SESSION_COOKIE, NotAuthenticated, OrgSelectionRequired, csrf_guard
 from cloverproof_app.config import ConfigError, Settings
 from cloverproof_app.db.migrate import REPO_ROOT
-from cloverproof_app.db.pool import Database, PooledDatabase
+from cloverproof_app.db.pool import Database, PooledDatabase, check_least_privilege
 from cloverproof_app.plan_web import router as plan_router
 from cloverproof_app.ratelimit import LoginGuard, UnlockListener
 from cloverproof_app.web import (
@@ -37,6 +37,7 @@ from cloverproof_engine.loaders import load_pack
 from cloverproof_engine.pack import Pack
 
 STATIC_DIR = Path(__file__).parent / "static"
+DEPLOYED_ENVS = frozenset({"staging", "production"})
 DEFAULT_PACK_PATH = REPO_ROOT / "packs" / "placeholder" / "v0.yaml"
 SERVER_ERROR = (
     "Something went wrong and nothing was saved. Try again."
@@ -108,6 +109,13 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         database.open()
+        if settings.env in DEPLOYED_ENVS:
+            try:
+                with database.connection() as conn:
+                    check_least_privilege(conn)
+            except BaseException:
+                database.close()
+                raise
         if unlock_listener is not None:
             unlock_listener.open()
         try:

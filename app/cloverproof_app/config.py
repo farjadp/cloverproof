@@ -1,8 +1,10 @@
 """App configuration, read from environment variables only.
 
-Required: DATABASE_URL, SESSION_SECRET. Optional: PACK_PATH (country-pack YAML the engine
-uses; default packs/placeholder/v0.yaml in the repo). Missing or invalid values stop the app
-at startup (fail fast) with a message that names the variable but never prints its value.
+Required: DATABASE_URL, SESSION_SECRET; ENV too when DATABASE_URL is not on localhost.
+Optional: PACK_PATH (country-pack YAML the engine uses; default packs/placeholder/v0.yaml
+in the repo), login limits, proxy header, hosts and HSTS (see the fields below).
+Missing or invalid values stop the app at startup (fail fast) with a message that names
+the variable but never prints its value.
 """
 
 from __future__ import annotations
@@ -12,9 +14,13 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+import psycopg
+from psycopg.conninfo import conninfo_to_dict
+
 MIN_SECRET_LENGTH = 32
 ALLOWED_ENVS = frozenset({"development", "test", "staging", "production"})
 _HEADER_NAME = re.compile(r"^[A-Za-z0-9-]+$")
+LOCAL_DB_HOSTS = frozenset({"", "localhost", "127.0.0.1", "::1"})
 
 
 class ConfigError(RuntimeError):
@@ -38,6 +44,16 @@ def _positive_int(name: str, raw: str) -> int:
     if value <= 0:
         raise ConfigError(f"{name} must be greater than 0")
     return value
+
+
+def is_local_database(url: str) -> bool:
+    """True when every host in the connection string is this machine (or a unix socket)."""
+    try:
+        params = conninfo_to_dict(url)
+    except psycopg.ProgrammingError:
+        return False
+    hosts = str(params.get("host") or "").split(",")
+    return all(h.strip() in LOCAL_DB_HOSTS or h.strip().startswith("/") for h in hosts)
 
 
 @dataclass(frozen=True)
@@ -87,8 +103,14 @@ class Settings:
         if missing:
             raise ConfigError(f"missing required environment variables: {', '.join(missing)}")
         optional: dict[str, object] = {}
-        if env.get("ENV"):
+        if env.get("ENV", "").strip():
             optional["env"] = env["ENV"].strip().lower()
+        elif not is_local_database(env["DATABASE_URL"]):
+            # N7: production-only checks (S4, S6, S8) must not be skipped by a missing ENV.
+            raise ConfigError(
+                "ENV is required when DATABASE_URL is not a local database"
+                " (set ENV=production, staging or development)"
+            )
         if env.get("COOKIE_SECURE"):
             optional["cookie_secure"] = _bool("COOKIE_SECURE", env["COOKIE_SECURE"])
         if env.get("TRUSTED_PROXY_HEADER"):
