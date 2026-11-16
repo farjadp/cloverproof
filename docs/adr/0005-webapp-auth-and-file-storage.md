@@ -1,6 +1,6 @@
 # ADR 0005 — Web app auth (agronomist role, review gate) and proof-PDF storage
 
-- Status: PROPOSED (2026-11-16) — waiting for Farjad Iranmehr
+- Status: Accepted (2026-11-16) — A1 + B1
 - Decider: Farjad Iranmehr
 - Related: ADR 0004 (Railway, no Supabase Auth/Storage/RLS), `docs/plans/webapp-v1.md`
 
@@ -56,7 +56,10 @@ S3-compatible private object storage inside the existing Railway project, used t
 
 Local dev and tests use a filesystem implementation behind the same `ProofStore` interface (`put(key, bytes) -> sha256`, `get(key)`), so the backend can change without touching PDF code.
 
-## Recommendation
+## Decision
+Farjad Iranmehr chose **A1 + B1** (2026-11-16).
+
+## Recommendation (as proposed)
 **A1 + B1.** App-owned auth fits ≤4 internal users at zero cost and keeps the review gate next to the data; Railway Bucket keeps PDFs on the platform we already use. Revisit auth (A2 or A3) when the Phase 4 farmer portal opens.
 
 ## Consequences

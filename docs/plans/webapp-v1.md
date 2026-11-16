@@ -1,9 +1,8 @@
 # Web app v1 — internal concierge tool on Railway
 
-- Status: DRAFT — waiting for Farjad Iranmehr's approval (2026-11-16)
+- Status: Approved by Farjad Iranmehr (2026-11-16)
 - Owner: `cloverproof-lead`
 - Replaces the hosting assumptions in `docs/sprints/sprint-1.md` (Supabase) with ADR 0004 (Railway + Railway Postgres).
-- Note: ADR 0003/0004 live on branch `website-v1` and are not merged to `main` yet. This plan assumes they will be.
 
 ## 1. Goal
 By **Feb 1, 2027**, Farjad Iranmehr can produce a reviewed, versioned fertilizer plan and its proof PDF for one farm in a single sitting, so that he can do 5–10 farms in the **Feb–Apr 2027** field season. Every plan keeps the engine output, his final numbers and his reason (the calibration dataset).
@@ -74,14 +73,13 @@ Critical path: Farjad Iranmehr's 5 real wheat cases and constants (`docs/agronom
 | Railway has no Canadian region | Recorded in ADR 0004; revisit before real farmer data from Canada if residency is required |
 | Real cases late | Ship with placeholders clearly labelled; agronomist overrides every number (diff still recorded) |
 | Shared migrations with website | One runner, one `schema_migrations`; coordinate the switch with the `cp-website` session in Step 4 |
-| Branch drift (`website-v1` not merged) | Merge `website-v1` → `main` before Step 2 starts |
 
 ## 8. Farmer portal (Phase 4 — plan only)
 Not built in v1. CLAUDE.md says a Next.js farmer app later. Minimum shape when it opens: farmer signs in, sees only approved recommendations for their farms, downloads the proof PDF (SHA-256 shown), logs application (planned vs actual). Reuses the same database, org/membership model and auth identities (ADR 0005 keeps identity in our `app_user` table so a later OIDC provider can be added). Owners then: global `cto` + `product-designer`.
 
-## 9. Decisions needed from Farjad Iranmehr
-1. Approve this plan (or redirect).
-2. ADR 0005: auth option and storage option.
-3. PostGIS: new PostGIS-image database now (recommended) or GeoJSON-only until Phase 4.
-4. Old Rootwise MVP: path/URL, or confirm there is none.
-5. Date for the 5 real wheat cases (target Dec 18).
+## 9. Decisions (Farjad Iranmehr, 2026-11-16)
+1. Plan approved.
+2. ADR 0005 accepted: A1 (app-owned auth) + B1 (Railway Bucket).
+3. PostGIS: create a Postgres service from the official `postgis/postgis` image with a volume now; move the website's pilot-request table into it; coordinate with the `cp-website` session first. Ask before deleting the old Postgres service.
+4. No old Rootwise MVP code → Step 1 audit skipped; ADR 0001 records "start fresh".
+5. Date for the 5 real wheat cases: open — ask at Step 3.
