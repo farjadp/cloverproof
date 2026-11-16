@@ -2,7 +2,7 @@
 
 > **This is not legal advice. A licensed Ontario lawyer should review it before use.**
 > Prepared by `legal-compliance-specialist` (not a lawyer) for the CloverProof COO on 2026-11-16. Nothing was filed, sent or signed, and no regulator or certifying body was contacted.
-> This extends `compliance-review.md` §5 and does not repeat it. Context: the launch is Ontario winter wheat, with Prairie wheat as backup (pilot-terms v0.2, R4). The AI pre-review (`ai_reviewed`, `cp-agronomist`) can never approve. Only a named human with the `agronomist` role can set `agronomist_approved` (`pilot-sop.md` D4, G1). That human has not been named yet.
+> This extends `compliance-review.md` §5 and does not repeat it. Context: the launch is Ontario winter wheat, with Prairie wheat as backup (pilot-terms v0.2, R4). The AI pre-review (`ai_reviewed`, `cp-agronomist`) can never approve. Only a named human with the `agronomist` role can set `agronomist_approved` (`pilot-sop.md` D4, G1). That human has not been named yet. **Update 2026-11-16 (decision by Farjad Iranmehr, CLAUDE.md rule 8 on `origin/cpo-decisions-sa-fe-residency`):** a human `superadmin` without the `agronomist` role may also approve (`superadmin_approved`); only `agronomist_approved` feeds calibration and the agreement gate. Liability note: §3.6.
 
 **Repo vs my default brief:** my global agent file describes VisaRoads. CLAUDE.md overrides it: this is CloverProof (agri-tech), and the immigration and RCIC rules do not apply here. **Legal entity:** still `[LEGAL ENTITY]` (compliance-review §0). Every contract and liability point below depends on which corporation contracts with farms and with the agronomist.
 
@@ -89,9 +89,26 @@ The CCA and OIA may offer member-group E&O. **Unknown, not checked.** A liabilit
 **3.5 AI-assist disclosure.**
 - I found no Ontario or federal statute that requires disclosing AI use in private-sector agronomic advice. Federal AIDA (Bill C-27) died on the Order Paper; **from memory, not verified this session.** Ontario's Bill 194 (2024) covers the public sector; **from memory, not verified**.
 - The real constraint is the **Competition Act misleading-representation rule** (s. 52 criminal; s. 74.01(1)(a) civil). The test is the "general impression" plus the literal meaning, and fine print does not cure a misleading impression (O13). If the PDF or marketing says or implies "agronomist-reviewed" when a plan was only `ai_reviewed`, it is misleading. The same applies to "vendor-neutral" if the reviewer is retailer-paid.
-- Proposed PDF wording (for `proof-pdf-wording.md`, which is referenced in `pilot-sop.md` but **does not exist in `docs/operations/legal/` yet**):
+- Proposed PDF wording (now drafted in `proof-pdf-wording.md`, Blocks B and B2):
   > "How this plan was made: CloverProof software calculated the proposal. An AI-assisted pre-check flagged possible issues for the agronomist. [Name, verified credentials] reviewed every number and approved this plan on [date]. The AI check cannot approve a plan."
 - Professional-practice angle: whether a P.Ag. or CCA approving AI-pre-checked work must disclose it under their code of ethics or practice standards is **UNKNOWN**. The candidate should check with their own body.
+
+**3.6 `superadmin_approved` plans reaching farmers without an agronomist — liability flag (does not block the decision).**
+- **Negligence exposure goes up, not away.** The duty of care in §3.1 attaches to the advice, not to the approver's title. With `superadmin_approved` there is no professional check between the engine (pilot constants all PLACEHOLDER, SOP G7) and the farmer. A court asks what a reasonably competent adviser would have done; a non-agronomist approver is hard to defend on that standard (P4; Ontario position **needs counsel**). The approver, if a director/officer, may face a personal claim alongside the corporation (**needs counsel**). The PDF's "not reviewed by an agronomist" line (Block B2) bears on whether the farmer's reliance was reasonable; it does not remove the duty.
+- **E&O coverage is unconfirmed.** Policies for agronomic advice are usually written around qualified professionals. Add to the §3.3 broker questions: (6) is advice approved by a non-credentialed company officer covered; (7) does the application form need to disclose it (non-disclosure can void cover). Until answered, assume a `superadmin_approved` plan is **uninsured**.
+- **Competition Act.** Representations are judged on general impression and literal meaning (s. 74.03(5); s. 52(4)); a representation "false or misleading in a material respect" is reviewable (s. 74.01(1)(a)) (O13). Once any plan is `superadmin_approved`, blanket copy such as "every plan is reviewed by an agronomist" (FAQ, macros, onboarding, website, pitch decks) becomes misleading. All copy must be written per approval kind; `proof-pdf-wording.md` J bans the phrases.
+- **Titles.** The superadmin's role line on the PDF is a company job title only; never P.Ag., CCA, "agrologist" or "agronomist" (s. 9(3), O2).
+- **Prairie: hard stop.** In Manitoba, giving crop advice is practising agrology and a non-member who does it commits an offence, with no right to recover fees (s. 15, P5); Saskatchewan likely the same (P1–P4). `superadmin_approved` must never be used for a Prairie farm.
+- **NMA farms.** Unchanged: a CloverProof plan is never an NMS/NMP/NASM plan, whoever approves.
+- **Calibration.** Already excluded by the decision; keep the `superadmin_approved` kind visible in every dataset export so it cannot leak into the agreement gate.
+
+Counsel questions (add to `oq-07-decision-pack.md` Q17):
+1. Standard of care and exposure when a non-agronomist officer approves fertilizer advice a farmer relies on; does a prominent "not reviewed by an agronomist" disclosure reduce damages or only document the risk?
+2. Personal liability of the approving director/officer vs the corporation.
+3. Should farms opt in to `superadmin_approved` plans (rather than opt out, pilot-terms §3.1)?
+4. Does pilot-terms §9 (cap/exclusions) hold for `superadmin_approved` plans?
+5. E&O: coverage and disclosure duty for non-credentialed approval.
+6. Is any marketing line about "agronomist review" safe once both kinds exist, and with what qualifier?
 
 ---
 
@@ -107,6 +124,8 @@ The CCA and OIA may offer member-group E&O. **Unknown, not checked.** A liabilit
 | 6 | `agronomist_credential` record, and the PDF prints only verified credentials | `cp-database`, `cp-pdf` via CTO | Before S5 |
 | 7 | Prairie: no farm accepted until the approver is registered in that province and counsel confirms | Farjad | Before any Prairie intake |
 | 8 | Intake screen stays: NMA phased-in farms excluded or kept consistent with their certified plan | COO | Now |
+| 9 | Broker questions 6–7 (§3.6) on `superadmin_approved`; audit all farmer-facing copy for blanket "agronomist-reviewed" claims | Farjad, COO | Before the first `superadmin_approved` plan reaches a farm |
+| 10 | Block `superadmin_approved` for any non-Ontario farm in the service layer | `cto` (ticket) | Before any Prairie intake |
 
 ---
 
@@ -125,7 +144,8 @@ Note: e-Laws (ontario.ca/laws) returned HTTP 403 and alis.alberta.ca refused the
 - O10 *Fertilizers Act* (CFIA): https://laws-lois.justice.gc.ca/eng/acts/F-10/ *(not fetched; statement from memory)*
 - O11 CCA 4R NMS Region 2 Ontario performance objectives (2020): https://www.certifiedcropadviser.org/files/certifiedcropadviser/4r-nms-region-2-ontario-performance-objectives-2020.pdf *(search)*; CCA Ontario exam and experience: https://ontariograinfarmer.ca/?p=1158 *(search)*
 - O12 ASA / Science Societies "Find a Professional": https://www.sciencesocieties.org/certifications/professional-search *(search; board-code search method)*
-- O13 Competition Bureau, general impression test: https://competition-bureau.canada.ca/deceptive-marketing-practices/general-impression-test *(search)*; Competition Act s. 74.01: https://laws-lois.justice.gc.ca/eng/acts/C-34/ *(not fetched; current text not read)*
+- O13 Competition Bureau, general impression test: https://competition-bureau.canada.ca/deceptive-marketing-practices/general-impression-test *(search, re-checked 2026-11-16)*; Competition Act s. 52 https://laws-lois.justice.gc.ca/eng/acts/c-34/section-52.html, s. 74.03(5) https://laws-lois.justice.gc.ca/eng/acts/c-34/section-74.03.html, s. 74.01(1)(a) "false or misleading in a material respect" *(search summaries 2026-11-16; Justice Laws refused connection; text not read)*
+- D-13 superadmin approval — `git diff origin/main origin/cpo-decisions-sa-fe-residency -- CLAUDE.md` (Farjad Iranmehr, 2026-11-16)
 - P1 SIA, Importance of Registration / Complaints and Discipline: https://sia.sk.ca/?p=112, https://sia.sk.ca/member-discipline-and-complaints/ *(search)*
 - P2 SIA Regulatory Bylaws 2026: https://sia.sk.ca/wp-content/uploads/2026/06/Regulatory-Bylaws-2026.pdf *(search, not read)*
 - P3 Western Producer, 2018 definition change: https://www.producer.com/news/new-agrology-definition-allows-more-to-practice-in-area-of-expertise *(search)*
@@ -145,3 +165,4 @@ Note: e-Laws (ontario.ca/laws) returned HTTP 403 and alis.alberta.ca refused the
 6. IP and data: assignment of the reviewer's edits and reasons (calibration dataset) and confidentiality, in the agreement.
 7. Whether the AI-assist disclosure wording (§3.5) and the credential line (§3.4) avoid a misleading general impression under the Competition Act.
 8. E&O: whether the policy wording covers software- and AI-assisted advice, and whether the contractor's own cover is required.
+9. All §3.6 counsel questions (`superadmin_approved`).
