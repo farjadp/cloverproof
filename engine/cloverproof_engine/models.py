@@ -65,9 +65,23 @@ def nutrient_of(form: NutrientForm) -> str:
 
 
 class SoilTestValue(_Frozen):
+    """One measured value. The extraction method belongs to the value, not the test:
+    one lab report can give P by Olsen, K by ammonium acetate and nitrate by KCl.
+    """
+
     form: NutrientForm
     value: NonNegativeFloat
     unit: ConcentrationUnit
+    extraction_method: ExtractionMethod
+    # Free text naming the method; required when extraction_method is `other`.
+    extraction_method_detail: str | None = None
+
+    @model_validator(mode="after")
+    def _check_method(self) -> Self:
+        detail = (self.extraction_method_detail or "").strip()
+        if self.extraction_method is ExtractionMethod.OTHER and not detail:
+            raise ValueError("extraction_method_detail is required when extraction_method is other")
+        return self
 
     @property
     def nutrient(self) -> str:
@@ -83,7 +97,6 @@ class SoilTest(_Frozen):
     sample_date: date
     depth_top_cm: NonNegativeFloat
     depth_bottom_cm: PositiveFloat
-    extraction_method: ExtractionMethod
     source: SoilTestSource
     lab: str | None = None
     values: list[SoilTestValue] = Field(default_factory=list)

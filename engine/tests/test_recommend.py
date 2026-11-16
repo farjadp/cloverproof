@@ -7,7 +7,7 @@ import pytest
 import cloverproof_engine
 from cloverproof_engine import recommend
 from cloverproof_engine.confidence import Confidence
-from cloverproof_engine.models import ConcentrationUnit, NutrientForm, SoilTestValue
+from cloverproof_engine.models import ExtractionMethod, NutrientForm
 from cloverproof_engine.results import Recommendation
 
 
@@ -58,8 +58,12 @@ def test_placeholder_pack_note(make_input, placeholder_pack) -> None:
     assert "PACK_HAS_PLACEHOLDERS" in [n.code for n in rec.notes]
 
 
-def test_unused_soil_nitrate_note(lab_soil_test, make_input, placeholder_pack) -> None:
-    values = [SoilTestValue(form=NutrientForm.NO3_N, value=8.0, unit=ConcentrationUnit.MG_PER_KG)]
+def test_unused_soil_nitrate_note(lab_soil_test, soil_value, make_input, placeholder_pack) -> None:
+    values = [
+        soil_value(
+            NutrientForm.NO3_N, 8.0, ExtractionMethod.OTHER, extraction_method_detail="2 M KCl"
+        )
+    ]
     rec = recommend(make_input(soil_test=lab_soil_test(values=values)), placeholder_pack)
     assert "SOIL_NITRATE_NOT_USED" in [n.code for n in rec.notes]
     assert rec.nitrogen.rate.value == pytest.approx(175.0)

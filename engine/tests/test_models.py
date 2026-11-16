@@ -17,18 +17,40 @@ from cloverproof_engine.models import (
 )
 
 
+def _value(form: NutrientForm, value: float, method: ExtractionMethod, **extra: object):
+    return SoilTestValue.model_validate(
+        {
+            "form": form,
+            "value": value,
+            "unit": ConcentrationUnit.MG_PER_KG,
+            "extraction_method": method,
+            **extra,
+        }
+    )
+
+
+def _p(**extra: object) -> SoilTestValue:
+    return _value(NutrientForm.P, 12.0, ExtractionMethod.OLSEN, **extra)
+
+
+def _k(**extra: object) -> SoilTestValue:
+    return _value(
+        NutrientForm.K,
+        150.0,
+        ExtractionMethod.OTHER,
+        extraction_method_detail="ammonium acetate",
+        **extra,
+    )
+
+
 def _soil_test(**overrides: object) -> SoilTest:
     data: dict[str, object] = {
         "sample_date": date(2026, 9, 15),
         "depth_top_cm": 0.0,
         "depth_bottom_cm": 15.0,
-        "extraction_method": ExtractionMethod.OLSEN,
         "source": SoilTestSource.LAB,
         "lab": "Example Lab",
-        "values": [
-            SoilTestValue(form=NutrientForm.P, value=12.0, unit=ConcentrationUnit.MG_PER_KG),
-            SoilTestValue(form=NutrientForm.K, value=150.0, unit=ConcentrationUnit.MG_PER_KG),
-        ],
+        "values": [_p(), _k()],
     }
     data.update(overrides)
     return SoilTest.model_validate(data)
@@ -56,7 +78,43 @@ def test_valid_input_without_soil_test() -> None:
 def test_valid_input_with_soil_test() -> None:
     inp = _input(soil_test=_soil_test())
     assert inp.soil_test is not None
-    assert inp.soil_test.extraction_method is ExtractionMethod.OLSEN
+    assert inp.soil_test.value_for("P").extraction_method is ExtractionMethod.OLSEN
+    assert inp.soil_test.value_for("K").extraction_method is ExtractionMethod.OTHER
+
+
+def test_extraction_method_is_per_value_not_per_test() -> None:
+    assert "extraction_method" not in SoilTest.model_fields
+    with pytest.raises(ValidationError):
+        _soil_test(extraction_method=ExtractionMethod.OLSEN)
+
+
+def test_each_value_keeps_its_own_extraction_method() -> None:
+    nitrate = _value(
+        NutrientForm.NO3_N, 8.0, ExtractionMethod.OTHER, extraction_method_detail="2 M KCl"
+    )
+    soil = _soil_test(values=[_p(), _k(), nitrate])
+    assert [v.extraction_method for v in soil.values] == [
+        ExtractionMethod.OLSEN,
+        ExtractionMethod.OTHER,
+        ExtractionMethod.OTHER,
+    ]
+    assert soil.value_for("N").extraction_method_detail == "2 M KCl"
+
+
+def test_extraction_method_is_required_on_a_value() -> None:
+    with pytest.raises(ValidationError):
+        SoilTestValue(form=NutrientForm.P, value=12.0, unit=ConcentrationUnit.MG_PER_KG)
+
+
+@pytest.mark.parametrize("detail", [None, "", "   "])
+def test_other_method_requires_a_detail(detail: str | None) -> None:
+    with pytest.raises(ValidationError):
+        _value(NutrientForm.K, 150.0, ExtractionMethod.OTHER, extraction_method_detail=detail)
+
+
+def test_named_method_detail_is_optional() -> None:
+    assert _p().extraction_method_detail is None
+    assert _p(extraction_method_detail="NaHCO3").extraction_method_detail == "NaHCO3"
 
 
 def test_extraction_method_values() -> None:
@@ -94,18 +152,18 @@ def test_soil_test_depth_must_be_ordered() -> None:
 
 def test_soil_test_value_must_be_non_negative() -> None:
     with pytest.raises(ValidationError):
-        SoilTestValue(form=NutrientForm.P, value=-1.0, unit=ConcentrationUnit.MG_PER_KG)
+        _value(NutrientForm.P, -1.0, ExtractionMethod.OLSEN)
 
 
 def test_soil_test_rejects_duplicate_forms() -> None:
-    dup = SoilTestValue(form=NutrientForm.P, value=12.0, unit=ConcentrationUnit.MG_PER_KG)
+    dup = _p()
     with pytest.raises(ValidationError):
         _soil_test(values=[dup, dup])
 
 
 def test_soil_test_rejects_same_nutrient_in_two_forms() -> None:
-    p = SoilTestValue(form=NutrientForm.P, value=12.0, unit=ConcentrationUnit.MG_PER_KG)
-    p2o5 = SoilTestValue(form=NutrientForm.P2O5, value=27.0, unit=ConcentrationUnit.MG_PER_KG)
+    p = _p()
+    p2o5 = _value(NutrientForm.P2O5, 27.0, ExtractionMethod.OLSEN)
     with pytest.raises(ValidationError):
         _soil_test(values=[p, p2o5])
 
@@ -116,7 +174,7 @@ def test_soil_test_must_not_be_after_plan_date() -> None:
 
 
 def test_soil_test_value_in_mg_per_kg() -> None:
-    v = SoilTestValue(form=NutrientForm.P, value=12.0, unit=ConcentrationUnit.PPM)
+    v = _p(unit=ConcentrationUnit.PPM)
     assert v.value_mg_per_kg == 12.0
 
 

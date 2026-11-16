@@ -56,17 +56,39 @@ def validated_pack() -> Pack:
     return parse_pack(data)
 
 
+def _soil_value(
+    form: NutrientForm,
+    value: float,
+    method: ExtractionMethod = ExtractionMethod.OLSEN,
+    **extra: Any,
+) -> SoilTestValue:
+    """A soil-test value in mg/kg with its own extraction method."""
+    return SoilTestValue.model_validate(
+        {
+            "form": form,
+            "value": value,
+            "unit": ConcentrationUnit.MG_PER_KG,
+            "extraction_method": method,
+            **extra,
+        }
+    )
+
+
 def _lab_soil_test(**overrides: Any) -> SoilTest:
     data: dict[str, Any] = {
         "sample_date": date(2026, 9, 15),
         "depth_top_cm": 0.0,
         "depth_bottom_cm": 15.0,
-        "extraction_method": ExtractionMethod.OLSEN,
         "source": SoilTestSource.LAB,
         "lab": "Example Lab",
         "values": [
-            SoilTestValue(form=NutrientForm.P, value=12.0, unit=ConcentrationUnit.MG_PER_KG),
-            SoilTestValue(form=NutrientForm.K, value=150.0, unit=ConcentrationUnit.MG_PER_KG),
+            _soil_value(NutrientForm.P, 12.0),
+            _soil_value(
+                NutrientForm.K,
+                150.0,
+                ExtractionMethod.OTHER,
+                extraction_method_detail="ammonium acetate",
+            ),
         ],
     }
     data.update(overrides)
@@ -74,8 +96,14 @@ def _lab_soil_test(**overrides: Any) -> SoilTest:
 
 
 @pytest.fixture
+def soil_value() -> Callable[..., SoilTestValue]:
+    """Builder for one soil-test value in mg/kg (default extraction method Olsen)."""
+    return _soil_value
+
+
+@pytest.fixture
 def lab_soil_test() -> Callable[..., SoilTest]:
-    """Builder for a recent lab soil test (P and K in mg/kg, Olsen, 0-15 cm)."""
+    """Builder for a recent lab soil test, 0-15 cm: P (Olsen), K (other: ammonium acetate)."""
     return _lab_soil_test
 
 
