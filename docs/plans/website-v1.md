@@ -31,7 +31,7 @@ Credibility + recruit 5–10 pilot farms for Feb–Apr 2027. Primary CTA: **Requ
 5. ✅ Pilot form → Railway Postgres (`pilot_request`), consent text stored, honeypot spam trap. Live: https://website-production-a1991e11.up.railway.app
 6. ✅ Redesign + official logo, icons, OG image, flag language menu (S1, live).
 7. QA: Lighthouse ≥ 90, mobile, keyboard/a11y, form end to end → preview deploy.
-8. Then one locale at a time (fr, it, es, bg, fi, tr, ar), each reviewed by a native speaker before going live.
+8. ✅ All 8 locales live with machine translation (Farjad Iranmehr, 2026-11-16; ADR 0003 amendment). Native review per locale follows; status in ADR 0003 and each file's `meta.translationStatus`.
 
 ## Open items
 - Contact email and legal entity name for the privacy notice and footer.
