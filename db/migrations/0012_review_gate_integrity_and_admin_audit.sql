@@ -207,3 +207,169 @@ $$;
 create trigger app_user_temp_password_expiry
   before insert or update of password_hash, password_change_required on app_user
   for each row execute function app_user_temp_password_expiry();
+
+-- ---------------------------------------------------------------------------------------
+-- F2: admin_event (append-only audit of who can approve)
+-- ---------------------------------------------------------------------------------------
+
+create table admin_event (
+  id               uuid primary key default gen_random_uuid(),
+  at               timestamptz not null default clock_timestamp(),
+  -- app_user id of the acting user, from `SET LOCAL app.user_id` (web app). NULL = not set
+  -- (CLI, operator psql). No foreign key: the audit outlives the user.
+  actor_user_id    uuid,
+  -- Database login that made the change (session_user: e.g. cp_app_login, cp_admin_login).
+  actor_db_role    text not null,
+  target_user_id   uuid not null,
+  -- NULL for account-wide events (app_user).
+  organisation_id  uuid,
+  action           text not null check (action in (
+                     'user_created', 'user_deleted', 'password_reset', 'password_set',
+                     'actor_kind_changed', 'user_disabled', 'user_enabled',
+                     'password_change_required_changed',
+                     'membership_granted', 'membership_revoked', 'membership_changed')),
+  -- Only the audited facts; never email, names or password hashes.
+  old_value        jsonb,
+  new_value        jsonb
+);
+
+create index admin_event_target_idx on admin_event (target_user_id, at);
+create index admin_event_organisation_idx on admin_event (organisation_id, at);
+
+comment on table admin_event is
+  'Append-only audit of identity changes (membership, account state). Written only by '
+  'SECURITY DEFINER triggers; cp_app has SELECT only. UPDATE/DELETE/TRUNCATE raise.';
+
+create trigger admin_event_immutable
+  before update or delete on admin_event
+  for each row execute function forbid_change();
+
+create trigger admin_event_no_truncate
+  before truncate on admin_event
+  for each statement execute function forbid_change();
+
+-- Acting app user from the transaction-local setting; '' (reset) counts as not set.
+create function admin_event_actor() returns uuid
+language plpgsql stable set search_path = '' as $$
+declare
+  v text := nullif(btrim(coalesce(current_setting('app.user_id', true), '')), '');
+begin
+  if v is null then
+    return null;
+  end if;
+  if v !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+    raise exception 'app.user_id must be a uuid'
+      using errcode = 'invalid_parameter_value';
+  end if;
+  return v::uuid;
+end
+$$;
+
+create function admin_event_from_membership() returns trigger
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_actor uuid := public.admin_event_actor();
+begin
+  if tg_op = 'INSERT' then
+    insert into public.admin_event
+      (actor_user_id, actor_db_role, target_user_id, organisation_id, action, new_value)
+    values (v_actor, session_user, new.user_id, new.organisation_id, 'membership_granted',
+            jsonb_build_object('role', new.role));
+  elsif tg_op = 'DELETE' then
+    insert into public.admin_event
+      (actor_user_id, actor_db_role, target_user_id, organisation_id, action, old_value)
+    values (v_actor, session_user, old.user_id, old.organisation_id, 'membership_revoked',
+            jsonb_build_object('role', old.role));
+  elsif (old.user_id, old.organisation_id, old.role)
+        is distinct from (new.user_id, new.organisation_id, new.role) then
+    insert into public.admin_event
+      (actor_user_id, actor_db_role, target_user_id, organisation_id, action, old_value, new_value)
+    values (v_actor, session_user, new.user_id, new.organisation_id, 'membership_changed',
+            jsonb_build_object('role', old.role)
+              || case when old.user_id <> new.user_id
+                      then jsonb_build_object('user_id', old.user_id) else '{}' end
+              || case when old.organisation_id <> new.organisation_id
+                      then jsonb_build_object('organisation_id', old.organisation_id) else '{}' end,
+            jsonb_build_object('role', new.role));
+  end if;
+  return null;
+end
+$$;
+
+create trigger membership_admin_event
+  after insert or update or delete on membership
+  for each row execute function admin_event_from_membership();
+
+create function admin_event_from_app_user() returns trigger
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_actor  uuid := public.admin_event_actor();
+  v_old    jsonb := '{}';
+  v_new    jsonb := '{}';
+  v_action text;
+begin
+  if tg_op = 'INSERT' then
+    insert into public.admin_event
+      (actor_user_id, actor_db_role, target_user_id, action, new_value)
+    values (v_actor, session_user, new.id, 'user_created',
+            jsonb_build_object('actor_kind', new.actor_kind,
+                               'has_password', new.password_hash is not null,
+                               'password_change_required', new.password_change_required,
+                               'disabled', new.disabled_at is not null));
+    return null;
+  elsif tg_op = 'DELETE' then
+    insert into public.admin_event
+      (actor_user_id, actor_db_role, target_user_id, action, old_value)
+    values (v_actor, session_user, old.id, 'user_deleted',
+            jsonb_build_object('actor_kind', old.actor_kind));
+    return null;
+  end if;
+
+  if new.password_hash is distinct from old.password_hash
+     or new.password_change_required is distinct from old.password_change_required then
+    v_old := v_old || jsonb_build_object('has_password', old.password_hash is not null,
+                                         'password_change_required', old.password_change_required);
+    v_new := v_new || jsonb_build_object('has_password', new.password_hash is not null,
+                                         'password_change_required', new.password_change_required);
+  end if;
+  if new.actor_kind is distinct from old.actor_kind then
+    v_old := v_old || jsonb_build_object('actor_kind', old.actor_kind);
+    v_new := v_new || jsonb_build_object('actor_kind', new.actor_kind);
+  end if;
+  if (new.disabled_at is null) is distinct from (old.disabled_at is null) then
+    v_old := v_old || jsonb_build_object('disabled', old.disabled_at is not null);
+    v_new := v_new || jsonb_build_object('disabled', new.disabled_at is not null);
+  end if;
+  if v_new = '{}' then
+    return null;
+  end if;
+
+  -- One row per statement-level change; the action names the most significant part.
+  v_action := case
+    when new.password_hash is distinct from old.password_hash and new.password_change_required
+      then 'password_reset'
+    when new.password_hash is distinct from old.password_hash then 'password_set'
+    when new.actor_kind is distinct from old.actor_kind then 'actor_kind_changed'
+    when new.disabled_at is not null and old.disabled_at is null then 'user_disabled'
+    when new.disabled_at is null and old.disabled_at is not null then 'user_enabled'
+    else 'password_change_required_changed'
+  end;
+  insert into public.admin_event
+    (actor_user_id, actor_db_role, target_user_id, action, old_value, new_value)
+  values (v_actor, session_user, new.id, v_action, v_old, v_new);
+  return null;
+end
+$$;
+
+create trigger app_user_admin_event_insert_delete
+  after insert or delete on app_user
+  for each row execute function admin_event_from_app_user();
+
+create trigger app_user_admin_event_update
+  after update of password_hash, actor_kind, disabled_at, password_change_required on app_user
+  for each row execute function admin_event_from_app_user();
+
+revoke execute on function admin_event_from_membership(), admin_event_from_app_user()
+  from public;
+
+grant select on admin_event to cp_app;
