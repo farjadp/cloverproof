@@ -17,6 +17,14 @@ In v1 (Phase 0–3):
 
 Not in v1: farmer portal (Phase 4, planned only — §8), map drawing, OCR/LLM, Sentinel-2, weather, payments, mobile, multi-language in the tool.
 
+> **Scope note (2026-11-16, reconciliation R5 — supersedes the engine line above).** The engine scope is now the backend plan's (`docs/plans/backend-plan.md` §15, read through `docs/plans/backend-plan-reconciliation.md`), on the S1–S30 calendar (D3):
+> - **S2 (Dec 11):** real Ontario winter wheat pack `packs/ca-on/` v1 (R4) with golden cases `kind: agronomist_approved | external_reference`; product catalog v0 + product matching (need → product → quantity); pack-driven split plan; review queue + side-by-side diff (`docs/design/review-queue.md`).
+> - **S3 (merge by Dec 23):** P/K **with a lab soil test only**, method-aware (Olsen / Bray-1 / Mehlich-3), form tracked; no-test mode from an offline SoilGrids cache — **N only, confidence `medium` at most**, P/K "test recommended"; unit conversions on display.
+> - **S4:** weather (NASA POWER daily fetch) + GDD timing windows per split; soil-report upload with manual "confirm values" (no OCR).
+> - **Every agronomic constant stays `PLACEHOLDER` + `TODO(agronomist)` until a human agronomist validates it.** Values proposed by the AI agronomist `cp-agronomist` are `ai_reviewed` only (D4) and never count as validation.
+> - Storage/auth/DB stay as in §3 (D1), now with Postgres RLS on Railway as defence in depth (ADR 0006, pending). Weather moves into scope from S4; the rest of the "Not in v1" list stands until `CLAUDE.md` is updated (draft: `docs/product/claude-md-draft.md`, awaiting Farjad Iranmehr).
+> - Story-level detail: `docs/backlog.md`.
+
 ## 3. What changes vs Sprint 1 (Supabase → Railway)
 | Sprint 1 assumed | v1 does instead | Where decided |
 |---|---|---|

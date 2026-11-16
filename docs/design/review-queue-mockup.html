@@ -1,0 +1,523 @@
+<!doctype html>
+<!--
+  Design mockup — not production code. All numbers intentionally shown as —.
+  CloverProof internal concierge tool: Review queue (/review) + Review detail (/plans/{id}/review).
+  Tokens, header, breadcrumb, badges, notices and tables copied from origin/webapp-step5-app
+  (app/cloverproof_app/static/app.css, docs/design/webapp-ui.md). New pieces are marked "NEW" below.
+  Functional spec (parallel, product-designer): docs/design/review-queue.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review queue · CloverProof (mockup)</title>
+<style>
+/* Fonts: the tool self-hosts Source Serif 4 / Source Sans 3 from /static/fonts (SIL OFL 1.1).
+   This mockup makes no external requests; it falls back to the stacks below if the fonts are not installed. */
+:root {
+  --olive: #4C610B;  --olive-deep: #3B4B08;  --sage: #A7B58A;  --ivory: #FAF6EB;  --ink: #273125;
+  --sage-soft: #E6EADB;  --sand: #F1ECDD;  --ink-soft: #4D5A4A;  --rule: #DDD6C3;  --paper: #FFFFFF;
+  --border-input: #8F8A78;
+  --focus: #4C610B;
+  --error: #9A2A1E;  --error-bg: #F7E1DA;
+  --warn: #6B5200;   --warn-bg: #F5E9C8;
+  --success: #2F5E1A; --success-bg: #E6EADB;
+  --font-serif: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --fs-xs: .8125rem; --fs-sm: .9375rem; --fs-base: 1.0625rem; --fs-lg: 1.25rem;
+  --fs-xl: 1.625rem; --fs-2xl: 2.125rem;
+  --lh-body: 1.55; --lh-head: 1.2;
+  --s1: .25rem; --s2: .5rem; --s3: .75rem; --s4: 1rem; --s5: 1.5rem; --s6: 2rem; --s7: 3rem;
+  --radius: 4px; --radius-pill: 999px;
+  --content: 60rem; --measure: 42rem;
+  --wide: 72rem; /* NEW: the queue and the diff need more width than --content */
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--ivory); color: var(--ink); font-family: var(--font-sans);
+  font-size: var(--fs-base); line-height: var(--lh-body); font-variant-numeric: tabular-nums; }
+h1, h2, h3 { font-family: var(--font-serif); font-weight: 600; line-height: var(--lh-head); margin: 0 0 var(--s3); }
+h1 { font-size: var(--fs-2xl); }
+h2 { font-size: var(--fs-xl); }
+h3 { font-size: var(--fs-lg); margin-top: var(--s5); }
+a { color: var(--olive); text-underline-offset: 2px; }
+a:hover { color: var(--olive-deep); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .9em; }
+.skip-link { position: absolute; left: -999px; }
+.skip-link:focus { left: var(--s4); top: var(--s4); background: var(--paper); padding: var(--s2); z-index: 1; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Mockup frame only (not part of the tool UI) */
+.mock-label { margin: 0; padding: var(--s4) var(--s6); background: var(--ink); color: var(--ivory);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: var(--fs-sm); }
+.mock-label h2 { font-family: inherit; font-size: var(--fs-base); margin: 0; }
+.mock-label p { margin: var(--s1) 0 0; }
+.mock-screen { border-bottom: 6px solid var(--ink); }
+.mock-variant { margin: var(--s6) 0 var(--s3); font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: var(--fs-sm); color: var(--ink); border-top: 2px dashed var(--ink-soft); padding-top: var(--s3); }
+
+/* Header: official logo file (NEW: replaces the inline clover SVG once origin/website-v1 is merged) */
+.site-header { display: flex; align-items: center; justify-content: space-between; gap: var(--s4);
+  min-height: 64px; padding: 0 var(--s6); border-bottom: 1px solid var(--rule); }
+.brand-line { display: flex; align-items: center; gap: var(--s3); }
+.brand { display: inline-flex; align-items: center; text-decoration: none; }
+.brand img { height: 32px; width: auto; display: block; }
+.org-name { color: var(--ink-soft); padding-left: var(--s3); border-left: 1px solid var(--rule); }
+.user-menu { font-size: var(--fs-sm); }
+.user-menu summary { cursor: pointer; color: var(--ink); padding: var(--s2); }
+.breadcrumb { max-width: var(--wide); margin: 0 auto; padding: var(--s4) var(--s6) 0; font-size: var(--fs-sm); color: var(--ink-soft); }
+main { max-width: var(--wide); margin: 0 auto; padding: var(--s6); }
+main > section { border-top: 1px solid var(--rule); padding-top: var(--s6); margin-top: var(--s6); }
+.muted { color: var(--ink-soft); }
+.page-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s4); margin-bottom: var(--s5); }
+
+/* Buttons */
+.button { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 var(--s4);
+  font: inherit; font-size: var(--fs-sm); font-weight: 600; color: var(--ivory); background: var(--olive);
+  border: 1px solid var(--olive); border-radius: var(--radius); cursor: pointer; text-decoration: none;
+  transition: background-color 120ms ease-out; }
+.button:hover { background: var(--olive-deep); border-color: var(--olive-deep); color: var(--ivory); }
+.button.secondary { color: var(--ink); background: transparent; border-color: var(--ink-soft); }
+.button.secondary:hover { background: var(--sand); color: var(--ink); }
+.button.danger { color: var(--error); background: transparent; border-color: var(--error); }
+.button.danger:hover { background: var(--error-bg); }
+.button.text { color: var(--olive); background: transparent; border-color: transparent; padding: 0 var(--s2); }
+.button.text:hover { text-decoration: underline; background: transparent; color: var(--olive-deep); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); margin-top: var(--s5); }
+
+/* Forms */
+fieldset { border: 0; padding: 0; margin: 0 0 var(--s5); }
+legend { font-family: var(--font-serif); font-size: var(--fs-lg); font-weight: 600; margin-bottom: var(--s3); padding: 0; }
+label, .label { display: block; font-weight: 600; font-size: var(--fs-sm); margin: 0 0 var(--s1); }
+label.choice { font-weight: 400; font-size: var(--fs-base); display: flex; align-items: center; gap: var(--s2); margin: var(--s1) 0; }
+.field { margin-bottom: var(--s4); }
+input[type="search"], select, textarea { width: 100%; min-height: 40px; font: inherit; font-size: var(--fs-base);
+  padding: var(--s2) var(--s3); color: var(--ink); background: var(--paper);
+  border: 1px solid var(--border-input); border-radius: var(--radius); }
+.hint { font-size: var(--fs-xs); color: var(--ink-soft); margin: var(--s1) 0 0; }
+
+/* NEW: filter bar. One row of labelled controls, no box around it. */
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--s3) var(--s4);
+  align-items: end; margin: 0 0 var(--s4); }
+.filters .field { margin: 0; }
+.filters .search-field { grid-column: span 2; }
+.filters-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s3);
+  font-size: var(--fs-sm); color: var(--ink-soft); margin-bottom: var(--s3); }
+
+/* Notices */
+.notice { margin: 0 0 var(--s4); padding: var(--s3) var(--s4); border-left: 3px solid var(--sage); background: var(--sage-soft); color: var(--ink); }
+.notice p { margin: 0; }
+.notice p + p { margin-top: var(--s1); }
+.notice-title { font-weight: 600; }
+.notice.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+.notice.error { border-left-color: var(--error); background: var(--error-bg); }
+.notice.success { border-left-color: var(--success); background: var(--success-bg); }
+
+/* Badges (existing) */
+.badge { display: inline-block; border-radius: var(--radius-pill); padding: 2px 8px; font-size: var(--fs-xs); font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; line-height: 1.4; vertical-align: middle; white-space: nowrap; }
+.conf-high { background: var(--olive); color: var(--ivory); }
+.conf-medium { background: var(--sage); color: var(--ink); }
+.conf-low { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); }
+.badge.placeholder { background: transparent; color: var(--warn); border: 1px dashed var(--warn); }
+.status-draft { background: var(--sand); color: var(--ink-soft); }
+.status-in_review { background: var(--sage-soft); color: var(--ink); }
+.status-approved { background: var(--success-bg); color: var(--success); }
+.status-rejected { background: var(--error-bg); color: var(--error); }
+/* NEW: review badges. AI-reviewed is square-cornered, transparent, ink outline + "not approval" wording:
+   it shares nothing with Approved (pill, green fill, green text). */
+.badge.review-ai { border-radius: var(--radius); background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+.badge.review-none { border-radius: var(--radius); background: transparent; color: var(--ink-soft); border: 1px solid var(--ink-soft); }
+.badge.review-human { border-radius: var(--radius); background: var(--paper); color: var(--ink); border: 1px solid var(--ink); }
+/* NEW: farm kind tag, plain text label */
+.kind { font-size: var(--fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
+.kind.real { color: var(--ink); }
+
+.panel { background: var(--paper); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--s5); }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+th, td { text-align: left; vertical-align: top; padding: var(--s2) var(--s3); border-bottom: 1px solid var(--rule); }
+thead th { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft);
+  border-top: 1px solid var(--rule); font-weight: 700; }
+tbody th { font-weight: 600; }
+td.num, th.num { text-align: right; }
+th[aria-sort] { color: var(--ink); }
+.cell-sub { display: block; font-size: var(--fs-xs); color: var(--ink-soft); margin-top: 2px; }
+/* NEW: due state. Word always written; colour is extra. */
+.due-overdue { color: var(--error); font-weight: 700; }
+.due-today { color: var(--ink); font-weight: 700; }
+.row-blocked td:first-child, .row-overdue td:first-child { border-left: 3px solid var(--error); }
+.row-blocked td:first-child { border-left-color: var(--warn); }
+
+/* Explained number */
+.explained .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+.explained .why { margin: var(--s1) 0 0; font-size: var(--fs-xs); color: var(--ink-soft); max-width: var(--measure); }
+
+/* Plan strip */
+.strip { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s5); }
+.strip-side { text-align: right; flex-shrink: 0; }
+.timer { margin: var(--s2) 0 0; font-size: var(--fs-sm); color: var(--ink-soft); }
+.facts { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s5); color: var(--ink-soft); margin: 0 0 var(--s4); padding: 0; }
+.facts div { display: flex; gap: var(--s1); }
+.facts dt::after { content: ":"; }
+.facts dd { margin: 0; color: var(--ink); }
+.confirm { font-size: var(--fs-sm); color: var(--ink-soft); }
+
+/* NEW: version chain v1 -> v2, a plain ordered list */
+.chain { list-style: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); margin: 0 0 var(--s4); padding: 0; font-size: var(--fs-sm); }
+.chain li { display: flex; align-items: center; gap: var(--s2); }
+.chain .ver { font-weight: 700; border: 1px solid var(--ink-soft); border-radius: var(--radius); padding: 0 var(--s2); }
+.chain [aria-current] .ver { background: var(--ink); color: var(--ivory); border-color: var(--ink); }
+.chain .arrow { color: var(--ink-soft); }
+
+/* NEW: prominent edit reason */
+.edit-reason { margin: 0 0 var(--s5); padding: var(--s3) var(--s4); border-left: 3px solid var(--olive); background: var(--paper); }
+.edit-reason .label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); margin: 0 0 var(--s1); }
+.edit-reason blockquote p { margin: 0; }
+.page-count { margin: 0; }
+main > section.flush { border-top: 0; margin-top: 0; padding-top: 0; }
+.edit-reason blockquote { margin: 0; font-family: var(--font-serif); font-size: var(--fs-lg); line-height: 1.4; }
+.edit-reason .by { margin: var(--s2) 0 0; font-size: var(--fs-sm); color: var(--ink-soft); }
+
+/* NEW: diff table. One table, one tbody per recommendation line. */
+table.diff { table-layout: fixed; }
+table.diff col.attr { width: 11rem; }
+table.diff tbody.line th.line-head { font-family: var(--font-serif); font-size: var(--fs-base); background: var(--sand);
+  border-top: 1px solid var(--ink-soft); }
+table.diff td.changed { background: var(--sage-soft); border-left: 3px solid var(--olive); }
+.chg { display: inline-flex; align-items: center; gap: var(--s1); margin-left: var(--s2); font-size: var(--fs-xs); font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--olive-deep); white-space: nowrap; }
+.chg svg { width: 12px; height: 12px; }
+.only { font-size: var(--fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink); }
+td.absent { color: var(--ink-soft); font-style: italic; background: var(--ivory); }
+.legend-line { font-size: var(--fs-sm); color: var(--ink-soft); margin: 0 0 var(--s3); }
+
+@media (max-width: 720px) {
+  main { padding: var(--s4); }
+  .site-header { padding: 0 var(--s4); }
+  .breadcrumb { padding: var(--s3) var(--s4) 0; }
+  .button { min-height: 44px; }
+  .strip { flex-direction: column; }
+  .strip-side { text-align: left; }
+  .filters .search-field { grid-column: auto; }
+  table.diff { table-layout: auto; }
+  table.stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  table.stack tr { display: block; border-bottom: 1px solid var(--rule); padding: var(--s2) 0; }
+  table.stack th, table.stack td { display: block; border: 0; padding: var(--s1) 0; text-align: left; }
+  table.stack td[data-label]::before { content: attr(data-label); display: block; font-size: var(--fs-xs);
+    text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
+  table.diff td.changed { padding-left: var(--s3); }
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#screen-1-main">Skip to content</a>
+
+<!-- ============================== SCREEN 1 ============================== -->
+<div class="mock-screen" id="screen-1">
+  <div class="mock-label"><h2>Screen 1 — Review queue (/review)</h2><p>Signed in as a human agronomist. Sorted by due date: overdue first, then soonest.</p></div>
+
+  <header class="site-header">
+    <div class="brand-line">
+      <!-- Official logo (brand/logo on origin/website-v1). Path resolves once that branch is merged. Do not redraw or recolour. -->
+      <a class="brand" href="#screen-1"><img src="../../brand/logo/cloverproof-horizontal-olive.webp" alt="CloverProof"></a>
+      <span class="org-name">Organisation name</span>
+    </div>
+    <details class="user-menu"><summary>Agronomist name · Agronomist</summary></details>
+  </header>
+  <nav class="breadcrumb" aria-label="Breadcrumb"><a href="#screen-1">Farmers</a> / Review queue</nav>
+
+  <main id="screen-1-main">
+    <div class="page-head">
+      <h1>Review queue</h1>
+      <p class="muted page-count">— plans waiting</p>
+    </div>
+
+    <form class="filters" role="search" aria-label="Filter the review queue" action="#">
+      <div class="field search-field">
+        <label for="q">Find farmer or field</label>
+        <input type="search" id="q" name="q" placeholder="Farmer, farm or field name">
+      </div>
+      <div class="field">
+        <label for="f-status">Status</label>
+        <select id="f-status"><option>Waiting for review</option><option>Draft</option><option>In review</option><option>All open</option></select>
+      </div>
+      <div class="field">
+        <label for="f-due">Due</label>
+        <select id="f-due"><option>Any time</option><option>Overdue</option><option>Today</option><option>Next — days</option></select>
+      </div>
+      <div class="field">
+        <label for="f-crop">Crop</label>
+        <select id="f-crop"><option>All crops</option><option>Winter wheat</option></select>
+      </div>
+      <div class="field">
+        <label for="f-conf">Confidence</label>
+        <select id="f-conf"><option>Any</option><option>High</option><option>Medium</option><option>Low</option></select>
+      </div>
+      <div class="field">
+        <label for="f-kind">Farm</label>
+        <select id="f-kind"><option>Real and sample</option><option>Real farms</option><option>Sample only</option></select>
+      </div>
+      <div class="field">
+        <label for="f-review">Review</label>
+        <select id="f-review"><option>Any</option><option>Not reviewed</option><option>AI-reviewed only</option><option>Human-reviewed</option></select>
+      </div>
+    </form>
+    <div class="filters-foot">
+      <span>Showing — of — · Sorted by due date, overdue first</span>
+      <button class="button text" type="button">Clear filters</button>
+    </div>
+
+    <table class="stack queue">
+      <caption class="sr-only">Plans waiting for review, sorted by due date</caption>
+      <thead>
+        <tr>
+          <th scope="col" aria-sort="ascending">Due ↑</th>
+          <th scope="col">Farmer / Field</th>
+          <th scope="col">Crop</th>
+          <th scope="col">Version</th>
+          <th scope="col">Confidence</th>
+          <th scope="col">Status</th>
+          <th scope="col">Review</th>
+          <th scope="col" class="num">Minutes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- 1. Overdue -->
+        <tr class="row-overdue">
+          <td data-label="Due"><span class="due-overdue">Overdue</span><span class="cell-sub">— — · — days late</span></td>
+          <td data-label="Farmer / Field"><a href="#screen-2">Hartley farm / Creek Field</a><span class="cell-sub"><span class="kind real">Real farm</span></span></td>
+          <td data-label="Crop">Winter wheat</td>
+          <td data-label="Version">v1<span class="cell-sub">Engine</span></td>
+          <td data-label="Confidence"><span class="badge conf-high">High confidence</span></td>
+          <td data-label="Status"><span class="badge status-in_review">In review</span></td>
+          <td data-label="Review"><span class="badge review-none">Not reviewed</span></td>
+          <td data-label="Minutes" class="num">—</td>
+        </tr>
+        <!-- 2. Real farm stuck in_review: no human agronomist named (D4) -->
+        <tr class="row-blocked">
+          <td data-label="Due"><span class="due-overdue">Overdue</span><span class="cell-sub">— — · — days late</span></td>
+          <td data-label="Farmer / Field"><a href="#screen-2">Mill Road farm / Long Meadow</a><span class="cell-sub"><span class="kind real">Real farm</span></span></td>
+          <td data-label="Crop">Winter wheat</td>
+          <td data-label="Version">v2<span class="cell-sub">Edit of v1</span></td>
+          <td data-label="Confidence"><span class="badge conf-medium">Medium confidence</span></td>
+          <td data-label="Status"><span class="badge status-in_review">In review</span><span class="cell-sub">Waiting for a human agronomist. None is named yet, so this real-farm plan cannot be approved.</span></td>
+          <td data-label="Review">Not reviewed<span class="cell-sub">AI reviewer has no access to real farms (D-7)</span></td>
+          <td data-label="Minutes" class="num">—</td>
+        </tr>
+        <!-- 3. Due today, PLACEHOLDER warning -->
+        <tr>
+          <td data-label="Due"><span class="due-today">Due today</span><span class="cell-sub">— —</span></td>
+          <td data-label="Farmer / Field"><a href="#screen-2">Hartley farm / Hill Field</a><span class="cell-sub"><span class="kind real">Real farm</span></span></td>
+          <td data-label="Crop">Winter wheat</td>
+          <td data-label="Version">v1<span class="cell-sub">Engine</span></td>
+          <td data-label="Confidence"><span class="badge conf-medium">Medium confidence</span></td>
+          <td data-label="Status"><span class="badge status-in_review">In review</span><span class="cell-sub"><span class="badge placeholder" title="Uses an unvalidated constant">Placeholder</span> — numbers use unvalidated constants</span></td>
+          <td data-label="Review"><span class="badge review-none">Not reviewed</span></td>
+          <td data-label="Minutes" class="num">—</td>
+        </tr>
+        <!-- 4. Low confidence, no soil test -->
+        <tr>
+          <td data-label="Due">— —<span class="cell-sub">In — days</span></td>
+          <td data-label="Farmer / Field"><a href="#screen-2">Orchard Lane farm / Barn Field</a><span class="cell-sub"><span class="kind real">Real farm</span> · No soil test</span></td>
+          <td data-label="Crop">Winter wheat</td>
+          <td data-label="Version">v1<span class="cell-sub">Engine</span></td>
+          <td data-label="Confidence"><span class="badge conf-low">Low confidence</span><span class="cell-sub">N only · P and K need a soil test</span></td>
+          <td data-label="Status"><span class="badge status-draft">Draft</span></td>
+          <td data-label="Review"><span class="badge review-none">Not reviewed</span></td>
+          <td data-label="Minutes" class="num">—</td>
+        </tr>
+        <!-- 5. Sample farm, AI-reviewed -->
+        <tr>
+          <td data-label="Due">— —<span class="cell-sub">In — days</span></td>
+          <td data-label="Farmer / Field"><a href="#screen-2">Sample farm / Demo Field</a><span class="cell-sub"><span class="kind">Sample</span></span></td>
+          <td data-label="Crop">Winter wheat</td>
+          <td data-label="Version">v3<span class="cell-sub">Edit of v2</span></td>
+          <td data-label="Confidence"><span class="badge conf-high">High confidence</span></td>
+          <td data-label="Status"><span class="badge status-in_review">In review</span></td>
+          <td data-label="Review"><span class="badge review-ai">AI-reviewed · not approval</span><span class="cell-sub">by cp-agronomist</span></td>
+          <td data-label="Minutes" class="num">—</td>
+        </tr>
+        <!-- 6. No due date set -->
+        <tr>
+          <td data-label="Due"><span class="muted">No due date</span></td>
+          <td data-label="Farmer / Field"><a href="#screen-2">Mill Road farm / South Field</a><span class="cell-sub"><span class="kind real">Real farm</span></span></td>
+          <td data-label="Crop">Winter wheat</td>
+          <td data-label="Version">v1<span class="cell-sub">Engine</span></td>
+          <td data-label="Confidence"><span class="badge conf-medium">Medium confidence</span></td>
+          <td data-label="Status"><span class="badge status-draft">Draft</span></td>
+          <td data-label="Review"><span class="badge review-none">Not reviewed</span></td>
+          <td data-label="Minutes" class="num">—</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="hint">Plans without a due date sort last. Approved and rejected plans leave the queue; find them on the field page.</p>
+
+    <section aria-labelledby="empty-h">
+      <h2 id="empty-h" class="sr-only">Empty states</h2>
+      <p class="muted">Empty queue: “Nothing waiting for review.” · Empty filter: “No plans match these filters.” with “Clear filters”.</p>
+    </section>
+  </main>
+</div>
+
+<!-- ============================== SCREEN 2 ============================== -->
+<div class="mock-screen" id="screen-2">
+  <div class="mock-label"><h2>Screen 2 — Review detail (/plans/{id}/review)</h2><p>Engine (v1) vs Agronomist edit (v2), side by side. Two action-bar variants at the bottom.</p></div>
+
+  <header class="site-header">
+    <div class="brand-line">
+      <!-- Official logo (brand/logo on origin/website-v1). Path resolves once that branch is merged. -->
+      <a class="brand" href="#screen-1"><img src="../../brand/logo/cloverproof-horizontal-olive.webp" alt="CloverProof"></a>
+      <span class="org-name">Organisation name</span>
+    </div>
+    <details class="user-menu"><summary>Agronomist name · Agronomist</summary></details>
+  </header>
+  <nav class="breadcrumb" aria-label="Breadcrumb"><a href="#screen-1">Review queue</a> / <a href="#screen-2">Sample farm A</a> / <a href="#screen-2">Reference field</a> / Plan v2</nav>
+
+  <main id="screen-2-main">
+    <div class="strip">
+      <div>
+        <h1>Review plan v2 for Reference field</h1>
+        <dl class="facts">
+          <div><dt>Crop</dt><dd>Winter wheat</dd></div>
+          <div><dt>Target</dt><dd>— t/ha</dd></div>
+          <div><dt>Area</dt><dd>— ha</dd></div>
+          <div><dt>Soil test</dt><dd>No soil test on file</dd></div>
+          <div><dt>Farm</dt><dd>Sample farm (published reference)</dd></div>
+          <div><dt>Due</dt><dd><span class="due-overdue">Overdue</span> · — —</dd></div>
+        </dl>
+      </div>
+      <div class="strip-side">
+        <span class="badge status-in_review">In review</span>
+        <p class="timer" aria-live="polite">Minutes on this plan: —</p>
+        <p class="timer">Started — — at —:—</p>
+      </div>
+    </div>
+
+    <h2 class="sr-only">Version chain</h2>
+    <ol class="chain" aria-label="Version chain">
+      <li><span class="ver">v1</span> Engine · — — · Engine — · Pack —</li>
+      <li class="arrow" aria-hidden="true">→</li>
+      <li aria-current="step"><span class="ver">v2</span> Agronomist edit · parent_id: v1 · — —</li>
+    </ol>
+
+    <div class="notice warn" role="note">
+      <p class="notice-title"><span class="badge placeholder" title="Uses an unvalidated constant">Placeholder</span> Some numbers use PLACEHOLDER constants that are not yet validated.</p>
+      <p>They are marked below. Check or replace them before approving.</p>
+    </div>
+
+    <div class="edit-reason">
+      <p class="label">Reason for v2</p>
+      <blockquote><p>“Reason text written by the editor, quoted in full. Example: field history, local trial, farmer constraint.”</p></blockquote>
+      <p class="by">Edited by cp-agronomist (AI) · — — · <span class="badge review-ai">AI-reviewed · not approval</span></p>
+    </div>
+
+    <section aria-labelledby="diff-h" class="flush">
+      <h2 id="diff-h">Engine vs edit</h2>
+      <p class="legend-line">Changed cells say <strong>Changed</strong> and have a tinted background with an olive left rule. Lines that exist in only one version say so.</p>
+      <table class="diff stack">
+        <caption class="sr-only">Recommendation lines, Engine (v1) compared with Agronomist edit (v2)</caption>
+        <colgroup><col class="attr"><col><col></colgroup>
+        <thead>
+          <tr><th scope="col">Item</th><th scope="col">Engine (v1)</th><th scope="col">Agronomist edit (v2)</th></tr>
+        </thead>
+
+        <!-- Line 1: nitrogen, edited -->
+        <tbody class="line">
+          <tr><th scope="rowgroup" colspan="3" class="line-head">Nitrogen (N)</th></tr>
+          <tr><th scope="row">Nutrient</th><td data-label="Engine (v1)">N</td><td data-label="Agronomist edit (v2)">N</td></tr>
+          <tr><th scope="row">Rate</th>
+            <td data-label="Engine (v1)"><div class="explained"><span class="value">— kg N/ha</span> <span class="badge placeholder" title="Uses an unvalidated constant">Placeholder</span><p class="why">Engine explanation for this rate.</p></div></td>
+            <td data-label="Agronomist edit (v2)" class="changed"><div class="explained"><span class="value">— kg N/ha</span><span class="chg"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1 11 6 6 11 1 6Z" fill="currentColor"/></svg>Changed</span><p class="why">Set by the editor. See reason above.</p></div></td></tr>
+          <tr><th scope="row">Product</th>
+            <td data-label="Engine (v1)">Product name (catalog)</td>
+            <td data-label="Agronomist edit (v2)" class="changed">Other product name (catalog)<span class="chg"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1 11 6 6 11 1 6Z" fill="currentColor"/></svg>Changed</span></td></tr>
+          <tr><th scope="row">Product rate</th>
+            <td data-label="Engine (v1)"><div class="explained"><span class="value">— kg/ha</span><p class="why">Rate ÷ product N content.</p></div></td>
+            <td data-label="Agronomist edit (v2)" class="changed"><div class="explained"><span class="value">— kg/ha</span><span class="chg"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1 11 6 6 11 1 6Z" fill="currentColor"/></svg>Changed</span><p class="why">Follows the new rate and product.</p></div></td></tr>
+          <tr><th scope="row">Split</th>
+            <td data-label="Engine (v1)">— splits · — % / — %</td>
+            <td data-label="Agronomist edit (v2)">— splits · — % / — %</td></tr>
+          <tr><th scope="row">Timing window</th>
+            <td data-label="Engine (v1)">Stage name to stage name</td>
+            <td data-label="Agronomist edit (v2)">Stage name to stage name</td></tr>
+          <tr><th scope="row">Confidence</th>
+            <td data-label="Engine (v1)"><span class="badge conf-medium">Medium confidence</span></td>
+            <td data-label="Agronomist edit (v2)"><span class="badge conf-medium">Medium confidence</span></td></tr>
+          <tr><th scope="row">Explanation</th>
+            <td data-label="Engine (v1)">Plain-language reason from the engine for this line.</td>
+            <td data-label="Agronomist edit (v2)">Plain-language reason from the engine for this line, kept from v1.</td></tr>
+        </tbody>
+
+        <!-- Line 2: P and K rule line (no soil test): not editable, carried into every version (spec §1a P3) -->
+        <tbody class="line">
+          <tr><th scope="rowgroup" colspan="3" class="line-head">Phosphorus and potassium (P, K)</th></tr>
+          <tr><th scope="row">Recommendation</th>
+            <td data-label="Engine (v1)">Soil test recommended. No P or K rate without a soil test.</td>
+            <td data-label="Agronomist edit (v2)">Soil test recommended. No P or K rate without a soil test.<br><span class="only">Rule line · not editable</span></td></tr>
+          <tr><th scope="row">Confidence</th>
+            <td data-label="Engine (v1)"><span class="muted">Not rated: no rate given</span></td>
+            <td data-label="Agronomist edit (v2)" class="absent">—</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby="act-h">
+      <h2 id="act-h">Review</h2>
+
+      <!-- Variant A: human agronomist -->
+      <p class="mock-variant">Variant A — signed in as a human agronomist (role: agronomist). Approve is available.</p>
+      <form class="panel" action="#" aria-label="Review plan v2 (human agronomist)">
+        <fieldset>
+          <legend>Decision</legend>
+          <label class="choice"><input type="radio" name="da" checked> Approve v2 as shown</label>
+          <label class="choice"><input type="radio" name="da"> Edit (creates v3; v2 stays on record)</label>
+          <label class="choice"><input type="radio" name="da"> Reject (reason required)</label>
+        </fieldset>
+        <div class="field">
+          <label for="ra">Reason (required for Reject and Edit)</label>
+          <textarea id="ra" rows="3"></textarea>
+          <p class="hint">Kept with the plan and in the calibration record.</p>
+        </div>
+        <p class="confirm">Approving releases these numbers for the proof document. You are the reviewer of record. — minutes will be recorded.</p>
+        <div class="actions">
+          <button class="button" type="button">Approve plan</button>
+          <button class="button secondary" type="button">Edit numbers</button>
+          <button class="button danger" type="button">Reject plan</button>
+        </div>
+      </form>
+
+      <!-- Variant B: AI agronomist or staff/superadmin -->
+      <p class="mock-variant">Variant B — signed in as cp-agronomist (AI). Sample plans only: the AI account cannot open real-farm plans (D-7). Approve and Reject are not offered. Staff / superadmin see a view-only notice instead (spec §2).</p>
+      <form class="panel" action="#" aria-label="Review plan v2 (AI reviewer)">
+        <div class="notice" role="note">
+          <p class="notice-title">Approve is not available to you.</p>
+          <p>Only a human agronomist can approve or reject a plan. This review is recorded as AI-reviewed.</p>
+        </div>
+        <fieldset>
+          <legend>Decision</legend>
+          <label class="choice"><input type="radio" name="db" checked> Record AI review (plan stays in review)</label>
+          <label class="choice"><input type="radio" name="db"> Edit (creates v3; v2 stays on record)</label>
+        </fieldset>
+        <div class="field">
+          <label for="rb">Notes (required)</label>
+          <textarea id="rb" rows="3"></textarea>
+        </div>
+        <p class="confirm">An AI review is not an approval. It does not release numbers and does not count toward the agreement gate.</p>
+        <div class="actions">
+          <button class="button secondary" type="button">Record AI review</button>
+          <button class="button secondary" type="button">Edit numbers</button>
+        </div>
+      </form>
+
+      <p class="mock-variant">After an AI review, the plan page shows (never a success notice):</p>
+      <div class="notice" role="status">
+        <p class="notice-title"><span class="badge review-ai">AI-reviewed · not approval</span> Reviewed by cp-agronomist on — —. — minutes recorded.</p>
+        <p>Waiting for a human agronomist to approve.</p>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>
