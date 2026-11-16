@@ -1,0 +1,32 @@
+# SAMPLE golden case — NOT agronomist-approved.
+# Expected values are derived by hand from packs/placeholder/v0.yaml (PLACEHOLDER
+# constants), only to exercise the golden report. Replace with real cases from
+# Farjad Iranmehr (docs/agronomist-todo.md #1).
+#
+# Arithmetic: demand 9 x 30 = 270; net 270 - 40 - 20 (field pea) = 210;
+# unbounded 210 / 0.8 = 262.5 -> cut to max_rate 200 kg N/ha;
+# total 200 x 12.5 = 2500 kg N; splits 0.4 / 0.6.
+id: sample_wheat_rate_capped_after_field_pea
+status: SAMPLE — not agronomist-approved
+description: High target yield after field pea, no soil test; rate hits the pack upper limit.
+pack:
+  id: placeholder
+  version: v0
+# TODO(agronomist): set agreement tolerances for real cases.
+tolerance:
+  kg_n_per_ha: 0.5
+  kg_n: 10
+input:
+  crop: wheat
+  target_yield_t_ha: 9.0
+  previous_crop: field_pea
+  area_ha: 12.5
+  plan_date: "2027-02-15"
+  soil_test: null
+expected:
+  n_rate_kg_ha: 200.0
+  n_total_kg: 2500.0
+  split_rates_kg_ha: [80.0, 120.0]
+  confidence: low
+  pk_note: PK_SOIL_TEST_RECOMMENDED
+  reason: SAMPLE derived from the placeholder pack; not an agronomist decision.

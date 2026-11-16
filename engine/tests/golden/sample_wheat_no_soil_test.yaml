@@ -1,0 +1,31 @@
+# SAMPLE golden case — NOT agronomist-approved.
+# Expected values are derived by hand from packs/placeholder/v0.yaml (PLACEHOLDER
+# constants), only to exercise the golden report. Replace with real cases from
+# Farjad Iranmehr (docs/agronomist-todo.md #1).
+#
+# Arithmetic: demand 6 x 30 = 180; net 180 - 40 - 0 (canola) = 140;
+# rate 140 / 0.8 = 175 kg N/ha; total 175 x 40 = 7000 kg N; splits 0.4 / 0.6.
+id: sample_wheat_no_soil_test
+status: SAMPLE — not agronomist-approved
+description: Wheat after canola, no soil test. N only; P/K -> recommend a soil test.
+pack:
+  id: placeholder
+  version: v0
+# TODO(agronomist): set agreement tolerances for real cases.
+tolerance:
+  kg_n_per_ha: 0.5
+  kg_n: 10
+input:
+  crop: wheat
+  target_yield_t_ha: 6.0
+  previous_crop: canola
+  area_ha: 40.0
+  plan_date: "2027-02-15"
+  soil_test: null
+expected:
+  n_rate_kg_ha: 175.0
+  n_total_kg: 7000.0
+  split_rates_kg_ha: [70.0, 105.0]
+  confidence: low
+  pk_note: PK_SOIL_TEST_RECOMMENDED
+  reason: SAMPLE derived from the placeholder pack; not an agronomist decision.
