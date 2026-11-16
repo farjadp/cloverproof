@@ -25,7 +25,7 @@ Google Stitch project https://stitch.google.com/projects/16684636636144399285 (o
 | `cp-platform` | Monorepo scaffold: uv, ruff, pytest, pre-commit, Makefile, CI, git/GitHub hygiene |
 | `cp-engine` | `engine/` pure Python calculation library, `packs/`, golden tests, units |
 | `cp-agronomy-guard` | Reviewer: constants, placeholders, confidence rules, units, no invented agronomy; keeps the TODO list for Farjad Iranmehr |
-| `cp-database` | `supabase/migrations/`, PostGIS, RLS, immutability, seeds, ADRs for data model |
+| `cp-database` | `db/migrations/` (Railway Postgres + PostGIS image), org scoping + DB grants, immutability, seeds, ADRs for data model |
 | `cp-concierge-app` | `app/` FastAPI + Jinja2 + HTMX internal tool, auth, review gate, timer |
 | `cp-pdf` | `app/pdf/` WeasyPrint proof PDF, SHA-256, brand |
 | `cp-qa` | Test strategy, end-to-end checks, golden report, release go/no-go |
