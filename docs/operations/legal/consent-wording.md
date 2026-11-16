@@ -1,11 +1,13 @@
 # CloverProof consent wording — DRAFT
 
 > **This is not legal advice; a licensed Ontario lawyer should review before use.**
-> Drafted by `legal-compliance-specialist` (not a lawyer) for the CloverProof COO. v0.1 2026-11-16; v0.2 2026-11-16 (CPO decisions D4 + R4).
+> Drafted by `legal-compliance-specialist` (not a lawyer) for the CloverProof COO. v0.1 2026-11-16; v0.2 2026-11-16 (CPO decisions D4 + R4); v0.3 2026-11-16 (Farjad Iranmehr decisions: OQ-06 Canada, superadmin approval).
 
-**v0.2 changes:** D4 — consent text now says an AI system may check plans and a named human agronomist approves every plan; nothing says or implies the founder is the agronomist. R4 — pilot is for Ontario farms; the form intro says so. Data residency for pilot data is OPEN (`[RESIDENCY DECISION]`).
+**v0.2 changes:** D4 — consent text now says an AI system may check plans and a named human agronomist approves every plan; nothing says or implies the founder is the agronomist. R4 — pilot is for Ontario farms; the form intro says so.
 
-Placeholders: `[LEGAL ENTITY]`, `[ADDRESS]`, `[CONTACT EMAIL]`, `[PRIVACY URL]`, `[HUMAN AGRONOMIST NAME, CREDENTIALS]`, `[RESIDENCY DECISION]`, `[AI PROVIDER]`.
+**v0.3 changes:** OQ-06 DECIDED (Farjad Iranmehr, 2026-11-16): real farmer data is stored in Canada; the US/Railway option for pilot data is removed (§2). The website form's data location is **not** decided by OQ-06 — `[WEBSITE FORM DATA LOCATION — confirm in hosting ADR]` (§1). Superadmin approval: the §2 bullet now says who may approve and that a farmer is told when no agronomist reviewed the plan.
+
+Placeholders: `[LEGAL ENTITY]`, `[ADDRESS]`, `[CONTACT EMAIL]`, `[PRIVACY URL]`, `[HUMAN AGRONOMIST NAME, CREDENTIALS]`, `[SUPERADMIN NAME, ROLE]`, `[CANADIAN HOSTING PROVIDER, REGION]`, `[WEBSITE FORM DATA LOCATION — confirm in hosting ADR]`, `[AI PROVIDER]`.
 English only. Other locales need native-speaker review (ADR 0003) and a counsel check that the translation keeps the legal meaning.
 
 ## Rules that shape the wording
@@ -31,12 +33,12 @@ S-numbers refer to the source list at the end.
 ### Current wording (en.json `pilot.consent`)
 > "I agree that CloverProof may store these details and contact me about the pilot. I can ask for them to be deleted at any time."
 
-Assessment: acceptable core; missing (a) who "CloverProof" is legally, (b) link to the privacy notice next to the box, (c) the US storage fact, (d) any marketing option. Keep it as a single required box, and add a second, optional box for news.
+Assessment: acceptable core; missing (a) who "CloverProof" is legally, (b) link to the privacy notice next to the box, (c) where the data is stored, (d) any marketing option. Keep it as a single required box, and add a second, optional box for news.
 
 ### Proposed form block
 
 Intro line (above the boxes, plain text):
-> The 2027 pilot is for farms in Ontario, Canada. We use these details only to review your pilot request and contact you about it. They are stored by our host, Railway, in the United States. [Privacy notice]([PRIVACY URL])
+> The 2027 pilot is for farms in Ontario, Canada. We use these details only to review your pilot request and contact you about it. They are stored [WEBSITE FORM DATA LOCATION — confirm in hosting ADR]. [Privacy notice]([PRIVACY URL])
 
 **Box A — required, unticked by default**
 > ☐ I agree that [LEGAL ENTITY] (CloverProof) may store these details and contact me by email about my pilot request. I can ask for them to be deleted at any time by writing to [CONTACT EMAIL].
@@ -49,16 +51,17 @@ Implementation notes for `cp-website` (do not edit `website/` from this task):
 - Do not hide B inside A or inside the privacy link.
 - Do not send news to anyone without B, including pilot applicants. Replies about their pilot request are covered by box A and are not marketing; keep them free of promotional content. *(Counsel to confirm whether replies to a pilot inquiry rely on the CASL inquiry-based implied consent, 6 months, CASL s. 10(10) — S6, S9a.)*
 - Store the exact text of A and B shown, in the language shown (see §4).
+- Location flag: a pilot request holds a farmer's name and contact details. If the form stays outside Canada while pilot data is in Canada, the intro must say so plainly and the website must not claim "your data stays in Canada" without that qualifier (Competition Act general impression; counsel item 7).
 
 ## 2. Pilot data-use consent (at enrolment, attached to pilot-terms.md)
 
 **Required for the pilot (one box, unticked):**
 > ☐ I agree that [LEGAL ENTITY] (CloverProof) may collect and use the information I provide about me, my farm, my fields, my soil tests and what I apply, to prepare, review and record fertilizer plans for me during the pilot, as explained in the privacy notice. I understand that:
 > - the fields I enrol are in Ontario, Canada;
-> - the information is stored [RESIDENCY DECISION: "by Railway, a US company, and may be accessed in the United States" OR "in Canada by [CANADIAN HOST]"];
+> - the information is stored in Canada by [CANADIAN HOSTING PROVIDER, REGION] [IF NOT CANADIAN-OWNED: "; the provider is a [COUNTRY] company and may be required by that country's law to give access to it"];
 > - an AI system may check a de-identified copy of a proposed plan, which never includes my name, contact details, address, farm or field names or exact field location (D-7, CPO 2026-11-16; any change needs a DPA with the AI provider and an updated privacy notice);
-> - no plan is sent to me until CloverProof's human agronomist, [HUMAN AGRONOMIST NAME, CREDENTIALS], has reviewed and approved it; an AI check is never an approval;
-> - CloverProof records the software's proposal, any AI check notes, the agronomist's final number and the reason for any change, to check how accurate the software is;
+> - no plan is sent to me until a named person at CloverProof has approved it: either the human agronomist, [HUMAN AGRONOMIST NAME, CREDENTIALS], or [SUPERADMIN NAME, ROLE], who is not an agronomist. Each plan says who approved it and, if it was not reviewed by an agronomist, says so on the first page. I can ask to receive only agronomist-reviewed plans. An AI check is never an approval;
+> - CloverProof records the software's proposal, any AI check notes, the approver's final number and the reason for any change, to check how accurate the software is;
 > - approved plans are kept as write-once records; if I ask for deletion, everything linking them to me is removed;
 > - I can withdraw at any time by writing to [CONTACT EMAIL]; CloverProof will then stop making plans for me.
 
@@ -123,6 +126,7 @@ Government of Canada / CRTC sites refused direct connections from this environme
 - S11 GDPR Arts. 7, 13 — https://eur-lex.europa.eu/eli/reg/2016/679/oj *(fetched)*
 - S23 FPT privacy regulators, *Principles for responsible, trustworthy and privacy-protective generative AI technologies* (7 Dec 2023) — https://www.priv.gc.ca/en/privacy-topics/ai-technology-and-innovation/artificial-intelligence/leadership-ai/ ; https://oipc.bc.ca/documents/guidance-documents/2811 *(search only — verify)*
 - Decisions D4, R4 — `origin/backend-traceability:docs/plans/backend-plan-reconciliation.md` (CPO, 2026-11-16)
+- Decisions OQ-06 (Canada) + superadmin approval — `git diff origin/main origin/cpo-decisions-sa-fe-residency -- CLAUDE.md` (Farjad Iranmehr, 2026-11-16)
 
 ## Needs licensed counsel
 1. Whether replies to a pilot request need any CASL consent beyond Box A (inquiry-based implied consent vs. exclusion).
@@ -131,4 +135,5 @@ Government of Canada / CRTC sites refused direct connections from this environme
 4. Consent-record retention period.
 5. Legal equivalence of translated consent text in each locale.
 6. Whether the AI-review bullets in §2 are enough disclosure, and whether sending pilot data to an AI provider needs its own consent or only notice (service-provider transfer).
-7. Residency wording once Farjad decides (US vs Canada).
+7. Residency wording now that Canada is decided: the US-owned-host qualifier, and how to describe the website form if its data stays outside Canada.
+8. §2 approval bullet: whether disclosing `superadmin_approved` at consent plus on the PDF is enough, or whether a farm must opt in to receiving non-agronomist-approved plans.

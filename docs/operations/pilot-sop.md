@@ -6,34 +6,37 @@
 - Tools: `pilot_request` table; concierge tool (`docs/plans/webapp-v1.md`; tables per `docs/adr/0002-data-model.md`, migrations 0003–0009); email (farmer channel); weekly ops note.
 - Launch scope: Canada, Ontario winter wheat; Prairie wheat is the backup. Plan timing (what, when, split) is set by the human agronomist per field; this SOP invents no dates or rates.
 - Reviewer decision D4 (CPO, 2026-11-16, `docs/plans/backend-plan-reconciliation.md` on `origin/backend-traceability`): the AI specialist `cp-agronomist` pre-reviews; its sign-off is `ai_reviewed` and never counts as the review gate. Only a named human user with the `agronomist` role can set `agronomist_approved`.
-- PDF wording: `docs/operations/legal/proof-pdf-wording.md` (being written; use it once it exists, do not improvise wording).
+- Approver decision (Farjad Iranmehr, 2026-11-16, CLAUDE.md rule 8 on `origin/cpo-decisions-sa-fe-residency`): a named **human** `superadmin` without the `agronomist` role may also approve; the review is labelled `superadmin_approved`. AI/service accounts never approve. Only `agronomist_approved` feeds the calibration dataset and the agreement gate. A `superadmin_approved` plan is never described as "reviewed/approved by an agronomist" or "agronomist review" (PDF Block B2). Liability flag: `docs/operations/legal/ontario-agronomist-credentials.md` §3.6.
+- Residency decision (Farjad Iranmehr, 2026-11-16, OQ-06): real farmer data is stored in Canada. Until Canadian hosting (`[CANADIAN HOSTING PROVIDER, REGION]`, hosting ADR) is live, only synthetic or de-identified data in hosted environments (gate G9).
+- PDF wording: `docs/operations/legal/proof-pdf-wording.md` (Block B for `agronomist_approved`, Block B2 for `superadmin_approved`; do not improvise wording).
 - All time targets are `PROPOSED — validate in S3 workload model`. Business days, Eastern time.
 
 ## Roles and RACI
 
-Today Farjad Iranmehr holds Operator and Founder. He is NOT the reviewing agronomist and does not approve numbers. The human agronomist is not named yet (target: before the S5 gate, Jan 29, 2027); written as `[HUMAN AGRONOMIST]` throughout.
+Today Farjad Iranmehr holds Operator and Founder. He is NOT the reviewing agronomist. If he holds `superadmin`, he may approve as **superadmin** (`superadmin_approved`), never as agronomist. The human agronomist is not named yet (target: before the S5 gate, Jan 29, 2027); written as `[HUMAN AGRONOMIST]` throughout. The superadmin approver is written `[SUPERADMIN]`.
 
 | Role | Does |
 |---|---|
 | Operator | Intake, farmer contact, delivery, log collection, close, weekly cadence |
 | AI reviewer (`cp-agronomist`) | Pre-review of each engine recommendation; writes findings and a suggested decision; sign-off = `ai_reviewed`. Not a human, not the gate. Never described as "reviewed by an agronomist" |
 | Human agronomist (`[HUMAN AGRONOMIST]`) | Named user with the `agronomist` role. Reviews and owns every number; approve / edit / reject; the only source of `agronomist_approved`; sets soil-test validity rules and plan timing |
+| Superadmin approver (`[SUPERADMIN]`) | Named human `superadmin` without the `agronomist` role. May approve / edit / reject when no agronomist reviews the plan; source of `superadmin_approved`. Not an agronomist; never described as one; owns the numbers they approve. Ontario farms only (never Prairie). Does not set soil-test validity rules |
 | Founder | Accepts or declines pilot farms; names the human agronomist; handles escalations and deletion decisions |
 
 R = does, A = accountable, C = consulted, I = informed.
 
-| Step | Operator | AI reviewer | Human agronomist | Founder |
-|---|---|---|---|---|
-| 1 Triage request | R | - | C | A |
-| 2 Intake | R/A | C (research questions) | C | I |
-| 3 Plan (engine run) | R/A | I | C | I |
-| 4a AI pre-review | I | R | I | I |
-| 4b Human review | I | C | R/A | I |
-| 5 Delivery | R/A | - | C (approval gate) | I |
-| 6 Application log | R/A | - | C | I |
-| 7 Feedback and close | R | - | C | A |
-| Correction, deletion, escalation | R | C | R (numbers) | A |
-| Name human agronomist + backup | I | - | - | R/A |
+| Step | Operator | AI reviewer | Human agronomist | Superadmin approver | Founder |
+|---|---|---|---|---|---|
+| 1 Triage request | R | - | C | - | A |
+| 2 Intake | R/A | C (research questions) | C | - | I |
+| 3 Plan (engine run) | R/A | I | C | I | I |
+| 4a AI pre-review | I | R | I | I | I |
+| 4b Human review (one approver per plan) | I | C | R/A (`agronomist_approved`) | R/A (`superadmin_approved`, only if the agronomist does not review) | I |
+| 5 Delivery | R/A | - | C (approval gate) | C (approval gate) | I |
+| 6 Application log | R/A | - | C | - | I |
+| 7 Feedback and close | R | - | C | - | A |
+| Correction, deletion, escalation | R | C | R (numbers) | R (numbers on plans they approved) | A |
+| Name human agronomist + backup; name superadmin approver | I | - | - | - | R/A |
 
 ## Status model
 
@@ -67,7 +70,7 @@ flowchart LR
 | plan_drafted | tool (engine run) | `recommendation` kind `engine` exists |
 | ai_reviewed | `cp-agronomist` via tool | AI pre-review recorded. Does NOT unlock delivery. Label it "AI pre-review" everywhere |
 | in_review | tool | Awaiting a human `review` row. If no human agronomist is named, real-farm plans stay here (gate G0) |
-| approved | tool (`review` decision approve by a user with role `agronomist`; = `agronomist_approved`) | Only state from which a proof PDF can be made |
+| approved | tool (`review` decision approve by a human `agronomist` = `agronomist_approved`, or by a human `superadmin` without the agronomist role = `superadmin_approved`; the kind is stored on the review) | Only state from which a farmer-facing proof PDF can be made |
 | delivered | Operator | Email sent, date recorded |
 | logging | Operator | Waiting for actual applications |
 | closed | Founder | Feedback taken, data retained or deleted per rules below |
@@ -80,8 +83,8 @@ flowchart LR
 | 2 | Intake | `accepted` | Create farm, field(s), season, crop plan in concierge tool; collect field size, crop, previous crop, target yield, soil test (see below). Send intake checklist (from `customer-onboarding-specialist`) | All required inputs present or explicitly marked missing; soil test attached or "none" recorded | Checklist sent ≤ 1 business day after accept; chase every 3 business days; stop after 3 chases, mark `paused` |
 | 3 | Plan (engine run) | `intake_complete` | Run engine from the tool. Engine stores input snapshot, engine version, pack id/version/status/sha256, confidence | `recommendation` kind `engine` saved, immutable | Same day as intake_complete |
 | 4a | AI pre-review | `plan_drafted` AND gate G8 passed | `cp-agronomist` reads the de-identified case only (engine output, de-identified input snapshot and pack version — G8); lists doubts, missing inputs, units/form errors and a suggested approve / edit / reject with reasons; sign-off recorded as `ai_reviewed`. Machine time, not counted in `minutes_spent` | Pre-review note attached to the recommendation; status `ai_reviewed`. Never shown to a farmer | Same day as plan_drafted (PROPOSED) |
-| 4b | Human agronomist review | `ai_reviewed` (or `plan_drafted` if AI pre-review is unavailable) AND a named `[HUMAN AGRONOMIST]` exists | Open case, read the AI note as input only, review each number and explanation yourself; decide approve / edit / reject; record reason and `minutes_spent` (timer in tool) | `review` row by the human with decision and `minutes_spent`; edit creates a new `agronomist` recommendation (parent_id + reason) | Reviewed ≤ 3 business days after ai_reviewed |
-| 5 | Proof delivery | `approved` | Generate proof PDF from the approved version (`proof_document`, sha256 stored); check the PDF checklist; Operator emails PDF plus 5-line cover note | Email sent; delivery date and sha256 noted on the case | ≤ 1 business day after approval |
+| 4b | Human review (agronomist, or superadmin) | `ai_reviewed` (or `plan_drafted` if AI pre-review is unavailable) AND a named human approver exists (G0) | Open case, read the AI note as input only, review each number and explanation yourself; decide approve / edit / reject; record reason and `minutes_spent` (timer in tool). Farm opted out of superadmin approval (pilot-terms §3.1): agronomist only | `review` row by the human with decision, approval kind and `minutes_spent`; edit creates a new recommendation (parent_id + reason) | Reviewed ≤ 3 business days after ai_reviewed |
+| 5 | Proof delivery | `approved` | Generate proof PDF from the approved version (`proof_document`, sha256 stored; Block B or B2 by approval kind); check the PDF checklist; Operator emails PDF plus cover note for that approval kind (onboarding message 8A or 8B) | Email sent; delivery date and sha256 noted on the case | ≤ 1 business day after approval |
 | 6 | Application log | `delivered` | Ask farmer for actual applications (product, nutrient amount, date, field); enter as `application_log` actual vs planned | Log complete for the season, or farmer marked non-responsive | First ask ≤ 7 days after delivery; reminder every 14 days; final entry by May 7 |
 | 7 | Feedback and close | Log complete / season over | 15-minute call or 5-question email; record what the farmer did and why; Founder closes | Status `closed`; feedback saved | ≤ 14 days after log complete |
 
@@ -91,19 +94,20 @@ Rejection path (step 4b): reject needs a reason, status returns to intake_open, 
 
 | # | Gate | Where enforced | Check |
 |---|---|---|---|
-| G0 | No human agronomist named: no delivery. Real-farm plans stay `in_review`; no PDF, no number, no "preview" to the farmer | Steps 4b, 5 | `[HUMAN AGRONOMIST]` is a named user with role `agronomist`; else hold and tell Founder in the weekly note. Test/demo farms are labelled as such and never real farms |
-| G1 | No number reaches a farmer without approval by a named human with the `agronomist` role (`agronomist_approved`). `ai_reviewed` never satisfies G1. Storage + AI-cannot-approve test: REC-D4 (`cp-database`) | Step 5 entry | `review` decision approve by a human `agronomist` exists for the exact recommendation id in the PDF; never forward engine output, screenshots or partial numbers by email, chat or call |
+| G0 | No named human approver: no delivery. A named human approver is required — `[HUMAN AGRONOMIST]` (role `agronomist`) or `[SUPERADMIN]` (human `superadmin`). Without one, real-farm plans stay `in_review`; no PDF, no number, no "preview" to the farmer | Steps 4b, 5 | At least one named human approver exists and is flagged human; else hold and tell Founder in the weekly note. Test/demo farms are labelled as such and never real farms |
+| G1 | No number reaches a farmer without approval by a named human: `agronomist_approved` (human `agronomist`) or `superadmin_approved` (human `superadmin` without the agronomist role). `ai_reviewed` never satisfies G1; AI/service accounts never approve. Storage + AI-cannot-approve test: REC-D4 (`cp-database`) | Step 5 entry | `review` approve row by a human approver exists for the exact recommendation id in the PDF; the PDF block (B vs B2) and cover note (8A vs 8B) match the stored approval kind; `superadmin_approved` only for Ontario farms that have not opted out; never forward engine output, screenshots or partial numbers by email, chat or call |
 | G2 | No soil test: nitrogen only, confidence at most `medium`; P/K shown as "get a soil test" | Steps 2, 3, 4b | PDF contains no P or K rate when no soil test is attached |
 | G3 | Recommendations never edited in place | Step 4b | Edit = new version with parent_id and reason; database enforces it (migrations 0006, 0007) |
 | G4 | Every human review records `minutes_spent` (AI pre-review time is not recorded there) | Step 4b | Review row has it; weekly check lists reviews where it is 0 |
-| G5 | Engine output and human agronomist final and reason kept per plan (AI note kept too) | Steps 3, 4a, 4b | Diff view (migration 0009) shows both; never delete the engine row |
+| G5 | Engine output and human approver's final and reason kept per plan (AI note kept too). Only `agronomist_approved` rows enter the calibration dataset and the agreement gate | Steps 3, 4a, 4b | Diff view (migration 0009) shows both; never delete the engine row; calibration exports filter on approval kind |
 | G6 | Proof PDF never claims acceptance by any third party (lender, certifier, regulator) | Step 5 | Read the PDF text before sending; wording of any such claim is removed |
 | G7 | Pilot constants are PLACEHOLDER until a human agronomist validates them; confidence shows low | Steps 4b, 5 | See communication rule below |
 | G8 | AI reviewer gets de-identified data only (D-7, CPO 2026-11-16). `cp-agronomist` never receives real pilot farmers' personal data or identifiable farm data; it works only on published sources, synthetic cases and de-identified case data. Changing this needs a DPA with the AI provider AND a privacy-notice update, decided by Farjad Iranmehr | Step 4a entry. Operator checks before every AI pre-review | Strip: name, email, phone, other contacts, postal address, farm and field names, free-text notes that name people or places, exact field geometry (boundaries, coordinates, lot/concession). Keep: county-level region, crop, soil-test values (with method, depth, units, form), previous crop, target yield, plan date. Operator ticks the checklist on the case; if any identifier remains, do not run 4a — go to 4b without AI pre-review |
+| G9 | Residency (OQ-06, Farjad Iranmehr 2026-11-16): real farmer data is stored in Canada. Until Canadian hosting (`[CANADIAN HOSTING PROVIDER, REGION]`) is live, no real farm, field, soil test or farmer contact is entered in any hosted environment — synthetic or de-identified data only | Step 2 entry | Hosting ADR accepted and Canadian environment live; else do not start intake for real farms. Website pilot-request rows: location per `[WEBSITE FORM DATA LOCATION — confirm in hosting ADR]` |
 
 ### Placeholder constants and low confidence: how to say it
 
-The human agronomist owns the numbers: the approved plan is that person's recommendation, not an engine output and not the AI's. The cover note (Operator drafts, human agronomist approves) states three things in plain language: (1) this is a pilot, the tool's calculation constants are still being validated; (2) every number was checked and approved by `[HUMAN AGRONOMIST]`, a named agronomist (name inserted only once the person is named); (3) the confidence label (low during the pilot) means treat the plan as a starting point and tell us the outcome. Never write "reviewed by an agronomist" for `ai_reviewed`; an AI pre-review may be mentioned only as "AI-assisted pre-check" if `docs/operations/legal/proof-pdf-wording.md` allows it. Do not hide or rename the confidence value. Wording to be reviewed by `legal-compliance-specialist` (open decision 3).
+The human approver owns the numbers: the approved plan is that person's recommendation, not an engine output and not the AI's. The cover note (Operator drafts, the approver approves) states three things in plain language: (1) this is a pilot, the tool's calculation constants are still being validated; (2) by approval kind — `agronomist_approved`: every number was checked and approved by `[HUMAN AGRONOMIST]`, a named agronomist; `superadmin_approved`: every number was approved by `[SUPERADMIN]` (name, company role), who is not an agronomist, and the plan **was not reviewed by an agronomist** (message 8B); (3) the confidence label (low during the pilot) means treat the plan as a starting point and tell us the outcome. Never write "reviewed by an agronomist" for `ai_reviewed` or `superadmin_approved`; an AI pre-review may be mentioned only as "AI-assisted pre-check" if `docs/operations/legal/proof-pdf-wording.md` allows it. Do not hide or rename the confidence value. Wording to be reviewed by `legal-compliance-specialist` (open decision 3).
 
 ## Soil tests: missing, old, unclear
 
@@ -121,8 +125,8 @@ Do not invent validity windows or age limits. `[HUMAN AGRONOMIST]` sets them (`c
 
 | Event | Action | Time target (PROPOSED) |
 |---|---|---|
-| Correction needed (error, new soil test, changed crop plan) | Human agronomist creates a new version via step 4b (reason required; `cp-agronomist` pre-review again); new PDF; Operator emails farmer saying which version supersedes which and what changed; old PDF is kept, never deleted | Notify ≤ 1 business day after approval of new version |
-| Farmer asks "can I change a number" | Treated as correction request; only the human agronomist changes it, with reason | Reply ≤ 2 business days |
+| Correction needed (error, new soil test, changed crop plan) | A human approver (agronomist, or superadmin per G1) creates a new version via step 4b (reason required; `cp-agronomist` pre-review again); new PDF; Operator emails farmer saying which version supersedes which and what changed; old PDF is kept, never deleted | Notify ≤ 1 business day after approval of new version |
+| Farmer asks "can I change a number" | Treated as correction request; only a human approver (agronomist, or superadmin per G1) changes it, with reason | Reply ≤ 2 business days |
 | Farmer disputes outcome or reports damage | Escalate (below) the same day; no admission or advice by Operator | Same business day |
 
 ## Data deletion request
@@ -145,7 +149,7 @@ Legal handling belongs to `legal-compliance-specialist`; this is the ops path on
 | Farmer complaint, dispute, request for guarantees or lender/certifier claims | Founder; legal flag to `legal-compliance-specialist` | Same business day |
 | Personal data incident | Founder, `ciso` | Same day |
 | Request outside scope (hardware, other country pack, payments) | Operator declines in the reply; log it as demand | Step 1 |
-| Review backlog > 3 plans or > 3 business days, or no human agronomist named | Founder; Operator stops accepting new farms | Weekly cadence |
+| Review backlog > 3 plans or > 3 business days, or no named human approver | Founder; Operator stops accepting new farms | Weekly cadence |
 
 ## Weekly ops cadence (proposed: Monday, 45 minutes, Operator runs)
 
@@ -163,8 +167,9 @@ Output: one dated ops note per week in `docs/operations/weekly/<yyyy-mm-dd>.md` 
 
 ## Checklist before every send (step 5)
 
-- [ ] `review` approve row by a human user with role `agronomist` exists for this recommendation id (not `ai_reviewed`)
-- [ ] PDF text follows `docs/operations/legal/proof-pdf-wording.md`; no "reviewed by an agronomist" tied to an AI sign-off
+- [ ] `review` approve row by a human approver exists for this recommendation id (`agronomist_approved` or `superadmin_approved`; not `ai_reviewed`)
+- [ ] PDF text follows `docs/operations/legal/proof-pdf-wording.md`: Block B for `agronomist_approved`, Block B2 for `superadmin_approved`; no "reviewed by an agronomist" tied to an AI or superadmin sign-off
+- [ ] Cover note matches the approval kind (message 8A or 8B); `superadmin_approved` only for an Ontario farm that has not opted out
 - [ ] No soil test: PDF shows N only and "get a soil test" for P/K
 - [ ] Confidence label and placeholder notice visible
 - [ ] No third-party acceptance claim (lender, certifier, regulator)
@@ -178,11 +183,11 @@ Output: one dated ops note per week in `docs/operations/weekly/<yyyy-mm-dd>.md` 
 | Farmer silent in intake | 3 chases then `paused`; reopen on reply |
 | Concierge tool down | Do not compute numbers by hand for farmers; hold deliveries, tell farmer the new date |
 | Wrong PDF sent | Escalate as G1 breach if unapproved; else correction path |
-| Human agronomist not named, or unavailable | No deliveries; plans stay `in_review`; AI pre-review may continue; no delegate exists today (open decision 5) |
+| Human agronomist not named, or unavailable | Superadmin may approve (`superadmin_approved`, Ontario farms that have not opted out); if no named human approver at all, no deliveries, plans stay `in_review`; AI pre-review may continue (open decision 5) |
 
 ## Metric
 
-Primary: human agronomist `minutes_spent` per plan (target set in S3 workload model). Secondary: days request to delivered, % plans delivered within target, application-log completeness.
+Primary: human agronomist `minutes_spent` per plan (target set in S3 workload model); report `superadmin_approved` plans separately and exclude them from the agreement gate. Secondary: days request to delivered, % plans delivered within target, application-log completeness.
 
 ## Open decisions (Farjad Iranmehr)
 
@@ -190,4 +195,4 @@ Primary: human agronomist `minutes_spent` per plan (target set in S3 workload mo
 2. Acceptable soil-test age and any validity rules: for `[HUMAN AGRONOMIST]` once named (`docs/agronomist-todo.md`).
 3. Approve the placeholder/low-confidence cover-note wording and have legal review it (with `docs/operations/legal/proof-pdf-wording.md`).
 4. Retention vs deletion of calibration data on a deletion request.
-5. Name the human agronomist and a backup reviewer, both with the `agronomist` role (target: before the S5 gate, Jan 29, 2027). Until then G0 applies: no real-farm delivery. Hiring and contract terms are outside this SOP.
+5. Name the human agronomist and a backup reviewer, both with the `agronomist` role (target: before the S5 gate, Jan 29, 2027), and name the superadmin approver. Until a named human approver exists, G0 applies: no real-farm delivery. Before the first `superadmin_approved` plan reaches a farm: E&O answer and copy audit (`ontario-agronomist-credentials.md` §3.6). Hiring and contract terms are outside this SOP.
