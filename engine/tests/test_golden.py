@@ -19,7 +19,7 @@ from cloverproof_engine.golden import (
     parse_golden_case,
 )
 from cloverproof_engine.golden_report import main, run_report
-from cloverproof_engine.loaders import load_golden_cases
+from cloverproof_engine.loaders import golden_paths, load_golden_cases
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GOLDEN_DIR = REPO_ROOT / "engine" / "tests" / "golden"
@@ -328,3 +328,13 @@ def test_main_always_exits_zero(tmp_path: Path, capsys: pytest.CaptureFixture[st
 def test_main_on_real_dir(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--golden-dir", str(GOLDEN_DIR), "--packs-dir", str(PACKS_DIR)]) == 0
     assert "sample_" in capsys.readouterr().out
+
+
+def test_loader_skips_underscore_files(tmp_path: Path) -> None:
+    (tmp_path / "_TEMPLATE_x.yaml").write_text("kind:\nid:\n", encoding="utf-8")
+    (tmp_path / "t.yaml").write_text(yaml.safe_dump(_case_data()), encoding="utf-8")
+    assert [p.name for p in golden_paths(tmp_path)] == ["t.yaml"]
+    assert [c.id for _, c in load_golden_cases(tmp_path)] == ["t"]
+    report = run_report(tmp_path, PACKS_DIR)
+    assert "_TEMPLATE_x" not in report
+    assert "ERROR" not in report

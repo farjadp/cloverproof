@@ -30,11 +30,12 @@ def pack_path(packs_dir: str | Path, pack_id: str, version: str) -> Path:
 
 
 def golden_paths(golden_dir: str | Path) -> list[Path]:
-    """Golden case files, sorted: <golden_dir>/*.yaml."""
+    """Golden case files, sorted: <golden_dir>/*.yaml, except names starting with `_`
+    (templates and other non-case files)."""
     directory = Path(golden_dir)
     if not directory.is_dir():
         raise FileNotFoundError(f"golden directory not found: {directory}")
-    return sorted(directory.glob("*.yaml"))
+    return sorted(p for p in directory.glob("*.yaml") if not p.name.startswith("_"))
 
 
 def load_golden_case(path: str | Path) -> ExpectedCase | ExternalReferenceCase:
