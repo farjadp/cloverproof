@@ -1,0 +1,5 @@
+{% if v.read_only %}
+<p class="timer" id="timer">Minutes recorded: <span class="num">{{ v.final_review.minutes_spent }}</span></p>
+{% else %}
+<p class="timer" id="timer" hx-get="/plans/{{ v.plan.id }}/timer" hx-trigger="every 60s" hx-swap="outerHTML">Minutes on this plan: <span class="num">{% if minutes is not none %}{{ minutes }}{% else %}—{% endif %}</span></p>
+{% endif %}

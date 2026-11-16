@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_macros.html" import explained, error, invalid, error_summary, breadcrumb %}
+{% set n = doc.nitrogen %}
+{% block title %}Edit plan v{{ v.number }}{% endblock %}
+{% block breadcrumb %}{{ breadcrumb([("Farmers", "/farmers"), (v.field.farmer_name, "/farmers/" ~ v.field.farmer_id), (v.field.name, "/fields/" ~ v.field.id), ("Plan v" ~ v.number, "/plans/" ~ v.plan.id), ("Edit", None)]) }}{% endblock %}
+{% block content %}
+<h1>Edit plan v{{ v.number }}</h1>
+<p class="muted">Saving creates v{{ v.number + 1 }}. The engine numbers stay on record.</p>
+{{ error_summary(errors, "saving") }}
+<form class="form wide" method="post" action="/plans/{{ v.plan.id }}/edit" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="recommendation_id" value="{{ v.latest.id }}">
+  <table class="stack edit-table">
+    <thead><tr><th scope="col">Item</th><th scope="col">Current (v{{ v.number }})</th><th scope="col">Your number</th><th scope="col">Unit</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row"><label for="n_rate">N rate</label></th>
+        <td data-label="Current">{{ explained(n.rate) }}</td>
+        <td data-label="Your number"><input id="n_rate" name="n_rate" type="text" inputmode="decimal" value="{{ values.n_rate }}"{{ invalid(errors, "n_rate") }}>{{ error(errors, "n_rate") }}</td>
+        <td data-label="Unit">kg N/ha</td>
+      </tr>
+      <tr>
+        <th scope="row">N total</th>
+        <td data-label="Current">{{ explained(n.total) }}</td>
+        <td data-label="Your number" class="muted">N rate × {{ doc.input_snapshot.area_ha }} ha</td>
+        <td data-label="Unit">kg N</td>
+      </tr>
+      {% for s in n.splits %}
+      <tr>
+        <th scope="row"><label for="split_{{ loop.index0 }}">{{ s.stage_label }}: rate</label></th>
+        <td data-label="Current">{{ explained(s.rate) }}</td>
+        <td data-label="Your number"><input id="split_{{ loop.index0 }}" name="split_rate" type="text" inputmode="decimal" value="{{ values.splits[loop.index0] }}"{{ invalid(errors, "split_" ~ loop.index0) }}>{{ error(errors, "split_" ~ loop.index0) }}</td>
+        <td data-label="Unit">kg N/ha</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="hint">Change only the N rate and the splits keep their shares. Change a split and the splits must add up to the N rate.</p>
+  <div class="field">
+    <label for="reason">Reason for the change (required)</label>
+    <textarea id="reason" name="reason" rows="3" maxlength="4000" aria-describedby="reason-hint"{{ invalid(errors, "reason") }}>{{ values.reason }}</textarea>
+    <p class="hint" id="reason-hint">Kept with the plan. Example: field history, local trial, farmer constraint.</p>
+    {{ error(errors, "reason") }}
+  </div>
+  <div class="actions">
+    <button class="button" type="submit" data-loading="Saving…">Save as v{{ v.number + 1 }}</button>
+    <a class="button text" href="/plans/{{ v.plan.id }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

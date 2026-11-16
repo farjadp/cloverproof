@@ -6,8 +6,10 @@ variable is missing. Tests pass their own `Settings` and `Database`.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
 
@@ -17,12 +19,33 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from cloverproof_app.auth import SESSION_COOKIE, NotAuthenticated, OrgSelectionRequired, csrf_guard
-from cloverproof_app.config import Settings
+from cloverproof_app.config import ConfigError, Settings
+from cloverproof_app.db.migrate import REPO_ROOT
 from cloverproof_app.db.pool import Database, PooledDatabase
+from cloverproof_app.plan_web import router as plan_router
 from cloverproof_app.ratelimit import LoginRateLimiter
 from cloverproof_app.web import LOGIN_FORM_EXPIRED, clear_cookie, login_page, render, router
+from cloverproof_engine.loaders import load_pack
+from cloverproof_engine.pack import Pack
 
 STATIC_DIR = Path(__file__).parent / "static"
+DEFAULT_PACK_PATH = REPO_ROOT / "packs" / "placeholder" / "v0.yaml"
+SERVER_ERROR = (
+    "Something went wrong and nothing was saved. Try again."
+    " If it keeps happening, note the time: {time}."
+)
+log = logging.getLogger(__name__)
+
+
+def load_configured_pack(settings: Settings) -> Pack:
+    """The country pack the engine runs with. Fails fast at startup if it cannot load."""
+    path = Path(settings.pack_path) if settings.pack_path else DEFAULT_PACK_PATH
+    try:
+        return load_pack(path)
+    except (OSError, ValueError) as error:
+        name = error.__class__.__name__
+        raise ConfigError(f"PACK_PATH: cannot load country pack ({name})") from error
+
 
 # htmx is vendored and loaded from 'self'; its inline indicator styles are disabled in
 # base.html, so no 'unsafe-inline' is needed.
@@ -74,6 +97,7 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
     )
     app.state.settings = settings
     app.state.database = database
+    app.state.pack = load_configured_pack(settings)
     app.state.login_limiter = LoginRateLimiter(
         settings.login_max_failures, settings.login_window_minutes * 60
     )
@@ -120,10 +144,20 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
             )  # fmt: skip
         return PlainTextResponse(str(error.detail), status_code=error.status_code)
 
+    @app.exception_handler(Exception)
+    async def server_error(request: Request, error: Exception) -> Response:
+        # The request's transaction was rolled back (Database.connection), so nothing is saved.
+        log.exception("unhandled error on %s %s", request.method, request.url.path)
+        detail = SERVER_ERROR.format(time=datetime.now().strftime("%H:%M"))
+        if wants_html(request):
+            return render(request, "error.html", {"status": 500, "detail": detail}, 500)
+        return PlainTextResponse(detail, status_code=500)
+
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
         return {"status": "ok"}
 
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     app.include_router(router)
+    app.include_router(plan_router)
     return app

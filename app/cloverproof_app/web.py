@@ -1,4 +1,4 @@
-"""Routes for part A of Step 5: login, logout, organisation chooser, Farmers home."""
+"""Routes for part A of Step 5: login, logout, organisation chooser. Farmers/plans: plan_web.py."""
 
 from __future__ import annotations
 
@@ -14,23 +14,20 @@ from fastapi.templating import Jinja2Templates
 
 from cloverproof_app import security
 from cloverproof_app.auth import (
-    INTERNAL_ROLES,
     LOGIN_CSRF_COOKIE,
     ORG_COOKIE,
     SESSION_COOKIE,
     Conn,
     CurrentUser,
-    OrgContext,
     SettingsDep,
     UserDep,
     optional_user,
     org_cookie_value,
-    require_org_role,
     session_token_hash,
 )
 from cloverproof_app.config import Settings
 from cloverproof_app.ratelimit import LoginRateLimiter
-from cloverproof_app.repo import farmers, sessions, users
+from cloverproof_app.repo import sessions, users
 
 log = logging.getLogger(__name__)
 
@@ -200,12 +197,3 @@ def choose_org(
     value = org_cookie_value(settings, user, wanted)
     set_cookie(response, settings, ORG_COOKIE, value, settings.session_absolute_hours * 3600)
     return response
-
-
-InternalOrg = Annotated[OrgContext, Depends(require_org_role(*INTERNAL_ROLES))]
-
-
-@router.get("/")
-def farmers_home(request: Request, conn: Conn, context: InternalOrg) -> Response:
-    rows = farmers.list_farmers(conn, context.org.id)
-    return render(request, "farmers.html", {"farmers": rows})

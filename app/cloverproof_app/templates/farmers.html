@@ -3,19 +3,12 @@
 {% block content %}
 <div class="page-head">
   <h1>Farmers</h1>
+  <a class="button secondary" href="/farmers/new">Add farmer</a>
 </div>
-<section class="panel" aria-label="Farmers">
-  {% if farmers %}
-  <table>
-    <thead><tr><th scope="col">Farmer</th><th scope="col" class="num">Farms</th></tr></thead>
-    <tbody>
-      {% for farmer in farmers %}
-      <tr><td>{{ farmer.display_name }}</td><td class="num">{{ farmer.farm_count }}</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p class="empty">No farmers yet. Adding farmers and plans comes in the next step.</p>
-  {% endif %}
-</section>
+<form class="search" method="get" action="/farmers" role="search">
+  <label for="q">Find farmer or field</label>
+  <input id="q" name="q" type="search" value="{{ q }}" autocomplete="off"
+         hx-get="/farmers" hx-trigger="input changed delay:300ms, search" hx-target="#farmer-rows" hx-swap="innerHTML">
+</form>
+<div id="farmer-rows">{% include "_farmer_rows.html" %}</div>
 {% endblock %}
