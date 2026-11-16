@@ -8,11 +8,13 @@ at startup (fail fast) with a message that names the variable but never prints i
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 
 MIN_SECRET_LENGTH = 32
 ALLOWED_ENVS = frozenset({"development", "test", "staging", "production"})
+_HEADER_NAME = re.compile(r"^[A-Za-z0-9-]+$")
 
 
 class ConfigError(RuntimeError):
@@ -48,6 +50,13 @@ class Settings:
     session_absolute_hours: int = 12
     login_max_failures: int = 5
     login_window_minutes: int = 15
+    # S1: per client IP (429) and per account (soft, 503; unlock via `cli user-unlock`).
+    login_ip_max_failures: int = 30
+    login_account_max_failures: int = 20
+    login_account_window_minutes: int = 60
+    # Empty = the TCP peer (request.client.host). Set to the one header the proxy controls,
+    # e.g. X-Real-IP on Railway. Never "*"; a list header uses its rightmost entry.
+    trusted_proxy_header: str = ""
     db_pool_max_size: int = 5
     # Empty = the repo's packs/placeholder/v0.yaml (resolved in main.py).
     pack_path: str = ""
@@ -63,6 +72,8 @@ class Settings:
             raise ConfigError(f"ENV must be one of {', '.join(sorted(ALLOWED_ENVS))}")
         if self.env in {"staging", "production"} and not self.cookie_secure:
             raise ConfigError("COOKIE_SECURE cannot be false in staging or production")
+        if self.trusted_proxy_header and not _HEADER_NAME.match(self.trusted_proxy_header):
+            raise ConfigError("TRUSTED_PROXY_HEADER must be one header name, e.g. X-Real-IP")
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> Settings:
@@ -75,6 +86,8 @@ class Settings:
             optional["env"] = env["ENV"].strip().lower()
         if env.get("COOKIE_SECURE"):
             optional["cookie_secure"] = _bool("COOKIE_SECURE", env["COOKIE_SECURE"])
+        if env.get("TRUSTED_PROXY_HEADER"):
+            optional["trusted_proxy_header"] = env["TRUSTED_PROXY_HEADER"].strip()
         if env.get("PACK_PATH"):
             optional["pack_path"] = env["PACK_PATH"].strip()
         for name, field in (
@@ -82,6 +95,9 @@ class Settings:
             ("SESSION_ABSOLUTE_HOURS", "session_absolute_hours"),
             ("LOGIN_MAX_FAILURES", "login_max_failures"),
             ("LOGIN_WINDOW_MINUTES", "login_window_minutes"),
+            ("LOGIN_IP_MAX_FAILURES", "login_ip_max_failures"),
+            ("LOGIN_ACCOUNT_MAX_FAILURES", "login_account_max_failures"),
+            ("LOGIN_ACCOUNT_WINDOW_MINUTES", "login_account_window_minutes"),
             ("DB_POOL_MAX_SIZE", "db_pool_max_size"),
         ):
             if env.get(name):

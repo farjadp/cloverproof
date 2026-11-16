@@ -24,7 +24,7 @@ from cloverproof_app.config import ConfigError, Settings
 from cloverproof_app.db.migrate import REPO_ROOT
 from cloverproof_app.db.pool import Database, PooledDatabase
 from cloverproof_app.plan_web import router as plan_router
-from cloverproof_app.ratelimit import LoginRateLimiter
+from cloverproof_app.ratelimit import LoginGuard, UnlockListener
 from cloverproof_app.web import LOGIN_FORM_EXPIRED, clear_cookie, login_page, render, router
 from cloverproof_engine.loaders import load_pack
 from cloverproof_engine.pack import Pack
@@ -77,14 +77,32 @@ def redirect(request: Request, url: str, status: int) -> Response:
 
 def create_app(settings: Settings | None = None, database: Database | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
-    database = database or PooledDatabase(settings.database_url, settings.db_pool_max_size)
+    login_guard = LoginGuard(
+        pair_max=settings.login_max_failures,
+        pair_window=settings.login_window_minutes * 60,
+        ip_max=settings.login_ip_max_failures,
+        ip_window=settings.login_window_minutes * 60,
+        account_max=settings.login_account_max_failures,
+        account_window=settings.login_account_window_minutes * 60,
+        global_max=1_000_000,  # S2 sets the real budget
+    )
+    if database is None:
+        database = PooledDatabase(settings.database_url, settings.db_pool_max_size)
+        # `cli user-unlock` reaches this process through LISTEN/NOTIFY (production only;
+        # tests pass their own Database and call unlock_account directly).
+        login_guard.unlock_listener = UnlockListener(settings.database_url)
+    unlock_listener = login_guard.unlock_listener
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         database.open()
+        if unlock_listener is not None:
+            unlock_listener.open()
         try:
             yield
         finally:
+            if unlock_listener is not None:
+                unlock_listener.close()
             database.close()
 
     app = FastAPI(
@@ -99,9 +117,8 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
     app.state.settings = settings
     app.state.database = database
     app.state.pack = load_configured_pack(settings)
-    app.state.login_limiter = LoginRateLimiter(
-        settings.login_max_failures, settings.login_window_minutes * 60
-    )
+    app.state.login_guard = login_guard
+    app.state.login_limiter = login_guard.pair  # (email, IP) limit, also used by account.py
 
     @app.middleware("http")
     async def security_headers(

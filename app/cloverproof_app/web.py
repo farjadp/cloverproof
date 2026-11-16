@@ -26,7 +26,7 @@ from cloverproof_app.auth import (
     session_token_hash,
 )
 from cloverproof_app.config import Settings
-from cloverproof_app.ratelimit import LoginRateLimiter
+from cloverproof_app.ratelimit import LoginDecision, LoginGuard
 from cloverproof_app.repo import sessions, users
 
 log = logging.getLogger(__name__)
@@ -38,6 +38,7 @@ router = APIRouter()
 # wrong password and disabled account look the same).
 LOGIN_FAILED = "Email or password is incorrect."
 LOGIN_BLOCKED = "Too many attempts. Wait {minutes} minutes and try again."
+LOGIN_PAUSED = "Sign-in is paused for now. Try again later or ask an administrator."
 LOGIN_FORM_EXPIRED = "This form expired. Reload the page and sign in again."
 SIGNED_OUT = "You were signed out. Sign in again to continue."
 
@@ -76,10 +77,20 @@ def safe_next(target: str | None) -> str:
     return "/"
 
 
-def client_ip(request: Request) -> str:
-    # Behind a proxy this is the proxy's address unless uvicorn runs with --proxy-headers
-    # and a trusted --forwarded-allow-ips (Step 7 deploy).
-    return request.client.host if request.client else "unknown"
+def client_ip(request: Request, settings: Settings | None = None) -> str:
+    """The client address for rate limits (security review S1).
+
+    Default: the TCP peer. Client-sent X-Forwarded-For is never trusted. With
+    TRUSTED_PROXY_HEADER set (e.g. X-Real-IP, which the proxy overwrites), that one header is
+    read; if it holds a list, the rightmost entry (added by our proxy) is used.
+    """
+    settings = settings or request.app.state.settings
+    peer = request.client.host if request.client else "unknown"
+    if not settings.trusted_proxy_header:
+        return peer
+    raw = request.headers.get(settings.trusted_proxy_header, "")
+    value = raw.split(",")[-1].strip()
+    return value or peer
 
 
 def login_page(
@@ -125,23 +136,29 @@ def login(
     password: Annotated[str, Form(max_length=1024)] = "",
     next: Annotated[str, Form()] = "/",
 ) -> Response:
-    limiter: LoginRateLimiter = request.app.state.login_limiter
-    ip = client_ip(request)
+    guard: LoginGuard = request.app.state.login_guard
+    ip = client_ip(request, settings)
     email = email.strip()
-    if limiter.is_blocked(email, ip):
+    decision = guard.check(email, ip)
+    if decision in {LoginDecision.IP_BLOCKED, LoginDecision.PAIR_BLOCKED}:
         message = LOGIN_BLOCKED.format(minutes=settings.login_window_minutes)
         return login_page(request, settings, email=email, next_url=next, error=message, status=429)
+    if decision is not LoginDecision.OK:
+        log.warning("login refused: %s limit", decision.value)
+        return login_page(
+            request, settings, email=email, next_url=next, error=LOGIN_PAUSED, status=503
+        )
 
     creds = users.get_credentials_by_email(conn, email) if email else None
     ok, new_hash = security.verify_password(password, creds.password_hash if creds else None)
     if not ok or creds is None or creds.disabled_at is not None:
-        limiter.record_failure(email, ip)
+        guard.record_failure(email, ip)
         log.info("login failed")  # no email or IP in logs (PII)
         return login_page(
             request, settings, email=email, next_url=next, error=LOGIN_FAILED, status=401
         )
 
-    limiter.reset(email, ip)
+    guard.record_success(email, ip)
     if new_hash:
         users.set_password_hash(conn, creds.id, new_hash)
     old = session_token_hash(request)

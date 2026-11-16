@@ -8,6 +8,10 @@ logged. Without a terminal it reads one line from stdin (for scripted setup).
 Running it again for an existing email adds the membership; `--reset-password` also
 replaces the password with a temporary one: all the user's sessions are revoked and they
 must choose a new password at next sign-in (owners can also reset in /admin/users).
+
+    ... cli user-unlock --email name@example.org
+        Clears the per-account sign-in pause (security review S1) in the running app,
+        through Postgres NOTIFY. If the app is not running, there is nothing to clear.
 """
 
 from __future__ import annotations
@@ -23,6 +27,7 @@ from uuid import UUID
 import psycopg
 
 from cloverproof_app import security
+from cloverproof_app.ratelimit import UNLOCK_CHANNEL, account_key
 from cloverproof_app.repo import admin_users, users
 
 STAFF_ROLES = ("owner", "agronomist", "staff")
@@ -98,6 +103,12 @@ def user_create(
     return UserCreateResult(user_id, org_id, created_user, created_org, password_set)
 
 
+def user_unlock(conn: psycopg.Connection, *, email: str) -> None:
+    """Tell the running app to clear the account's sign-in pause (delivered on commit)."""
+    conn.execute("select pg_notify(%s, %s)", (UNLOCK_CHANNEL, account_key(email)))
+    conn.commit()
+
+
 def prompt_password() -> str:
     if not sys.stdin.isatty():
         line = sys.stdin.readline().rstrip("\n")
@@ -126,7 +137,35 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="existing user: set a temporary password (must be changed at next sign-in)",
     )
+    unlock = commands.add_parser(
+        "user-unlock", help="clear the sign-in pause after too many failed attempts"
+    )
+    unlock.add_argument("--email", required=True)
     return parser
+
+
+def run_command(conn: psycopg.Connection, args: argparse.Namespace) -> str:
+    if args.command == "user-unlock":
+        user_unlock(conn, email=args.email)
+        return (
+            f"unlock sent for {args.email.strip()} (account {account_key(args.email)[:12]});"
+            " the app applies it at the next sign-in attempt"
+        )
+    result = user_create(
+        conn,
+        email=args.email,
+        org=args.org,
+        role=args.role,
+        display_name=args.name,
+        create_org=args.create_org,
+        reset_password=args.reset_password,
+        read_password=prompt_password,
+    )
+    return (
+        f"{'created' if result.created_user else 'existing'} user {result.user_id};"
+        f" {'created' if result.created_org else 'existing'} organisation {result.org_id};"
+        f" role {args.role}; password {'set' if result.password_set else 'unchanged'}"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -137,16 +176,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     try:
         with psycopg.connect(url) as conn:
-            result = user_create(
-                conn,
-                email=args.email,
-                org=args.org,
-                role=args.role,
-                display_name=args.name,
-                create_org=args.create_org,
-                reset_password=args.reset_password,
-                read_password=prompt_password,
-            )
+            message = run_command(conn, args)
     except (CliError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
@@ -154,11 +184,7 @@ def main(argv: list[str] | None = None) -> int:
         # The message can quote a value (e.g. a rejected email), never the password.
         print(f"database error: {error.__class__.__name__}: {error}", file=sys.stderr)
         return 1
-    print(
-        f"{'created' if result.created_user else 'existing'} user {result.user_id};"
-        f" {'created' if result.created_org else 'existing'} organisation {result.org_id};"
-        f" role {args.role}; password {'set' if result.password_set else 'unchanged'}"
-    )
+    print(message)
     return 0
 
 
