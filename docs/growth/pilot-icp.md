@@ -1,7 +1,7 @@
 # Pilot ICP, season 2027
 
 Owner: cro (SDR draft). Status: draft for review, 2026-11-16. Nothing here is a promise to any farm.
-Scope: 5-10 farms, plans produced Feb-Apr 2027, farms confirmed by Jan 15, 2027. Engine v0 = **wheat, nitrogen only**. No soil test = N only (max `medium`); P/K needs a lab test. Agronomist (Farjad Iranmehr) reviews every plan. Vendor-neutral, software only.
+Scope: 5-10 farms, plans produced Feb-Apr 2027, farms confirmed by Jan 15, 2027. Engine v0 = **wheat, nitrogen only**. No soil test = N only (max `medium`); P/K needs a lab test. Every plan is reviewed before it reaches the farmer. Per D4 (`docs/plans/backend-plan-reconciliation.md` on `cpo-backend-plan`), the reviewer is an AI agent (`ai_reviewed`) until a human agronomist is named, and no real-farm plan is released until then. Vendor-neutral, software only.
 Labels: FACT (cited), ESTIMATE (mine, unverified), UNKNOWN.
 
 ## 1. Crop: wheat, and why winter vs spring matters
@@ -62,7 +62,7 @@ Map to `pilot_request` fields: name, email, country, farm size (free text), main
 | 4 | Has a lab soil test, or accepts N-only plan with a P/K test recommendation | `notes`; *do you have a test report, which lab, which date?* | yes |
 | 5 | Can share data: field, previous crop, previous N, test report | *Can you send these by Jan 15?* | yes |
 | 6 | Decision-maker is on the call, or the advisor is aware | `name`; *who signs off on N?* | yes |
-| 7 | Understands the agronomist reviews every plan and plans are pilot, not guaranteed | *Any expectations on results?* | yes |
+| 7 | Understands every plan is reviewed before release, it is a pilot, and nothing is guaranteed | *Any expectations on results?* | yes |
 | 8 | Valid email, consent to be contacted (CASL: implied consent only via their own request) | `email` | yes |
 
 **Disqualifiers (any one):** no wheat in 2027; wants a fertilizer brand or product recommendation; needs a guaranteed yield or savings outcome; wants P/K rates without a lab test; crop other than wheat (engine v0 cannot serve it); region the pilot cannot serve; cannot provide field info by Jan 15; wants the farmer-facing app (not in scope).
