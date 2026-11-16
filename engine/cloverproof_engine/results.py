@@ -5,6 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict
 
 from cloverproof_engine.confidence import Confidence, ConfidenceRuleHit
+from cloverproof_engine.pack import ConstantStatus, PackConstant
 
 
 class _Frozen(BaseModel):
@@ -16,6 +17,33 @@ class ExplainedNumber(_Frozen):
     value: float
     unit: str
     explanation: str
+    # True when any pack constant feeding this number (directly or through an
+    # earlier step) is PLACEHOLDER. Set explicitly by the method; no default.
+    uses_placeholder: bool
+
+
+class UsedConstant(_Frozen):
+    """A pack constant a method actually used, copied with its label."""
+
+    path: str
+    value: float
+    unit: str
+    status: ConstantStatus
+    source: str | None
+
+    @classmethod
+    def of(cls, path: str, constant: PackConstant) -> "UsedConstant":
+        return cls(
+            path=path,
+            value=constant.value,
+            unit=constant.unit,
+            status=constant.status,
+            source=constant.source,
+        )
+
+    @property
+    def is_placeholder(self) -> bool:
+        return self.status is ConstantStatus.PLACEHOLDER
 
 
 class SplitApplication(_Frozen):
@@ -33,6 +61,9 @@ class NutrientResult(_Frozen):
     components: list[ExplainedNumber]
     splits: list[SplitApplication]
     bound_applied: Literal["min", "max"] | None
+    # Every pack constant this calculation used, in order of use. Unused pack
+    # entries (e.g. credits for other previous crops) are not listed.
+    constants_used: list[UsedConstant]
 
 
 class Note(_Frozen):

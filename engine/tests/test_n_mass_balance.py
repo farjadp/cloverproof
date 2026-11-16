@@ -11,7 +11,7 @@ from cloverproof_engine.methods.n_mass_balance import (
     NitrogenMassBalance,
     UnknownPreviousCropError,
 )
-from cloverproof_engine.pack import Pack
+from cloverproof_engine.pack import ConstantStatus, Pack
 
 
 def test_registry_returns_mass_balance(placeholder_pack: Pack) -> None:
@@ -127,3 +127,104 @@ def test_values_follow_the_pack_not_the_code(make_input, placeholder_pack: Pack)
     pack = placeholder_pack.model_copy(update={"crops": {"wheat": crop}})
     result = NitrogenMassBalance().calculate(make_input(), pack)
     assert result.rate.value == pytest.approx((180.0 - 60.0) / 0.8)
+
+
+N = "crops.wheat.nitrogen"
+
+
+def _numbers(result) -> dict[str, object]:
+    found = {n.name: n for n in [result.rate, result.total, *result.components]}
+    for s in result.splits:
+        found.update({s.fraction.name: s.fraction, s.rate.name: s.rate, s.total.name: s.total})
+    return found
+
+
+def test_constants_used_are_listed(make_input, placeholder_pack: Pack) -> None:
+    result = NitrogenMassBalance().calculate(make_input(), placeholder_pack)
+    assert [c.path for c in result.constants_used] == [
+        f"{N}.n_uptake_per_t_grain",
+        f"{N}.soil_n_supply",
+        f"{N}.previous_crop_credits.canola.credit",
+        f"{N}.fertilizer_n_efficiency",
+        f"{N}.min_rate",
+        f"{N}.max_rate",
+        f"{N}.splits[0].fraction",
+        f"{N}.splits[1].fraction",
+    ]
+    soil = result.constants_used[1]
+    assert (soil.value, soil.unit, soil.status, soil.source) == (
+        40.0,
+        "kg N/ha",
+        ConstantStatus.PLACEHOLDER,
+        None,
+    )
+
+
+def test_unused_credits_are_not_listed(make_input, placeholder_pack: Pack) -> None:
+    result = NitrogenMassBalance().calculate(make_input(previous_crop="soybean"), placeholder_pack)
+    credits = [c.path for c in result.constants_used if ".previous_crop_credits." in c.path]
+    assert credits == [f"{N}.previous_crop_credits.soybean.credit"]
+
+
+def test_every_number_uses_placeholder_with_placeholder_pack(
+    make_input, placeholder_pack: Pack
+) -> None:
+    result = NitrogenMassBalance().calculate(make_input(), placeholder_pack)
+    assert all(n.uses_placeholder for n in _numbers(result).values())
+
+
+def test_no_number_uses_placeholder_with_validated_pack(make_input, validated_pack: Pack) -> None:
+    result = NitrogenMassBalance().calculate(make_input(), validated_pack)
+    assert not any(n.uses_placeholder for n in _numbers(result).values())
+
+
+def test_placeholder_flag_follows_the_constant_into_derived_numbers(
+    make_input, pack_with_placeholders
+) -> None:
+    pack = pack_with_placeholders(f"{N}.soil_n_supply")
+    flags = {
+        k: n.uses_placeholder
+        for k, n in _numbers(NitrogenMassBalance().calculate(make_input(), pack)).items()
+    }
+    assert flags == {
+        "crop_n_demand": False,
+        "soil_n_supply": True,
+        "previous_crop_credit": False,
+        "net_n_requirement": True,
+        "unbounded_rate": True,
+        "n_rate": True,
+        "n_total": True,
+        "split_1_fraction": False,
+        "split_1_rate": True,
+        "split_1_total": True,
+        "split_2_fraction": False,
+        "split_2_rate": True,
+        "split_2_total": True,
+    }
+
+
+def test_rate_limits_feed_the_rate_but_not_the_components(
+    make_input, pack_with_placeholders
+) -> None:
+    pack = pack_with_placeholders(f"{N}.max_rate")
+    numbers = _numbers(NitrogenMassBalance().calculate(make_input(), pack))
+    assert numbers["n_rate"].uses_placeholder
+    assert numbers["n_total"].uses_placeholder
+    assert not numbers["unbounded_rate"].uses_placeholder
+    assert not numbers["split_1_fraction"].uses_placeholder
+
+
+def test_split_fraction_flag_stays_in_its_split(make_input, pack_with_placeholders) -> None:
+    pack = pack_with_placeholders(f"{N}.splits[1].fraction")
+    numbers = _numbers(NitrogenMassBalance().calculate(make_input(), pack))
+    assert not numbers["n_rate"].uses_placeholder
+    assert not numbers["split_1_rate"].uses_placeholder
+    assert numbers["split_2_fraction"].uses_placeholder
+    assert numbers["split_2_rate"].uses_placeholder
+    assert numbers["split_2_total"].uses_placeholder
+
+
+def test_unused_placeholder_credit_flags_nothing(make_input, pack_with_placeholders) -> None:
+    pack = pack_with_placeholders(f"{N}.previous_crop_credits.corn.credit")
+    result = NitrogenMassBalance().calculate(make_input(previous_crop="canola"), pack)
+    assert not any(n.uses_placeholder for n in _numbers(result).values())

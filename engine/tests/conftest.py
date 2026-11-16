@@ -42,6 +42,14 @@ def _mark_validated(node: Any) -> None:
             _mark_validated(child)
 
 
+def _validated_data() -> dict[str, Any]:
+    data = copy.deepcopy(yaml.safe_load(PLACEHOLDER_PACK_PATH.read_text(encoding="utf-8")))
+    _mark_validated(data)
+    data["id"] = "test-validated"
+    data["status"] = "validated"
+    return data
+
+
 @pytest.fixture
 def validated_pack() -> Pack:
     """Same numbers as the placeholder pack, relabelled VALIDATED.
@@ -49,11 +57,31 @@ def validated_pack() -> Pack:
     Test-only: lets the confidence rules be exercised without the
     "pack has placeholders" cap. Never written to disk.
     """
-    data = copy.deepcopy(yaml.safe_load(PLACEHOLDER_PACK_PATH.read_text(encoding="utf-8")))
-    _mark_validated(data)
-    data["id"] = "test-validated"
-    data["status"] = "validated"
+    return parse_pack(_validated_data())
+
+
+def _pack_with_placeholders(*paths: str) -> Pack:
+    """Validated test pack with only the constants at `paths` set back to PLACEHOLDER.
+
+    Paths use the engine's constant-path notation, e.g.
+    "crops.wheat.nitrogen.soil_n_supply" or "crops.wheat.nitrogen.splits[0].fraction".
+    """
+    data = _validated_data()
+    for path in paths:
+        node: Any = data
+        for part in path.replace("[", ".").replace("]", "").split("."):
+            node = node[int(part)] if isinstance(node, list) else node[part]
+        node["status"] = "PLACEHOLDER"
+        node["source"] = None
+    if paths:
+        data["id"] = "test-mixed"
+        data["status"] = "placeholder"
     return parse_pack(data)
+
+
+@pytest.fixture
+def pack_with_placeholders() -> Callable[..., Pack]:
+    return _pack_with_placeholders
 
 
 def _soil_value(
