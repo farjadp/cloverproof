@@ -29,7 +29,7 @@ from cloverproof_engine.models import (
     SoilTestValue,
     nutrient_of,
 )
-from cloverproof_engine.pack import Pack
+from cloverproof_engine.pack import Pack, PackConstant
 
 FORM_LABELS = {"P": "P", "P2O5": "P₂O₅", "K": "K", "K2O": "K₂O", "NO3-N": "NO₃-N", "N": "N"}
 VALUE_FORMS = ("P", "P2O5", "K", "K2O", "NO3-N")
@@ -285,11 +285,26 @@ def run_engine(inputs: RecommendationInput, pack: Pack) -> dict[str, Any]:
 class EditParsed:
     n_rate: float
     split_rates: list[float]
-    changed: set[str]
+    changed: set[str]  # every number whose value differs from the edited document
+    typed: set[str] = field(default_factory=set)  # the subset the agronomist typed
+
+
+RESCALED = "Rescaled from the agronomist's N rate using the pack split share."
 
 
 def _fmt(value: float) -> str:
     return f"{value:,.1f}"
+
+
+def n_rate_limits(pack: Pack, crop: str) -> tuple[PackConstant, PackConstant]:
+    """The pack's min and max N rate for the crop (read from the loaded pack)."""
+    cfg = pack.crops[Crop(crop)].nitrogen
+    return cfg.min_rate, cfg.max_rate
+
+
+def outside_limits(rate: float, limits: tuple[PackConstant, PackConstant]) -> bool:
+    low, high = limits
+    return rate < low.value or rate > high.value
 
 
 def parse_edit(
@@ -321,19 +336,23 @@ def parse_edit(
     assert rate is not None
     final_splits = [s for s in splits if s is not None]
 
-    changed: set[str] = set()
-    if not math.isclose(rate, old_rate, abs_tol=1e-9):
-        changed.add("n_rate")
-    split_changed = any(
-        not math.isclose(a, b, abs_tol=1e-9) for a, b in zip(final_splits, old_splits, strict=True)
-    )
-    if not split_changed and "n_rate" in changed:
+    def differs(a: float, b: float) -> bool:
+        return not math.isclose(a, b, abs_tol=1e-9)
+
+    typed: set[str] = set()
+    if differs(rate, old_rate):
+        typed.add("n_rate")
+
+    def moved(new_splits: list[float]) -> set[str]:
+        pairs = enumerate(zip(new_splits, old_splits, strict=True))
+        return {f"split_{i}" for i, (a, b) in pairs if differs(a, b)}
+
+    typed |= moved(final_splits)
+    if typed == {"n_rate"}:
         # Splits left as they were: keep the same shares of the new rate.
         fractions = [float(s["fraction"]["value"]) for s in nitrogen["splits"]]
-        final_splits = [round(rate * fr, 4) for fr in fractions]
-    for i, (a, b) in enumerate(zip(final_splits, old_splits, strict=True)):
-        if not math.isclose(a, b, abs_tol=1e-9):
-            changed.add(f"split_{i}")
+        final_splits = [rate * fr for fr in fractions]
+    changed = typed | moved(final_splits)
 
     if not changed:
         errors["form"] = EDIT_NOTHING_CHANGED
@@ -346,37 +365,59 @@ def parse_edit(
         errors["reason"] = EDIT_REASON_MISSING
     if errors:
         return None, errors
-    return EditParsed(rate, final_splits, changed), {}
+    return EditParsed(rate, final_splits, changed, typed), {}
 
 
 def edited_document(doc: Mapping[str, Any], edit: EditParsed, reason: str) -> dict[str, Any]:
-    """Same document shape as the engine output, with the agronomist's final numbers."""
+    """Same document shape as the engine output, with the agronomist's final numbers.
+
+    Only numbers the agronomist typed say "Set by agronomist". Splits rescaled from the new
+    N rate with the pack shares say so and keep the share's PLACEHOLDER flag. Every split
+    share is recomputed against the final N rate, typed or not.
+    """
     new = copy.deepcopy(dict(doc))
     nitrogen = new["nitrogen"]
     area = float(new["input_snapshot"]["area_ha"])
     note = f"Set by agronomist: {reason.strip()}"
+    final_rate = edit.n_rate if "n_rate" in edit.changed else float(nitrogen["rate"]["value"])
 
-    def set_number(number: dict[str, Any], value: float, explanation: str) -> None:
+    def set_number(number: dict[str, Any], value: float, explanation: str,
+                   placeholder: bool) -> None:  # fmt: skip
         number["value"] = value
         number["explanation"] = explanation
-        number["uses_placeholder"] = False
+        number["uses_placeholder"] = placeholder
+
+    def total_text(prefix: str, rate: float) -> str:
+        return f"{prefix} Total = {_fmt(rate)} kg N/ha x {_fmt(area)} ha."
 
     if "n_rate" in edit.changed:
-        set_number(nitrogen["rate"], edit.n_rate, note)
+        set_number(nitrogen["rate"], edit.n_rate, note, False)
         nitrogen["bound_applied"] = None
-        set_number(
-            nitrogen["total"],
-            edit.n_rate * area,
-            f"{note} Total = {_fmt(edit.n_rate)} kg N/ha x {_fmt(area)} ha.",
-        )
+        set_number(nitrogen["total"], edit.n_rate * area, total_text(note, edit.n_rate), False)
+
     for i, split in enumerate(nitrogen["splits"]):
-        if f"split_{i}" not in edit.changed:
-            continue
+        key = f"split_{i}"
         rate = edit.split_rates[i]
-        set_number(split["rate"], rate, note)
-        set_number(
-            split["total"], rate * area, f"{note} Total = {_fmt(rate)} kg N/ha x {_fmt(area)} ha."
-        )
-        share = rate / edit.n_rate if edit.n_rate > 0 else 0.0
-        set_number(split["fraction"], share, f"{note} Share of the final N rate.")
+        share = rate / final_rate if final_rate > 0 else 0.0
+        fraction = split["fraction"]
+        if key in edit.typed:
+            set_number(split["rate"], rate, note, False)
+            set_number(split["total"], rate * area, total_text(note, rate), False)
+            set_number(fraction, share, f"{note} Share of the final N rate.", False)
+        elif key in edit.changed:  # rescaled from the agronomist's N rate
+            flag = bool(fraction["uses_placeholder"])
+            set_number(split["rate"], rate, RESCALED, flag)
+            set_number(split["total"], rate * area, total_text(RESCALED, rate), flag)
+            if final_rate > 0:
+                fraction["value"] = share  # the pack share, recomputed from the final rate
+            else:
+                set_number(fraction, 0.0, "The final N rate is 0 kg N/ha: no share.", False)
+        elif not math.isclose(share, float(fraction["value"]), abs_tol=1e-9):
+            # Rate left as it was, but the final N rate changed: only the share moves.
+            set_number(
+                fraction,
+                share,
+                f"Share of the final N rate: {_fmt(rate)} of {_fmt(final_rate)} kg N/ha.",
+                bool(split["rate"]["uses_placeholder"]),
+            )
     return new
