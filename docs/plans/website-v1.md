@@ -10,7 +10,7 @@ Credibility + recruit 5–10 pilot farms for Feb–Apr 2027. Primary CTA: **Requ
 |---|---|
 | Location | `website/` in this monorepo |
 | Stack | Next.js (App Router) + TypeScript + Tailwind, static where possible |
-| i18n | Built in from day one (`next-intl`, `/[locale]/` routes). Ship order: en → fr → it → es → bg → fi → tr → ar (RTL). One locale per step. |
+| i18n | Built in from day one (native Next.js i18n, `/[lang]/` routes, ADR 0003). Ship order: en → fr → it → es → bg → fi → tr → ar (RTL). One locale per step. |
 | Pages | Landing (hero → problem → how it works → sample proof → principles → pilot CTA), Pilot request form, Privacy |
 | Form | Railway Postgres table `pilot_request` (ADR 0004), explicit consent checkbox (PIPEDA / CASL / GDPR for EU locales) |
 | Audience | Global, English first |
@@ -29,13 +29,28 @@ Credibility + recruit 5–10 pilot farms for Feb–Apr 2027. Primary CTA: **Requ
 3. ✅ Scaffold `website/` with i18n + RTL-ready layout.
 4. ✅ Landing + privacy (draft) in English. Run: `npm --prefix website run dev`.
 5. ✅ Pilot form → Railway Postgres (`pilot_request`), consent text stored, honeypot spam trap. Live: https://website-production-a1991e11.up.railway.app
-6. QA: Lighthouse ≥ 90, mobile, keyboard/a11y, form end to end → preview deploy.
-7. Then one locale at a time (fr, it, es, bg, fi, tr, ar), each reviewed by a native speaker before going live.
+6. ✅ Redesign + official logo, icons, OG image, flag language menu (S1, live).
+7. QA: Lighthouse ≥ 90, mobile, keyboard/a11y, form end to end → preview deploy.
+8. Then one locale at a time (fr, it, es, bg, fi, tr, ar), each reviewed by a native speaker before going live.
 
 ## Open items
 - Contact email and legal entity name for the privacy notice and footer.
 - Privacy notice needs legal review before launch (`legal-compliance-specialist`).
-- Field image is an SVG illustration; swap for a licensed photo later if wanted.
 
 ## Owners
-Design `product-designer` · copy `content-seo-strategist` · code `frontend-developer` · form/db `cp-database` · QA `cp-qa` · lead `cloverproof-lead`.
+Code, SEO, a11y, deploy `cp-website` · design/images `cp-design` · copy `content-seo-strategist` · QA `cp-qa` · reports to `cto` → CPO.
+
+## Sprint S2 (Nov 30 – Dec 11) — website goals
+| # | Item | Done when |
+|---|---|---|
+| 1 | SEO basics | Per-page title/description/canonical, `sitemap.xml`, `robots.txt`, hreflang alternates (enabled locales + `x-default`); validated on the live URL |
+| 2 | Lighthouse ≥ 90 mobile | Performance, Accessibility, Best Practices, SEO each ≥ 90 on `/en` and `/en/privacy` (mobile preset); scores recorded in the review |
+| 3 | Keyboard / a11y pass | Every control reachable and visible on focus; field check, language menu and 3-step form usable by keyboard only; axe: 0 serious/critical |
+| 4 | Pilot-funnel counts | Server-side only, from `pilot_request` (requests per day/locale); no third-party tracker without Farjad Iranmehr's go |
+| 5 | DB switch | `pilot_request` on the shared PostGIS DB per `docs/runbook-db-switch.md`, in a window agreed with `cloverproof-lead`, once PostGIS is healthy |
+
+Test gate on every deploy: `npm run lint`, `npm run build`, 375 px + 1280 px checks, no horizontal scroll, Lighthouse score noted.
+Learning loop: `docs/sprints/S2-website-review.md` + retro at sprint end, summary to the CPO, standard report to `documentation`.
+Later: S3 growth landing-page fixes (via CPO) · S4 French, enabled only after native review.
+
+Still open with Farjad Iranmehr: design feedback on v1, contact email + legal entity, privacy legal review, flag choice for English (UK) and Arabic (Arab League).
