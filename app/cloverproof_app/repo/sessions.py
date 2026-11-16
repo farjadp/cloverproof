@@ -56,3 +56,12 @@ def revoke_session(conn: psycopg.Connection, *, token_sha256: str) -> None:
         "update user_session set revoked_at = now() where token_sha256 = %s and revoked_at is null",
         (token_sha256,),
     )
+
+
+def revoke_all_for_user(conn: psycopg.Connection, user_id: UUID) -> int:
+    """Sign the user out everywhere (security review S3). Returns how many were live."""
+    cur = conn.execute(
+        "update user_session set revoked_at = now() where user_id = %s and revoked_at is null",
+        (user_id,),
+    )
+    return cur.rowcount

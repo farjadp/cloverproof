@@ -12,6 +12,9 @@ must choose a new password at next sign-in (owners can also reset in /admin/user
     ... cli user-unlock --email name@example.org
         Clears the per-account sign-in pause (security review S1) in the running app,
         through Postgres NOTIFY. If the app is not running, there is nothing to clear.
+
+    ... cli user-revoke-sessions --email name@example.org
+        Signs the user out on every device (security review S3); the password is unchanged.
 """
 
 from __future__ import annotations
@@ -28,7 +31,7 @@ import psycopg
 
 from cloverproof_app import security
 from cloverproof_app.ratelimit import UNLOCK_CHANNEL, account_key
-from cloverproof_app.repo import admin_users, users
+from cloverproof_app.repo import admin_users, sessions, users
 
 STAFF_ROLES = ("owner", "agronomist", "staff")
 
@@ -109,6 +112,14 @@ def user_unlock(conn: psycopg.Connection, *, email: str) -> None:
     conn.commit()
 
 
+def user_revoke_sessions(conn: psycopg.Connection, *, email: str) -> int:
+    with conn.transaction():
+        creds = users.get_credentials_by_email(conn, email.strip())
+        if creds is None:
+            raise CliError("no user with that email")
+        return sessions.revoke_all_for_user(conn, creds.id)
+
+
 def prompt_password() -> str:
     if not sys.stdin.isatty():
         line = sys.stdin.readline().rstrip("\n")
@@ -141,6 +152,10 @@ def build_parser() -> argparse.ArgumentParser:
         "user-unlock", help="clear the sign-in pause after too many failed attempts"
     )
     unlock.add_argument("--email", required=True)
+    revoke = commands.add_parser(
+        "user-revoke-sessions", help="sign the user out on every device (password unchanged)"
+    )
+    revoke.add_argument("--email", required=True)
     return parser
 
 
@@ -151,6 +166,9 @@ def run_command(conn: psycopg.Connection, args: argparse.Namespace) -> str:
             f"unlock sent for {args.email.strip()} (account {account_key(args.email)[:12]});"
             " the app applies it at the next sign-in attempt"
         )
+    if args.command == "user-revoke-sessions":
+        count = user_revoke_sessions(conn, email=args.email)
+        return f"revoked {count} active session(s) for {args.email.strip()}"
     result = user_create(
         conn,
         email=args.email,
