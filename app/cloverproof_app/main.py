@@ -18,6 +18,7 @@ from fastapi.responses import PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from cloverproof_app import account
 from cloverproof_app.auth import SESSION_COOKIE, NotAuthenticated, OrgSelectionRequired, csrf_guard
 from cloverproof_app.config import ConfigError, Settings
 from cloverproof_app.db.migrate import REPO_ROOT
@@ -160,4 +161,5 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     app.include_router(router)
     app.include_router(plan_router)
+    account.register(app)
     return app

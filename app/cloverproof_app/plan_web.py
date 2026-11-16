@@ -302,12 +302,26 @@ class PlanView:
         return self.final_review is not None
 
 
+def by_lineage(rows: list[plans.RecRow]) -> list[plans.RecRow]:
+    """Versions in edit order: by depth in the parent chain (timestamps can tie)."""
+    parent = {r.id: r.parent_id for r in rows}
+
+    def depth(rec_id: UUID) -> int:
+        d = 0
+        while parent.get(rec_id):
+            rec_id = parent[rec_id]  # type: ignore[assignment]
+            d += 1
+        return d
+
+    return sorted(rows, key=lambda r: (depth(r.id), r.created_at))
+
+
 def load_plan(conn: Conn, context: OrgContext, plan_id: UUID) -> PlanView:
     org = context.org.id
     plan = plans.get_plan(conn, org, plan_id)
     if plan is None:
         raise not_found("Plan")
-    versions = plans.recommendations(conn, org, plan_id)
+    versions = by_lineage(plans.recommendations(conn, org, plan_id))
     if not versions:
         raise HTTPException(409, "This plan has no engine result yet.")
     parents = {v.parent_id for v in versions if v.parent_id}
