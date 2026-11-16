@@ -1,4 +1,5 @@
 import type { Dictionary } from "@/i18n/dictionaries";
+import { Reveal } from "./Reveal";
 
 export function Problem({ t }: { t: Dictionary }) {
   return (
@@ -10,12 +11,14 @@ export function Problem({ t }: { t: Dictionary }) {
         </div>
         <ol className="divide-y divide-rule border-y border-rule">
           {t.problem.items.map((item, i) => (
-            <li key={item.title} className="grid grid-cols-[3rem_1fr] gap-4 py-6">
+            <li key={item.title}>
+              <Reveal delay={i as 0 | 1 | 2} className="grid grid-cols-[3rem_1fr] gap-4 py-6">
               <span className="font-serif text-lg text-olive" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
               <div>
                 <h3 className="font-semibold text-ink">{item.title}</h3>
                 <p className="mt-1 text-ink-soft">{item.body}</p>
               </div>
+              </Reveal>
             </li>
           ))}
         </ol>

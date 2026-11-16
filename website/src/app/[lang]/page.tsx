@@ -4,6 +4,7 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { Problem } from "@/components/Problem";
+import { FieldCheck } from "@/components/FieldCheck";
 import { HowItWorks } from "@/components/HowItWorks";
 import { SampleProof } from "@/components/SampleProof";
 import { Principles } from "@/components/Principles";
@@ -22,6 +23,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
       <main id="main">
         <Hero t={t} />
         <Problem t={t} />
+        <FieldCheck t={t.check} />
         <HowItWorks t={t} />
         <SampleProof t={t} />
         <Principles t={t} />

@@ -5,6 +5,7 @@ import { Logo } from "./Logo";
 
 export function Header({ t, lang }: { t: Dictionary; lang: Locale }) {
   const links = [
+    { href: "#check", label: t.nav.check },
     { href: "#how", label: t.nav.how },
     { href: "#proof", label: t.nav.proof },
     { href: "#principles", label: t.nav.principles },

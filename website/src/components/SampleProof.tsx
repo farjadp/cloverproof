@@ -1,5 +1,24 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { CloverMark } from "./Logo";
+import { useInView } from "./useInView";
+
+function Typed({ text, start }: { text: string; start: boolean }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!start || n >= text.length) return;
+    const id = setTimeout(() => setN(n + 1), 55);
+    return () => clearTimeout(id);
+  }, [start, n, text.length]);
+  return (
+    <span>
+      {text.slice(0, n)}
+      {start && n < text.length && <span className="animate-pulse">▍</span>}
+    </span>
+  );
+}
 
 function Meta({ label, value }: { label: string; value: string }) {
   return (
@@ -12,6 +31,9 @@ function Meta({ label, value }: { label: string; value: string }) {
 
 export function SampleProof({ t }: { t: Dictionary }) {
   const p = t.proof;
+  const { ref, inView } = useInView<HTMLElement>(0.3);
+  const step = ["delay-[200ms]", "delay-[500ms]", "delay-[800ms]"];
+  const show = (i: number) => `transition-all duration-500 ${step[i] ?? ""} ${inView ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-3"}`;
   return (
     <section id="proof" aria-labelledby="proof-title" className="border-t border-rule">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1fr_1.6fr] lg:px-8 [&>*]:min-w-0">
@@ -21,11 +43,12 @@ export function SampleProof({ t }: { t: Dictionary }) {
           <p className="mt-8 border-s-2 border-sage ps-4 text-sm text-ink-soft">{p.disclaimer}</p>
         </div>
 
-        <article aria-label={p.docTitle} className="border border-rule bg-white shadow-[0_1px_0_var(--color-rule),0_12px_32px_-24px_var(--color-ink)]">
+        <article ref={ref} aria-label={p.docTitle} className="relative rotate-[0.4deg] border border-rule bg-white transition-transform duration-500 hover:rotate-0 shadow-[0_1px_0_var(--color-rule),0_12px_32px_-24px_var(--color-ink)]">
           <header className="flex items-center justify-between gap-4 border-b border-rule px-6 py-4">
             <div className="flex items-center gap-3">
               <CloverMark className="size-6" />
               <span className="font-serif text-lg text-ink">{p.docTitle}</span>
+              <span className="rounded bg-sand px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-ink-soft">{p.sampleTag}</span>
             </div>
             <span className="font-mono text-xs text-ink-soft">{p.docId} · —</span>
           </header>
@@ -48,8 +71,8 @@ export function SampleProof({ t }: { t: Dictionary }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-rule">
-                {p.rows.map((r) => (
-                  <tr key={r.nutrient}>
+                {p.rows.map((r, i) => (
+                  <tr key={r.nutrient} className={show(i)}>
                     <th scope="row" className="py-3 text-start font-semibold text-ink">{r.nutrient}</th>
                     <td className="py-3 text-ink">{r.rate}</td>
                     <td className="py-3 text-ink-soft">{r.timing}</td>
@@ -80,9 +103,15 @@ export function SampleProof({ t }: { t: Dictionary }) {
             <Meta label={p.versions} value={p.versionsValue} />
             <div>
               <dt className="text-xs uppercase tracking-[0.12em] text-ink-soft">{p.fingerprint}</dt>
-              <dd className="mt-1 font-mono text-olive">{p.fingerprintValue}</dd>
+              <dd className="mt-1 font-mono text-olive"><Typed text={p.fingerprintValue} start={inView} /></dd>
             </div>
           </footer>
+
+          {inView && (
+            <div aria-hidden="true" className="pointer-events-none absolute bottom-28 end-10 animate-stamp bg-white/70 rounded-md border-4 border-olive px-4 py-1 font-serif text-2xl font-bold uppercase tracking-widest text-olive opacity-90 [animation-delay:1.3s]">
+              {p.stamp}
+            </div>
+          )}
         </article>
       </div>
     </section>

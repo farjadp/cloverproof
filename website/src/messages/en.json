@@ -10,16 +10,25 @@
     "faq": "FAQ",
     "cta": "Request a pilot plan",
     "skip": "Skip to content",
-    "menu": "Menu"
+    "menu": "Menu",
+    "check": "Field check"
   },
   "hero": {
     "eyebrow": "Pilot season 2027 · Applications open",
     "title": "A clearer plan for every field.",
     "lead": "CloverProof connects your soil tests, field history and crop goals into one fertilizer plan — what to apply, how much, when, and why — checked by an agronomist before it reaches you.",
     "ctaPrimary": "Request a pilot plan",
-    "ctaSecondary": "See a sample proof",
+    "ctaSecondary": "Try the 2-minute field check",
     "note": "Early-stage product. Pilot availability depends on location and fit.",
-    "figureCaption": "Every recommendation is tied to one field, one season and one set of inputs."
+    "figureCaption": "Every recommendation is tied to one field, one season and one set of inputs.",
+    "imageAlt": "Young winter wheat in long rows at sunrise, with clover leaves in the foreground",
+    "chips": {
+      "confidence": "Confidence",
+      "confidenceValue": "Medium",
+      "reviewed": "Reviewed by an agronomist",
+      "version": "Version 2 · reason recorded",
+      "ctaCheck": "Try the field check"
+    }
   },
   "problem": {
     "title": "The practical problem",
@@ -59,7 +68,8 @@
         "title": "Proof document",
         "body": "You receive a plan document: what, how much, when and why, with the reviewer, the versions used and a digital fingerprint."
       }
-    ]
+    ],
+    "active": "You are here"
   },
   "proof": {
     "title": "What a proof document shows",
@@ -79,9 +89,24 @@
     "timing": "Timing",
     "confidence": "Confidence",
     "rows": [
-      { "nutrient": "Nitrogen (N)", "rate": "— kg/ha", "timing": "Split · —", "confidence": "Medium" },
-      { "nutrient": "Phosphorus (P)", "rate": "Soil test needed", "timing": "—", "confidence": "—" },
-      { "nutrient": "Potassium (K)", "rate": "Soil test needed", "timing": "—", "confidence": "—" }
+      {
+        "nutrient": "Nitrogen (N)",
+        "rate": "— kg/ha",
+        "timing": "Split · —",
+        "confidence": "Medium"
+      },
+      {
+        "nutrient": "Phosphorus (P)",
+        "rate": "Soil test needed",
+        "timing": "—",
+        "confidence": "—"
+      },
+      {
+        "nutrient": "Potassium (K)",
+        "rate": "Soil test needed",
+        "timing": "—",
+        "confidence": "—"
+      }
     ],
     "whyTitle": "Why this rate",
     "whyLines": [
@@ -94,17 +119,34 @@
     "versions": "Engine / rule-set version",
     "versionsValue": "— / —",
     "fingerprint": "SHA-256 fingerprint",
-    "fingerprintValue": "—",
-    "disclaimer": "A proof document records what was recommended and why. It is not a certification and is not issued or endorsed by any third party."
+    "fingerprintValue": "9f2c41b7…e41a",
+    "disclaimer": "A proof document records what was recommended and why. It is not a certification and is not issued or endorsed by any third party.",
+    "stamp": "Reviewed",
+    "sampleTag": "Sample"
   },
   "principles": {
     "title": "Principles we don't bend",
     "items": [
-      { "title": "Vendor-neutral", "body": "We don't sell fertilizer and we don't take commissions on it." },
-      { "title": "Software only", "body": "No sensors or hardware to buy. We work from your field information and lab results." },
-      { "title": "Confidence on every number", "body": "Each recommendation is marked high, medium or low confidence, with the reason." },
-      { "title": "No soil test, nitrogen only", "body": "Without a lab test we only advise on nitrogen, and recommend a test for phosphorus and potassium." },
-      { "title": "Every edit is versioned", "body": "Plans are never overwritten. Changes are saved as new versions with who changed what, and why." }
+      {
+        "title": "Vendor-neutral",
+        "body": "We don't sell fertilizer and we don't take commissions on it."
+      },
+      {
+        "title": "Software only",
+        "body": "No sensors or hardware to buy. We work from your field information and lab results."
+      },
+      {
+        "title": "Confidence on every number",
+        "body": "Each recommendation is marked high, medium or low confidence, with the reason."
+      },
+      {
+        "title": "No soil test, nitrogen only",
+        "body": "Without a lab test we only advise on nitrogen, and recommend a test for phosphorus and potassium."
+      },
+      {
+        "title": "Every edit is versioned",
+        "body": "Plans are never overwritten. Changes are saved as new versions with who changed what, and why."
+      }
     ]
   },
   "pilot": {
@@ -125,7 +167,18 @@
     "success": "Thank you. We've received your request and will be in touch.",
     "notConnected": "Pilot requests aren't connected yet. Please check back soon.",
     "error": "Something went wrong and your request was not saved. Please try again in a moment.",
-    "invalid": "Please fill in the required fields and accept the consent statement."
+    "invalid": "Please fill in the required fields and accept the consent statement.",
+    "steps": [
+      "You",
+      "Your farm",
+      "Confirm"
+    ],
+    "next": "Next",
+    "back": "Back",
+    "stepOf": "Step {current} of {total}",
+    "successTitle": "You're on the list.",
+    "successBody": "Thank you. We've received your request and will be in touch.",
+    "imageAlt": "A soil core, a paper sample bag and a field notebook on a wooden table at the edge of a wheat field"
   },
   "faq": {
     "title": "Questions",
@@ -189,5 +242,107 @@
         "p": "You can ask to see, correct or delete your data, and withdraw consent at any time."
       }
     ]
+  },
+  "check": {
+    "eyebrow": "Two-minute field check",
+    "title": "What could your plan cover?",
+    "intro": "Answer four quick questions. Each answer fills a leaf. At the end you'll see what kind of plan we could build for this field — before you share anything.",
+    "progress": "Leaves filled",
+    "back": "Back",
+    "restart": "Start again",
+    "questions": [
+      {
+        "id": "soilTest",
+        "q": "Do you have a lab soil test for this field?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Yes"
+          },
+          {
+            "v": "no",
+            "label": "No"
+          },
+          {
+            "v": "unsure",
+            "label": "Not sure"
+          }
+        ]
+      },
+      {
+        "id": "method",
+        "q": "Does the report show the extraction method and sampling depth?",
+        "hint": "For example Olsen, Bray-1 or Mehlich-3, and the depth in cm or inches.",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Yes, both"
+          },
+          {
+            "v": "no",
+            "label": "No / not sure"
+          },
+          {
+            "v": "skip",
+            "label": "I don't have a report"
+          }
+        ]
+      },
+      {
+        "id": "previousCrop",
+        "q": "Do you know what grew on this field last season?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Yes"
+          },
+          {
+            "v": "no",
+            "label": "No"
+          }
+        ]
+      },
+      {
+        "id": "target",
+        "q": "Do you have a realistic yield target for this season?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Yes"
+          },
+          {
+            "v": "no",
+            "label": "Not yet"
+          }
+        ]
+      }
+    ],
+    "results": {
+      "full": {
+        "title": "A full nitrogen, phosphorus and potassium plan",
+        "body": "With a complete lab report we can plan all three nutrients, each with its own confidence level and reasons.",
+        "tag": "N · P · K"
+      },
+      "confirm": {
+        "title": "A full plan, once we confirm the lab method",
+        "body": "You have a soil test. We'll ask for the report so we can read the extraction method and depth — then plan all three nutrients.",
+        "tag": "N · P · K after check"
+      },
+      "nOnly": {
+        "title": "A nitrogen plan — and a soil test for the rest",
+        "body": "Without a lab test we only advise on nitrogen, at medium confidence at most. For phosphorus and potassium we'll recommend a test first.",
+        "tag": "N only"
+      }
+    },
+    "gapsTitle": "What would strengthen it",
+    "gaps": {
+      "previousCrop": "Last season's crop — it changes how much nitrogen the soil already supplies.",
+      "target": "A yield target — the plan is built around it.",
+      "method": "The lab's extraction method and sampling depth.",
+      "soilTest": "A lab soil test for phosphorus and potassium."
+    },
+    "noGaps": "Nothing missing. This field is ready for a plan.",
+    "cta": "Request a pilot plan for this field",
+    "disclaimer": "This check only shows the scope of a plan. It gives no rates — those come after an agronomist reviews your data."
   }
 }
