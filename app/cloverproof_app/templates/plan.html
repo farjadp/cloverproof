@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import explained, share, num, placeholder, confidence, status, error, invalid, error_summary, breadcrumb %}
+{% from "_macros.html" import explained, share, num, placeholder, placeholder_pack_banner, n_limits_note, confidence, status, error, invalid, error_summary, breadcrumb %}
 {% set n = doc.nitrogen %}
 {% set snap = doc.input_snapshot %}
 {% block title %}Plan v{{ v.number }} · {{ v.field.name }}{% endblock %}
@@ -8,6 +8,8 @@
 {% set has_placeholder = n.rate.uses_placeholder or n.total.uses_placeholder
      or (n.components | selectattr("uses_placeholder") | list)
      or (n.constants_used | selectattr("status", "equalto", "PLACEHOLDER") | list) %}
+{% set placeholder_pack = doc.pack_status == "placeholder" %}
+{{ placeholder_pack_banner(doc) }}
 
 <div class="strip">
   <div>
@@ -67,6 +69,7 @@
   <h2 id="n-h">Nitrogen</h2>
   <div class="headline">{{ explained(n.rate, "large") }}</div>
   {{ explained(n.total) }}
+  {{ n_limits_note(n_limits, n_outside_limits, n.rate.value) }}
   {% if n.bound_applied %}<div class="notice info"><p>Rate limited to the pack {{ n.bound_applied }}.</p></div>{% endif %}
 
   <h3>How {% if v.number > 1 %}the engine{% else %}it was{% endif %} calculated</h3>
@@ -97,16 +100,16 @@
 
 <section aria-labelledby="pk-h">
   <h2 id="pk-h">Phosphorus and potassium</h2>
-  {% if snap.soil_test is none %}
+  {% if doc.phosphorus_potassium.code == "PK_SOIL_TEST_RECOMMENDED" %}
   <div class="notice info">
     <p class="notice-title">Get a soil test for P and K</p>
-    <p>This plan covers nitrogen only. Send a sample to a lab to get phosphorus and potassium advice.</p>
+    <p>This plan covers nitrogen only. Send a sample to a lab{% if snap.soil_test is not none %} (a lab test with P or K values){% endif %} to get phosphorus and potassium advice.</p>
   </div>
   {% endif %}
   <p class="measure">{{ doc.phosphorus_potassium.text }}</p>
   {% if v.soil %}
   <p class="muted">Soil test: {{ v.soil.sample_date }}, {{ v.soil.depth_top_cm | float }}–{{ v.soil.depth_bottom_cm | float }} cm, {{ v.soil.source }}{% if v.soil.lab %} ({{ v.soil.lab }}){% endif %}.
-  {% for sv in snap.soil_test["values"] %}{{ planning.FORM_LABELS[sv.form] }} {{ sv.value }} {{ sv.unit }} ({{ planning.METHOD_LABELS[sv.extraction_method] }}{% if sv.extraction_method_detail %}: {{ sv.extraction_method_detail }}{% endif %}){% if not loop.last %}; {% endif %}{% endfor %}</p>
+  {% for sv in snap.soil_test["values"] %}{{ planning.FORM_LABELS[sv.form] }} {{ "%g" | format(sv.value) }} {{ sv.unit }} ({{ planning.METHOD_LABELS[sv.extraction_method] }}{% if sv.extraction_method_detail %}: {{ sv.extraction_method_detail }}{% endif %}){% if not loop.last %}; {% endif %}{% endfor %}</p>
   {% endif %}
 </section>
 
@@ -147,7 +150,8 @@
     <input type="hidden" name="recommendation_id" value="{{ v.latest.id }}">
     <div class="field" role="radiogroup" aria-labelledby="decision-label" id="decision">
       <p class="label" id="decision-label">Decision</p>
-      <label class="choice"><input type="radio" name="decision" value="approve"{% if values.decision != "reject" %} checked{% endif %}> Approve as shown</label>
+      <label class="choice"><input type="radio" name="decision" value="approve"{% if values.decision != "reject" %} checked{% endif %}> {% if placeholder_pack %}Approve for testing only{% else %}Approve as shown{% endif %}</label>
+      {% if placeholder_pack %}<p class="notice error inline-warning" role="note"><strong>Placeholder pack: these numbers are not agronomic advice. Do not send to a farmer.</strong></p>{% endif %}
       <p class="choice"><a href="/plans/{{ v.plan.id }}/edit">Edit numbers</a> <span class="hint">(saves v{{ v.number + 1 }}, then come back here to approve)</span></p>
       <label class="choice"><input type="radio" name="decision" value="reject"{% if values.decision == "reject" %} checked{% endif %}> Reject</label>
       {{ error(errors, "decision") }}
@@ -157,7 +161,11 @@
       <textarea id="reason" name="reason" rows="3" maxlength="4000"{{ invalid(errors, "reason") }}>{{ values.reason }}</textarea>
       {{ error(errors, "reason") }}
     </div>
+    {% if placeholder_pack %}
+    <p class="confirm">This plan uses a placeholder pack, so approval is for testing only. It records your review and minutes; the numbers must not reach a farmer.</p>
+    {% else %}
     <p class="confirm">Approving releases these numbers for the proof document. You are the reviewer of record.</p>
+    {% endif %}
     <div class="actions">
       <button class="button" type="submit" data-loading="Saving review…">Save review</button>
       <a class="button secondary" href="/plans/{{ v.plan.id }}/edit">Edit numbers</a>

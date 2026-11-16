@@ -30,6 +30,15 @@ class SoilTestRow:
 
 
 @dataclass(frozen=True)
+class SoilValueRow:
+    form: str
+    value: Decimal
+    unit: str
+    extraction_method: str
+    extraction_method_detail: str | None
+
+
+@dataclass(frozen=True)
 class PlanRow:
     id: UUID
     field_id: UUID
@@ -95,6 +104,17 @@ def get_soil_test(conn: psycopg.Connection, org_id: UUID, soil_test_id: UUID) ->
             " from soil_test where organisation_id = %s and id = %s",
             (org_id, soil_test_id),
         ).fetchone()
+
+
+def soil_test_values(conn: psycopg.Connection, org_id: UUID,
+                     soil_test_id: UUID) -> list[SoilValueRow]:  # fmt: skip
+    with conn.cursor(row_factory=class_row(SoilValueRow)) as cur:
+        return cur.execute(
+            "select form::text, value, unit::text, extraction_method::text,"
+            " extraction_method_detail from soil_test_value"
+            " where organisation_id = %s and soil_test_id = %s order by nutrient, form",
+            (org_id, soil_test_id),
+        ).fetchall()
 
 
 def create_soil_test(conn: psycopg.Connection, org_id: UUID, *, field_id: UUID, soil: SoilTest,

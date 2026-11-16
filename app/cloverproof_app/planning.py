@@ -63,6 +63,11 @@ def _number(raw: str | None) -> float | None:
     return value
 
 
+def parse_number(raw: str | None) -> float | None:
+    """Public form of `_number` for route code (same rules)."""
+    return _number(raw)
+
+
 def _date(raw: str | None) -> date | None:
     text = (raw or "").strip()
     return date.fromisoformat(text) if text else None

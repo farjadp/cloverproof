@@ -293,3 +293,91 @@ def test_review_without_timer_is_refused(db: psycopg.Connection, org_a: Org) -> 
     data = {"csrf_token": csrf, "recommendation_id": str(org_a.engine_rec), "decision": "approve"}
     r = client.post(f"/plans/{org_a.crop_plan}/review", data=data)  # never opened: no timer
     assert r.status_code == 400 and "timer is missing" in r.text
+
+
+PLACEHOLDER_BANNER = "Placeholder pack: these numbers are not agronomic advice."
+
+
+def edit_values(client: TestClient, plan_url: str) -> tuple[str, list[str]]:
+    page = client.get(plan_url + "/edit").text
+    rate = re.search(r'name="n_rate"[^>]*value="([^"]*)"', page).group(1)  # type: ignore[union-attr]
+    splits = re.findall(r'name="split_rate" type="text" inputmode="decimal" value="([^"]*)"', page)
+    return rate, splits
+
+
+def test_placeholder_pack_banner_everywhere(db: psycopg.Connection, org_a: Org) -> None:
+    client, csrf = signed_in(db, org_a.agronomist)
+    plan_url = create_plan(client, csrf, new_field(client, csrf))
+    page = client.get(plan_url).text
+    assert page.count(PLACEHOLDER_BANNER) == 2  # top of the page and next to Approve
+    assert "Do not send to a farmer." in page
+    assert "approval is for testing only" in page
+    assert "Approving releases these numbers" not in page
+    assert PLACEHOLDER_BANNER in client.get(plan_url + "/edit").text
+    # Approval is not blocked on a placeholder pack.
+    rec = latest_rec(client, plan_url)
+    r = client.post(
+        plan_url + "/review",
+        data={"csrf_token": csrf, "recommendation_id": rec, "decision": "approve"},
+    )
+    assert r.status_code == 303
+    assert PLACEHOLDER_BANNER in client.get(plan_url).text
+
+
+def test_estimate_soil_test_still_asks_for_pk_test(db: psycopg.Connection, org_a: Org) -> None:
+    client, csrf = signed_in(db, org_a.agronomist)
+    plan_url = create_plan(
+        client, csrf, new_field(client, csrf), has_soil="yes", sample_date="2026-10-01",
+        depth_top="0", depth_bottom="15", source="estimate",
+        v_form=["P"], v_value=["12"], v_unit=["mg/kg"], v_method=["olsen"], v_detail=[""],
+    )  # fmt: skip
+    assert "Get a soil test for P and K" in client.get(plan_url).text
+
+
+def test_rate_only_edit_rescales_splits(db: psycopg.Connection, org_a: Org) -> None:
+    client, csrf = signed_in(db, org_a.agronomist)
+    plan_url = create_plan(client, csrf, new_field(client, csrf))
+    rate, splits = edit_values(client, plan_url)
+    r = client.post(
+        plan_url + "/edit",
+        data={"csrf_token": csrf, "recommendation_id": latest_rec(client, plan_url),
+              "n_rate": f"{float(rate) + 10:g}", "split_rate": splits, "reason": "Wet spring"},
+    )  # fmt: skip
+    assert r.status_code == 303, r.text
+    page = client.get(plan_url).text
+    assert "Set by agronomist: Wet spring" in page
+    assert "Rescaled from the agronomist&#39;s N rate using the pack split share" in page
+    assert "outside the pack limits" not in page
+
+
+def test_rate_outside_pack_limits_is_flagged(db: psycopg.Connection, org_a: Org) -> None:
+    client, csrf = signed_in(db, org_a.agronomist)
+    plan_url = create_plan(client, csrf, new_field(client, csrf))
+    edit_page = client.get(plan_url + "/edit").text
+    assert "Pack limits:" in edit_page
+    _, splits = edit_values(client, plan_url)
+    high = 10_000  # far above any pack maximum
+    r = client.post(
+        plan_url + "/edit",
+        data={"csrf_token": csrf, "recommendation_id": latest_rec(client, plan_url),
+              "n_rate": str(high), "split_rate": splits, "reason": "Test only"},
+    )  # fmt: skip
+    assert r.status_code == 303, r.text
+    page = client.get(plan_url).text
+    assert "outside the pack limits" in page
+    # The edit page of the new version shows the notice too.
+    assert "outside the pack limits" in client.get(plan_url + "/edit").text
+
+
+def test_field_summary_shows_form_and_method(db: psycopg.Connection, org_a: Org) -> None:
+    client, csrf = signed_in(db, org_a.agronomist)
+    field_url = new_field(client, csrf)
+    create_plan(
+        client, csrf, field_url, has_soil="yes", sample_date="2026-10-01", depth_top="0",
+        depth_bottom="15", source="lab", lab="Test Lab",
+        v_form=["P2O5", "K"], v_value=["30", "150"], v_unit=["mg/kg", "ppm"],
+        v_method=["bray-1", "other"], v_detail=["", "Ammonium acetate"],
+    )  # fmt: skip
+    page = client.get(field_url).text
+    assert "P₂O₅ 30 mg/kg (Bray-1)" in page
+    assert "K 150 ppm (Other: Ammonium acetate)" in page

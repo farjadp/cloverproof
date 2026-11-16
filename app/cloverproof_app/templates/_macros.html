@@ -30,6 +30,27 @@
 </div>
 {%- endmacro %}
 
+{# Non-dismissable: shown whenever the engine ran with a placeholder pack. #}
+{% macro placeholder_pack_banner(doc) -%}
+{% if doc.pack_status == "placeholder" %}
+<div class="notice error pack-banner" role="note">
+  <p class="notice-title">Placeholder pack: these numbers are not agronomic advice. Do not send to a farmer.</p>
+  <p>Pack {{ doc.pack_id }} {{ doc.pack_version }} is not validated. Use this plan only to test the flow.</p>
+</div>
+{% endif %}
+{%- endmacro %}
+
+{# Pack N-rate limits, read from the loaded pack. #}
+{% macro n_limits_note(limits, outside, rate=None) -%}
+{% set low, high = limits %}
+{% if outside %}
+<div class="notice warn" role="status">
+  <p class="notice-title">N rate{% if rate is not none %} {{ num(rate) }} kg N/ha{% endif %} is outside the pack limits ({{ num(low.value) }}–{{ num(high.value) }} kg N/ha).</p>
+  <p>Check the number and say why in the reason.</p>
+</div>
+{% endif %}
+{%- endmacro %}
+
 {% macro placeholder() -%}
 <span class="badge placeholder" title="Uses an unvalidated constant">Placeholder</span>
 {%- endmacro %}

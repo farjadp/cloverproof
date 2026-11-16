@@ -193,11 +193,14 @@ def load_field(conn: Conn, context: OrgContext, field_id: UUID) -> farms.FieldRo
 @router.get("/fields/{field_id}")
 def field_detail(request: Request, conn: Conn, context: InternalOrg, field_id: UUID) -> Response:
     row = load_field(conn, context, field_id)
+    soil = plans.latest_soil_test(conn, context.org.id, field_id)
     ctx = {
         "field": row,
-        "soil": plans.latest_soil_test(conn, context.org.id, field_id),
+        "soil": soil,
+        "soil_values": plans.soil_test_values(conn, context.org.id, soil.id) if soil else [],
         "plans": plans.plans_for_field(conn, context.org.id, field_id),
         "status_labels": STATUS_LABELS,
+        "planning": planning,
     }
     return render(request, "field.html", ctx)
 
@@ -374,6 +377,7 @@ def plan_page(request: Request, conn: Conn, context: OrgContext, settings: Setti
     ctx = {
         "v": view,
         "doc": view.doc,
+        **limits_context(request, view.doc, view.doc["nitrogen"]["rate"]["value"]),
         "comparison": comparison(view),
         "minutes": minutes,
         "can_review": is_agronomist(context),
@@ -406,10 +410,24 @@ def plan_timer(request: Request, conn: Conn, context: InternalOrg, settings: Set
     return render(request, "_timer.html", {"v": view, "minutes": minutes})
 
 
+def limits_context(request: Request, doc: dict[str, Any], rate: Any) -> dict[str, Any]:
+    """Pack N-rate limits (from the loaded pack) and whether `rate` is outside them."""
+    low, high = planning.n_rate_limits(pack_of(request), doc["crop"])
+    try:
+        value = planning.parse_number(str(rate))
+    except ValueError:
+        value = None
+    outside = value is not None and planning.outside_limits(value, (low, high))
+    return {"n_limits": (low, high), "n_outside_limits": outside}
+
+
 def edit_page(request: Request, view: PlanView, errors: dict[str, str],
               values: dict[str, Any], status: int = 200) -> Response:  # fmt: skip
-    return render(request, "plan_edit.html", {"v": view, "doc": view.doc, "errors": errors,
-                                              "values": values}, status)  # fmt: skip
+    # The notice follows the number on screen: the current version, or what was just typed.
+    rate = values.get("n_rate") if errors else view.doc["nitrogen"]["rate"]["value"]
+    ctx = {"v": view, "doc": view.doc, "errors": errors, "values": values,
+           **limits_context(request, view.doc, rate)}  # fmt: skip
+    return render(request, "plan_edit.html", ctx, status)
 
 
 @router.get("/plans/{plan_id}/edit")
