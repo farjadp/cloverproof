@@ -1,6 +1,9 @@
 """Request dependencies: DB connection, session, current user, organisation, roles, CSRF.
 
-- `current_user`: 401 when not signed in (browser GETs are redirected to /login).
+- `current_user`: 401 when not signed in (browser GETs are redirected to /login). While
+  the account has `password_change_required` (admin-set temporary password), every path
+  except /account/password and /logout raises `PasswordChangeRequired` (handled by
+  `account.register`: redirect to the change-password form).
 - `current_org`: the user's only organisation, or the one picked on /orgs/choose (kept in
   a cookie signed with SESSION_SECRET and bound to the session; membership is re-checked
   on every request).
@@ -22,7 +25,7 @@ from fastapi import Depends, HTTPException, Request
 
 from cloverproof_app import security
 from cloverproof_app.config import Settings
-from cloverproof_app.repo import sessions, users
+from cloverproof_app.repo import admin_users, sessions, users
 from cloverproof_app.repo.users import Organisation
 
 SESSION_COOKIE = "cp_session"
@@ -32,6 +35,8 @@ CSRF_HEADER = "X-CSRF-Token"
 CSRF_FIELD = "csrf_token"
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 TOUCH_EVERY = timedelta(seconds=60)
+PASSWORD_CHANGE_PATH = "/account/password"
+PASSWORD_CHANGE_EXEMPT = frozenset({PASSWORD_CHANGE_PATH, "/logout"})
 
 # Roles that may use the internal tool at all. `farmer` is for the Phase 4 portal.
 INTERNAL_ROLES = ("owner", "agronomist", "staff")
@@ -39,6 +44,10 @@ INTERNAL_ROLES = ("owner", "agronomist", "staff")
 
 class NotAuthenticated(Exception):
     """No live session. Handled in main.py: redirect browsers, 401 for the rest."""
+
+
+class PasswordChangeRequired(Exception):
+    """Signed in with a temporary password. Handled by account.register: go to the form."""
 
 
 class OrgSelectionRequired(Exception):
@@ -99,9 +108,15 @@ def optional_user(request: Request, conn: Conn, settings: SettingsDep) -> Curren
     return user
 
 
-def current_user(user: Annotated[CurrentUser | None, Depends(optional_user)]) -> CurrentUser:
+def current_user(
+    request: Request, user: Annotated[CurrentUser | None, Depends(optional_user)], conn: Conn
+) -> CurrentUser:
     if user is None:
         raise NotAuthenticated()
+    if request.url.path not in PASSWORD_CHANGE_EXEMPT and admin_users.password_change_required(
+        conn, user.id
+    ):
+        raise PasswordChangeRequired()
     return user
 
 

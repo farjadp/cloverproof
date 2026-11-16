@@ -6,7 +6,8 @@
 The password is read with getpass (asked twice), never from argv, and never echoed or
 logged. Without a terminal it reads one line from stdin (for scripted setup).
 Running it again for an existing email adds the membership; `--reset-password` also
-replaces the password (the only password reset for now).
+replaces the password with a temporary one: all the user's sessions are revoked and they
+must choose a new password at next sign-in (owners can also reset in /admin/users).
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ from uuid import UUID
 import psycopg
 
 from cloverproof_app import security
-from cloverproof_app.repo import users
+from cloverproof_app.repo import admin_users, users
 
 STAFF_ROLES = ("owner", "agronomist", "staff")
 
@@ -87,10 +88,11 @@ def user_create(
         else:
             user_id, created_user = existing.id, False
             if existing.disabled_at is not None:
-                raise CliError("that account is disabled; re-enable it in the database first")
+                raise CliError("that account is disabled; re-enable it in /admin/users first")
             if reset_password:
+                # Recovery: a temporary password; the user must change it at next sign-in.
                 password = security.hash_password(read_password())
-                users.set_password_hash(conn, user_id, password)
+                admin_users.set_temporary_password(conn, user_id, password)
                 password_set = True
         users.add_membership(conn, org_id=org_id, user_id=user_id, role=role)
     return UserCreateResult(user_id, org_id, created_user, created_org, password_set)
@@ -120,7 +122,9 @@ def build_parser() -> argparse.ArgumentParser:
     create.add_argument("--name", help="display name (default: part of the email before @)")
     create.add_argument("--create-org", action="store_true", help="create the org if missing")
     create.add_argument(
-        "--reset-password", action="store_true", help="existing user: set a new password"
+        "--reset-password",
+        action="store_true",
+        help="existing user: set a temporary password (must be changed at next sign-in)",
     )
     return parser
 
