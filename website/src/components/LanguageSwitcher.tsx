@@ -29,11 +29,13 @@ export function LanguageSwitcher({ lang, label, comingSoon }: { lang: Locale; la
   return (
     <details ref={ref} className="group relative">
       <summary
-        aria-label={`${label}: ${localeMeta[lang].label}`}
         className="flex cursor-pointer list-none items-center gap-1.5 rounded-full px-2 py-1.5 text-sm font-semibold text-ink-soft transition-colors hover:bg-sand hover:text-ink [&::-webkit-details-marker]:hidden"
       >
         <Flag locale={lang} className="h-4 w-auto" />
         <span className="hidden uppercase sm:inline">{lang}</span>
+        <span className="sr-only">
+          {label}: {localeMeta[lang].label}
+        </span>
         <span aria-hidden="true" className="text-xs transition-transform group-open:rotate-180">▾</span>
       </summary>
       <ul className="absolute end-0 top-full z-40 mt-2 grid w-44 gap-0.5 rounded-xl border border-rule bg-ivory p-1.5 shadow-[0_18px_40px_-20px_rgba(39,49,37,0.45)]">

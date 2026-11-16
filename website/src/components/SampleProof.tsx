@@ -60,7 +60,7 @@ export function SampleProof({ t }: { t: Dictionary }) {
             <Meta label={p.soilTest} value={p.soilTestValue} />
           </dl>
 
-          <div className="overflow-x-auto px-6">
+          <div className="overflow-x-auto px-6" tabIndex={0} role="region" aria-label={p.docTitle}>
             <table className="w-full min-w-[30rem] text-start text-sm">
               <thead>
                 <tr className="border-y border-rule text-xs uppercase tracking-[0.12em] text-ink-soft">
@@ -98,14 +98,14 @@ export function SampleProof({ t }: { t: Dictionary }) {
             </ul>
           </div>
 
-          <footer className="grid grid-cols-2 gap-4 border-t border-rule px-6 py-4 text-sm sm:grid-cols-3">
+          <dl className="grid grid-cols-2 gap-4 border-t border-rule px-6 py-4 text-sm sm:grid-cols-3">
             <Meta label={p.reviewer} value={p.reviewerValue} />
             <Meta label={p.versions} value={p.versionsValue} />
             <div>
               <dt className="text-xs uppercase tracking-[0.12em] text-ink-soft">{p.fingerprint}</dt>
               <dd className="mt-1 font-mono text-olive"><Typed text={p.fingerprintValue} start={inView} /></dd>
             </div>
-          </footer>
+          </dl>
 
           {inView && (
             <div aria-hidden="true" className="pointer-events-none absolute bottom-5 end-5 animate-stamp rounded-md border-[3px] border-olive bg-white/70 px-3 py-0.5 font-serif text-base font-bold uppercase tracking-widest text-olive opacity-90 [animation-delay:1.3s] sm:bottom-28 sm:end-10 sm:border-4 sm:px-4 sm:py-1 sm:text-2xl">

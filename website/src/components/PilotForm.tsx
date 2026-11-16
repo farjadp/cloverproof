@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { requestPilot, type PilotState } from "@/app/[lang]/actions";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { CloverMark } from "./Logo";
@@ -54,6 +54,12 @@ export function PilotForm({ t, privacyHref, locale }: { t: Labels; privacyHref: 
   const [step, setStep] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
   const total = t.steps.length;
+  // On step change, focus the first field of the new step so keyboard users don't land on <body>.
+  const stepped = useRef(false);
+  useEffect(() => {
+    if (stepped.current) formRef.current?.querySelector<HTMLElement>(`[data-step="${step}"] input, [data-step="${step}"] textarea`)?.focus();
+    stepped.current = true;
+  }, [step]);
 
   // Distinct `key`s on Next/Submit stop React reusing the DOM node: otherwise the click that
   // reveals the last step lands on a node that has just become type="submit" and posts the form.

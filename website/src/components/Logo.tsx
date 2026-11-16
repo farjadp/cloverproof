@@ -13,7 +13,7 @@ export function Logo({ tone = "olive", className = "h-9 w-auto" }: { tone?: "oli
       src={tone === "white" ? horizontalWhite : horizontalOlive}
       alt="CloverProof"
       sizes="160px"
-      priority={tone === "olive"}
+      loading={tone === "olive" ? "eager" : "lazy"}
       className={className}
     />
   );

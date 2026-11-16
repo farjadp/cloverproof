@@ -26,14 +26,16 @@ export function Footer({ t, lang }: { t: Dictionary; lang: Locale }) {
               return (
                 <li key={l}>
                   {m.enabled ? (
-                    <Link href={`/${l}`} lang={l} aria-label={m.label} aria-current={l === lang ? "page" : undefined} className={`${chip} border-sage/60 text-ivory hover:bg-ivory/10`}>
+                    <Link href={`/${l}`} lang={l} aria-current={l === lang ? "page" : undefined} className={`${chip} border-sage/60 text-ivory hover:bg-ivory/10`}>
                       <Flag locale={l} />
                       {l}
+                      <span className="sr-only"> {m.label}</span>
                     </Link>
                   ) : (
-                    <span lang={l} aria-label={`${m.label} (${t.footer.comingSoon})`} title={`${m.label} — ${t.footer.comingSoon}`} className={`${chip} border-ivory/15 text-ivory/50`}>
+                    <span lang={l} title={`${m.label} — ${t.footer.comingSoon}`} className={`${chip} border-ivory/15 text-ivory/70`}>
                       <Flag locale={l} className="h-4 w-auto opacity-60" />
                       {l}
+                      <span className="sr-only"> {m.label} ({t.footer.comingSoon})</span>
                     </span>
                   )}
                 </li>

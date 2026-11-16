@@ -33,7 +33,7 @@ function Step({ step, i, total }: { step: { title: string; body: string }; i: nu
           {icons[i]}
         </svg>
       </span>
-      <div className={`transition-all duration-700 ${inView ? "translate-y-0 opacity-100" : "translate-y-3 opacity-40"}`}>
+      <div className={`transition-all duration-700 ${inView ? "translate-y-0" : "translate-y-3"}`}>
         <span className="text-sm font-semibold uppercase tracking-[0.14em] text-sage">{String(i + 1).padStart(2, "0")}</span>
         <h3 className="mt-1 font-serif text-2xl">{step.title}</h3>
         <p className="mt-2 max-w-md text-ivory/80">{step.body}</p>
