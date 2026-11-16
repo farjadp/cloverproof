@@ -6,7 +6,7 @@ Audience: `product-manager` (CPO), who forwards 10 lines to Farjad Iranmehr at t
 
 - **Produced:** Friday of week 2 of each sprint, before the sprint review. Data cut-off: Thursday 23:59 America/Toronto of that week (so Friday's own reviews belong to the next report; say so in the header). Delivered to the CPO by the end of Friday morning; a late report is sent late, never completed with guessed numbers.
 - **Where it lives:** `docs/data/reports/sprint-<n>.md`, one file per sprint, copied once into the CPO session. Not edited after sending; a correction is a new dated file section.
-- **Starts:** the first report is S6 (Feb 1, 2027, first real plans). Before that, S3-S5 reports show only sections A (pilot funnel) and F (freshness), and the first real-case baseline from S3 as a count list. Engineering test plans are excluded via `excluded_orgs`.
+- **Starts:** the first report is S6 (Feb 1, 2027, first real plans). Before that, S3-S5 reports show only sections A (pilot funnel), A2 (website funnel, from the day `site_event` is live; website recruiting runs before the pilot) and F (freshness), and the first real-case baseline from S3 as a count list. Engineering test plans are excluded via `excluded_orgs`.
 - **Inputs:** queries in `metrics.md` run on a read replica or dev copy; the stage counts of M6 are stored in the report file each time (history is not reproducible otherwise, see M6).
 
 ## Rules that apply to every number
@@ -22,6 +22,7 @@ Audience: `product-manager` (CPO), who forwards 10 lines to Farjad Iranmehr at t
 5. **No personal or farm-identifying data**: no names, emails, farm or field names, free-text reasons. Plan counts only.
 6. **No agronomic targets.** The report states what happened, not whether a kg N/ha value is good.
 7. **Human vs AI reviews (D4, 2026-11-16).** Sections B-F count **human (`agronomist_approved`) reviews only**. AI sign-offs by `cp-agronomist` (`ai_reviewed`) appear only in section H and are never added to a human count, rate, gate or baseline. If reviewer kind is not yet recorded in the database (G9), sections C-E print "reviewer kind not recorded" instead of numbers. Until a human agronomist is named, expect "0 human-approved plans" — that is the correct output.
+8. **Website funnel (M7).** Denominator is views (`view_id`), not people; reloads are new views; bot filtering is basic. Any split cell below 10 views or 10 requests is suppressed. A2 is views-only; its link to requests is the aggregate pair "events vs rows", never a per-person conversion, and the last stage (first human-approved plan) stays "not a conversion (G2)" until `pilot_request` is linked to a farmer.
 
 ## Sections (one screen: at most 45 lines, no charts; a table plus one line of reading each)
 
@@ -29,6 +30,7 @@ Audience: `product-manager` (CPO), who forwards 10 lines to Farjad Iranmehr at t
 |---|---|---|
 | Header | Sprint n, dates, cut-off, run date, who produced | - |
 | A. Pilot funnel | Requests by status this sprint and cumulative; accepted requests; farms with an approved plan. Printed side by side, labelled "not a conversion" while G2 is open | M6 |
+| A2. Website funnel (views) | Views, check started, check result, CTA clicked, form step 1/2/3, requests sent (`k of n` per stage); check completion rate, form completion rate, form error count by reason; splits by locale, source/medium, device, result type only for cells with n >= 10 views, else "suppressed (n<10)". Unit is views, not people. Beside it: `form_submit_success` events vs new `pilot_request` rows. Before `site_event` is migrated (G10): "no data (G10)" | M7 |
 | B. Plans | Plans created, plans not yet reviewed, plans approved this sprint, plans open (reviewed, not approved) | M1, M3 counts |
 | C. Agronomist time | Median and p90 minutes per approved plan; minutes of open plans so far (count and sum only) | M1 |
 | D. Review outcomes | First-pass approval, first-pass edit, first-pass reject (plan-level cohort); plans with a reject; approved after edit; review-level shares as secondary line | M3, M2 |
@@ -69,6 +71,13 @@ A. Pilot funnel (M6)               this sprint (n)   last sprint (n)   flag
  Requests new/contacted/acc/decl   2 / 1 / 1 / 0     3 / 2 / 1 / 1     TSR  (counts only)
  Accepted requests, cumulative     4                 3                 -
  Farms with approved plan, cum.    3                 1                 not a conversion of accepted (G2)
+
+A2. Website funnel (M7, views not people)   this sprint (n)       last sprint (n)   flag
+ Views / check started / check result  120 / 41 / 30         90 / 28 / 19     counts
+ CTA clicked / form step 1 / requests  18 / 12 / 5           9 / 6 / 3        TSR  no form rate (n<10 per stage)
+ Check completion (result of started)  30 of 41              19 of 28         n=41, n=28: no comparison across segments
+ Locale / source / device splits       suppressed (n<10)      suppressed       -
+ form_submit_success 5 = pilot_request new rows 5
 
 B. Plans
  Created 6 | not yet reviewed 1 | approved this sprint 4 | open (reviewed, not approved) 2

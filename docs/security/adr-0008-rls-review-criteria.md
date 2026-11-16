@@ -2,6 +2,8 @@
 
 Owner: `security-engineer` for `ciso`. Date: 2026-11-16. Applies to: `cp-database`'s draft ADR 0008 and the S3 RLS test suite.
 Source decisions: `docs/plans/backend-plan-reconciliation.md` (branch `cpo-backend-plan`) **D1** (Postgres RLS on Railway, keyed on per-transaction `app.user_id` / `app.org_id` / `app.platform_role` set from the server-side session) and **D4** (the AI agronomist can never approve a real farm's plan).
+
+**Authoritative since PR #22:** `CLAUDE.md` rules 8 (human agronomist only, enforced in service AND database; `superadmin` cannot approve unless also a human agronomist; any farm not flagged synthetic is real), 11 (AI sign-off is `ai_reviewed` only, never the gate, never in the calibration dataset) and 12 (AI agronomist gets no personal or identifiable farm data). Where this checklist and CLAUDE.md differ, CLAUDE.md wins.
 Current state read: `db/migrations/0002`–`0009` (no RLS anywhere; `cp_app` gets table grants; `cp_migrator` owns objects; `recommendation_diff` already `security_invoker = true`; `review_check_reviewer` is the approve gate), `app/cloverproof_app/db/pool.py` on `origin/webapp-step5-app` (psycopg `ConnectionPool`, non-autocommit, no `reset` callback, no context setting yet).
 
 Postgres facts this checklist relies on (https://www.postgresql.org/docs/17/ddl-rowsecurity.html):
@@ -77,6 +79,7 @@ Postgres facts this checklist relies on (https://www.postgresql.org/docs/17/ddl-
 | 5.1 | Cross-org access (support, ops) does not run through `cp_app`. Preferred: a separate NOLOGIN role `cp_admin` (login used only by an admin CLI or a separate admin process, never by the public web app) with **no direct table privileges**; it reads/writes only through `SECURITY DEFINER` `admin_*` functions. | ADR picks a design; if it keeps superadmin inside `cp_app`, it records that SQL injection in the app = full cross-tenant access, and Farjad Iranmehr accepts it in writing. | T-SA-2: as `cp_admin`, `select * from farm` → `42501`. |
 | 5.2 | Every superadmin access writes an `audit_event` row (actor, action, target org/table/id, reason text non-empty, timestamp) **in the same transaction** as the access; reads included (via the `admin_*` functions, since triggers do not fire on SELECT). `audit_event` is insert-only (`forbid_change` triggers, no UPDATE/DELETE/TRUNCATE grant to anyone but the owner). | Implemented. | T-SA-3: `admin_read_farm(id, 'support ticket 12')` returns the row and `audit_event` count +1 with the reason; empty reason → error, no data returned. T-SA-4: `update/delete/truncate audit_event` as `cp_app`/`cp_admin` → `42501`. |
 | 5.3 | MFA required for superadmin accounts (R3) and superadmin role grants are themselves audited. | Written. | App test (S5). |
+| 5.4 | `superadmin` / `platform_role` gives **no** approval right (rule 8). Approval still requires `account_kind = 'human'` and an active `agronomist` membership in the recommendation's organisation; no `admin_*` function can insert an `approve` review or a `proof_document`. | DB trigger unchanged by platform role; no definer function writes `review`/`proof_document`. | T-SA-5: superadmin without agronomist membership inserts `approve` (directly and via every `admin_*` function) → `42501`. T-SA-6: superadmin who is also a human agronomist of that org → allowed and audited. |
 
 ## 6. SECURITY DEFINER functions, views, triggers
 
@@ -94,8 +97,10 @@ Postgres facts this checklist relies on (https://www.postgresql.org/docs/17/ddl-
 | 7.1 | `app_user` gets `account_kind` (`human` / `ai_agent` / `service`), `not null`, **no default** (every insert states it), and immutable after insert (trigger raising on change). `cp_app` gets column-level `UPDATE` on `app_user` that excludes `account_kind`, `password_hash` is handled per T-O2. | Forward migration. | T-AI-1: `update app_user set account_kind = 'human' where account_kind = 'ai_agent'` as `cp_app` → `42501`; as `cp_migrator` → trigger error. |
 | 7.2 | `review_check_reviewer` rejects `decision = 'approve'` unless the reviewer is `account_kind = 'human'` **and** an active `agronomist` member of the org (existing check kept). AI output is recorded as a distinct decision/label `ai_reviewed`, never `approve`. | Trigger + enum change. | T-AI-2: `ai_agent` user with an `agronomist` membership inserts `approve` → `42501`. T-AI-3: `ai_reviewed` insert succeeds and does **not** satisfy `proof_document_check_approved` (proof insert → `23514`). |
 | 7.3 | An `ai_agent` cannot hold the `agronomist` membership role at all (trigger on `membership` insert/update), so it can also not satisfy any app-level role check. | Trigger. | T-AI-4: insert `membership(role = 'agronomist')` for an `ai_agent` user → error. |
-| 7.4 | Recommendation of the CISO: no AI approval on any organisation, demo included — simpler and testable. If product wants AI approval on demo orgs, `organisation.kind` (`real` / `demo`) must be immutable, default-less, and the approve exception limited to `demo`; real is the default assumption in every check. | ADR records the choice. | If the exception exists: T-AI-5: AI approve on a `real` org → `42501`; on `demo` → allowed; changing `kind` → error. |
+| 7.4 | No AI approval anywhere (rule 11): no demo/synthetic exception. Separately, rule 8 needs a real/synthetic flag on `farm` (e.g. `is_synthetic boolean not null default false`, immutable after insert, settable only by the migrator/seed) so "real" is the default; it may gate test fixtures, never AI approval. | ADR records it. | T-AI-5: AI `approve` on a synthetic farm → `42501`. T-AI-5b: `update farm set is_synthetic = true` as `cp_app` → error. |
 | 7.5 | Audit query in the ops runbook: approvals by non-human reviewers = 0. | Query documented and run weekly. | T-AI-6 (catalog-style): `select count(*) from review r join app_user u on u.id = r.reviewer_id where r.decision = 'approve' and u.account_kind <> 'human'` = 0 on seeded data. |
+| 7.6 | Rule 11: `ai_reviewed` rows are excluded from `recommendation_diff` / the calibration dataset and from the 90 % agreement metric. | View/query filter on reviewer `account_kind = 'human'` and decision. | T-AI-7: an `ai_reviewed` row never appears in `recommendation_diff`. |
+| 7.7 | Rule 12 (data boundary): accounts with `account_kind <> 'human'` get no read access to personal or identifiable farm data (names, contacts, `field_geometry`, free-text notes) — only synthetic farms or de-identified views. Enforced in RLS/policies, not only in the app. | Restrictive policy on identifying tables for non-human context; de-identified view if AI needs real-case shapes (requires DPA + notice per rule 12). | T-AI-8: with an `ai_agent` user context, `select` from `farmer`, `farm`, `field_geometry` for a real farm → 0 rows / `42501`. |
 
 ## 8. Performance
 
@@ -117,7 +122,7 @@ Postgres facts this checklist relies on (https://www.postgresql.org/docs/17/ddl-
 | Owner is filtered: as `cp_migrator` with no context → 0 rows (FORCE) | 1.4 |
 | No bypass roles: catalog 1.1–1.3, 1.6 | §1 |
 | Superadmin: T-SA-1 … T-SA-4 | §5 |
-| AI approve rejected: T-AI-1 … T-AI-4 (+ T-AI-5 if demo exception) | §7 |
+| AI approve rejected + data boundary: T-AI-1 … T-AI-8, superadmin no-approve T-SA-5/6 | §5, §7 |
 | Authorship forging: T-W-3 | 4.4 |
 | Pre-auth paths: T-ID-1 … T-ID-3 | 4.5 |
 | Definer/view/trigger: T-V-1, T-TR-1 … T-TR-3, catalog 6.2 | §6 |

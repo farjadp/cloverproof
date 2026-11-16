@@ -23,7 +23,7 @@ Every plan must record: the engine output AND the human agronomist's final numbe
 5. Every recommendation stores: input snapshot, engine version, country-pack version, and the version/retrieval date of every data source used (e.g. soil-estimate cache, weather).
 6. Country pack = versioned config + golden tests. Never fork code per country.
 7. Internal canonical units: kg/ha, mg/kg, °C, mm; elemental form tracked explicitly. Always store P/K form (P vs P2O5, K vs K2O) on every nutrient line and the soil-test extraction method (Olsen / Bray-1 / Mehlich-3 / other), sampling depth and date. Convert only at display.
-8. No number goes to a farmer without approval by a **human** user holding the `agronomist` role in that recommendation's organisation (review gate), checked in the service layer AND the database. No other role (including `superadmin`) can approve unless that user is also a human agronomist. Any farm not flagged as synthetic test data is a real farm.
+8. No number goes to a farmer without approval by a **human** user who either holds the `agronomist` role in that recommendation's organisation or is `superadmin` (decision 2026-11-16), checked in the service layer AND the database. AI/service accounts can never approve (rule 11). Approvals are labelled by kind: `agronomist_approved` (human agronomist) or `superadmin_approved` (human superadmin without the agronomist role); only `agronomist_approved` feeds the calibration dataset and the agreement gate. Any farm not flagged as synthetic test data is a real farm.
 9. Never invent agronomic constants. If a value is missing, use a clearly labelled `PLACEHOLDER` and add a `TODO(agronomist)` to validate. A constant taken from a published source or proposed by `cp-agronomist` stays `PLACEHOLDER` (with its citation) until a human agronomist validates it.
 10. No secrets in git. Use `.env` (and `.env.example` with empty values).
 11. **AI agronomist.** `cp-agronomist` is an AI agent. Its sign-off is `ai_reviewed` only — never `agronomist_approved`, never the review gate (rule 8), never counted toward the 90 % agreement gate or the calibration dataset. It may review engine logic and wording, research published methods, draft `external_reference` golden cases entered by hand from official documents (never scraped), and propose cited constants (rule 9). Real-farm plans stay `in_review` until a human agronomist approves them.
@@ -32,7 +32,7 @@ Every plan must record: the engine output AND the human agronomist's final numbe
 ## Stack
 - **Hosting + database:** Railway (ADR 0004). Postgres service from the official `postgis/postgis` image (PostGIS available); server-only DB access. Older docs that say "Supabase" read as: Railway Postgres + PostGIS / app-owned sessions / Railway Bucket.
 - **Auth + files:** app-owned auth in FastAPI (argon2id, server-side sessions, CSRF on every POST, accounts created by CLI, no self sign-up) and a private Railway Bucket for proof PDFs and uploads (ADR 0005). MFA **required** for `agronomist`, `staff`, `superadmin` by S5.
-- **Access control:** org scoping in one data-access layer **plus Postgres RLS** as defence in depth. Per transaction the app sets `SET LOCAL app.user_id`, `app.org_id`, `app.platform_role` from the server-side session; the app connects as a non-bypass role (`cp_app`: no `BYPASSRLS`, not table owner). Deny by default. ADR 0006 (pending).
+- **Access control:** org scoping in one data-access layer **plus Postgres RLS** as defence in depth. Per transaction the app sets `SET LOCAL app.user_id`, `app.org_id`, `app.platform_role` from the server-side session; the app connects as a non-bypass role (`cp_app`: no `BYPASSRLS`, not table owner). Deny by default. ADR 0008 (pending). (ADR 0006 = SoilGrids offline cache; ADR 0007 = DB privileges.)
 - **Migrations:** plain SQL in `db/migrations/`, forward-only, one runner, one `schema_migrations`. Never edit an applied migration.
 - **Engine:** pure Python package (`engine/`), no I/O, no DB calls, no network. Fully unit-tested. Scope: real Ontario winter wheat pack + product matching + splits (S2); P/K with soil test, extraction-method-aware (S3); no-test estimate from an offline SoilGrids cache, N only, max `medium` (S3); GDD-based timing windows (S4). External data reaches the engine as inputs prepared by `data_sources/`. All constants `PLACEHOLDER` until a human agronomist validates them.
 - **Internal tool:** one Python service — FastAPI + Jinja2 + HTMX (`app/`). English only.
@@ -40,8 +40,8 @@ Every plan must record: the engine output AND the human agronomist's final numbe
 - **PDF:** HTML templates → WeasyPrint (`app/pdf/`), SHA-256 hash stored per document; stored write-once in the Bucket.
 - **Weather + timing (from S4):** NASA POWER daily fetch job cached by grid cell in `weather_daily` (retrieval date recorded); GDD timing windows shown with basis and last refresh. NASA POWER's licence is unknown: internal use only, nothing farmer-facing until the lawyer review in S8. Forecast provider: decision + licence in S8 before any farmer-facing forecast.
 - **Observability:** Sentry free tier allowed; any paid tier needs Farjad Iranmehr's go.
-- **Launch market + residency:** Canada — Ontario winter wheat (Prairie wheat backup). Railway has no Canadian region; data residency (Canada vs US region) is OPEN and must be decided before real farmer data.
-- **Farmer & advisor accounts:** from S9 (feature-flagged); farmers see only approved plans. Front-end stack for farmer/advisor pages is NOT decided (Next.js vs FastAPI-served pages + API) — do not create a Next.js app until an ADR decides it.
+- **Launch market + residency:** Canada — Ontario winter wheat (Prairie wheat backup). **Real farmer data must be stored in Canada** (decision 2026-11-16). Railway has no Canadian region, so production hosting for farmer data needs a Canadian-region option decided in an ADR before any real farmer data (owner: `cto` + `devops-engineer`, with `ciso`). Until then only synthetic or de-identified data in hosted environments.
+- **Farmer & advisor accounts:** from S9 (feature-flagged); farmers see only approved plans. Front end: **FastAPI-served pages + the `/api/v1` API** (decision 2026-11-16) — no separate Next.js farmer app. Mobile-friendly; language/unit preferences arrive with S9.
 - **Mobile:** Phases B/C use mobile-friendly web (application log S10). `head-of-mobile` plans the native app from S11 (stack ADR, offline sync, API auth); build starts after the MVP gate (S12), scheduled by the CPO.
 - **Languages:** multi-language applies to the public website (ADR 0003); the internal tool stays English. Farmer-facing language/unit preferences arrive with S9, decided with the farmer-portal ADR.
 
@@ -60,6 +60,15 @@ Every plan must record: the engine output AND the human agronomist's final numbe
 | Native mobile app | Plan S11, build S13+ | `head-of-mobile` |
 
 **Out of scope (no sprint):** hardware, sensors, IoT; Sentinel-2; variable-rate / zone maps; carbon reporting; fertilizer price comparison or commissions.
+
+## Data rules (approved by Farjad Iranmehr, 2026-11-16; source of truth: `docs/data-sources.md`)
+- No live SoilGrids REST calls at runtime; use the cached layer only (ADR 0006).
+- No GPL/EUPL code copied or imported into production without an ADR + lawyer approval (e.g. PCSE/WOFOST, farmOS — concepts only).
+- WoSIS: the per-profile licence filter is mandatory (commercially usable profiles only).
+- LUCAS raw values never leave the backend: no export, no PDF table of raw LUCAS points. EU only.
+- Every estimated soil value stores: source, source version, resolution, depth, retrieval date.
+- External tools (e.g. Ontario AgriSuite) are references only, never scraped; reference cases are entered by hand by a human.
+- Unknown licences are never assumed; anything "unknown" in `docs/data-sources.md` stays out of production.
 
 ## Build order (Farjad Iranmehr, 2026-11-16)
 Website (`website/`, Next.js, 8 locales, en first) → web app portal (internal concierge tool to the S5 gate, then farmer & advisor portal S9–S12) → mobile app (native planning S11, build after S12). One step at a time; each step is planned and approved before code. Plans: `docs/plans/website-v1.md`, `docs/plans/webapp-v1.md`, `docs/plans/backend-plan.md` read through `docs/plans/backend-plan-reconciliation.md` (the reconciliation wins on conflict).

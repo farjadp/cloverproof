@@ -5,7 +5,7 @@ Updated 2026-11-16 for reconciliation **D4** (reviewer is the AI agent `cp-agron
 
 | Doc | What it answers | Author |
 |---|---|---|
-| [metrics.md](metrics.md) | M1–M6: minutes per plan, approve/edit/reject rates, engine-vs-final (per line after R2), zero-minute check, pilot funnel — formula, SQL, owner, min n; human vs AI segmentation (D4) | data-analyst |
+| [metrics.md](metrics.md) | M1–M7: minutes per plan, approve/edit/reject rates, engine-vs-final (per line after R2), zero-minute check, pilot funnel, website funnel from first-party `site_event` (M7, views not people, target schema) — formula, SQL, owner, min n; human vs AI segmentation (D4) | data-analyst |
 | [sprint-metrics-report.md](sprint-metrics-report.md) | The one-screen report the CPO receives every sprint (design + EXAMPLE) | data-analyst |
 | [calibration-loop.md](calibration-loop.md) | How a reviewed plan becomes evidence; queries; reason codes; minimum samples; proposal → golden test → pack bump → guard; human-only evidence (D4) | data-scientist |
 | [calibration-delta-spec.md](calibration-delta-spec.md) | Per-line `calibration_delta` view handed to cp-database (DM-16): grain, line matching, columns, filters, reference SQL, acceptance tests, S5 materialization (JB-04) | data-scientist |
@@ -38,5 +38,6 @@ Each specialist found gaps independently; this is the de-duplicated list. Specia
 | SG13 | No reviewer kind on `review` (D4): `ai_reviewed` vs `agronomist_approved` not separable | AI sign-offs would contaminate every metric, gate and the calibration set | **High — S2**, cp-database migrations 0011+ (REC-D4); stamp on the review row |
 | SG14 | §6.4 `recommendation_line` has no form column; R2 requires explicit form | P vs P2O5 / K vs K2O ambiguous; per-line delta unsafe | **High — S2**: `nutrient_form` column or one canonical form per nutrient (`calibration-delta-spec.md` OQ-D2) |
 | SG15 | The 90 % agreement gate (reconciliation D4) has no definition: unit, tolerance per nutrient (agronomist-todo #10), added/removed lines, population | Gate cannot be computed or audited | Human agronomist via CPO; data supplies the columns only |
+| SG16 | `site_event` (first-party web events, CPO decision 2026-11-16) and the `pilot_request` attribution columns (`check_scope`, `utm_*`, `referrer_host`, `is_test`) are not migrated; `site_event` has no PII class or retention in `pii-and-retention.md`; success event may lack `view_id` | Website funnel (M7) is `no data`; no per-channel request counts | `cto` / `cp-database` migration + ADR; governance adds `site_event` as P1 (conditional, forbidden-field list) with PROPOSED retention 12 months raw (see metrics.md M7); the data dictionary needs a `site_event` entry |
 
 SG5 note: §6.1 has no test flag either; the per-line spec assumes `farmer.is_test` (OQ-D5).
