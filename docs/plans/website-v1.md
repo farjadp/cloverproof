@@ -49,6 +49,13 @@ Code, SEO, a11y, deploy `cp-website` · design/images `cp-design` · copy `conte
 | 4 | Pilot-funnel counts | Server-side only, from `pilot_request` (requests per day/locale); no third-party tracker without Farjad Iranmehr's go |
 | 5 | DB switch | `pilot_request` on the shared PostGIS DB per `docs/runbook-db-switch.md`, in a window agreed with `cloverproof-lead`, once PostGIS is healthy |
 
+Status (2026-11-16, commit `62310a5`, live):
+- ✅ 1 SEO basics — robots.txt, sitemap.xml, canonical, hreflang + x-default, Open Graph/Twitter. Privacy stays `noindex` and out of the sitemap until legal review (deliberate; its Lighthouse SEO = 69 for that reason only).
+- ✅ 2 Lighthouse mobile, live: `/en` 95 / 100 / 100 / 100 · `/en/privacy` 100 / 100 / 100 / 69 (perf / a11y / best practices / SEO).
+- ✅ 3 Keyboard / a11y — axe 0 violations at 375 + 1280 px in 5 states (page, language menu open, field check done, form step 2, privacy); focus moves to the new step in the field check and the form; proof table scroll region focusable.
+- ⏳ 4 Funnel counts — request counts per day/locale need no schema change; a request *rate* needs a server-side visit counter (new table), which waits for the shared DB (item 5).
+- ⏳ 5 DB switch — waiting for PostGIS to be healthy and a window with `cloverproof-lead`.
+
 Test gate on every deploy: `npm run lint`, `npm run build`, 375 px + 1280 px checks, no horizontal scroll, Lighthouse score noted.
 Learning loop: `docs/sprints/S2-website-review.md` + retro at sprint end, summary to the CPO, standard report to `documentation`.
 Later: S3 growth landing-page fixes (via CPO) · S4 French, enabled only after native review.
