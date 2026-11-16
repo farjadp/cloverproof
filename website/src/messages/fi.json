@@ -16,7 +16,7 @@
     "language": "Kieli"
   },
   "hero": {
-    "eyebrow": "Pilottikausi 2027 · Haku auki",
+    "eyebrow": "Vehnäpilotti 2027 · Haku auki",
     "title": "Selkeämpi suunnitelma jokaiselle lohkolle.",
     "lead": "CloverProof yhdistää viljavuustutkimuksesi, lohkon historian ja satotavoitteesi yhdeksi lannoitussuunnitelmaksi — mitä levitetään, kuinka paljon, milloin ja miksi — ja agronomi tarkastaa sen ennen kuin se tulee sinulle.",
     "ctaPrimary": "Pyydä pilottisuunnitelma",
@@ -153,7 +153,24 @@
   },
   "pilot": {
     "title": "Liity pilottiin 2027",
-    "intro": "Teemme tulevalla kaudella yhteistyötä pienen tilajoukon kanssa. Kerro meille tilastasi, niin otamme yhteyttä.",
+    "intro": "Etsimme pientä joukkoa vehnätiloja kaudelle helmi–huhtikuu 2027. Kerro meille tilastasi, niin otamme yhteyttä.",
+    "giveTitle": "Mitä pyydämme sinulta",
+    "give": [
+      "Lohkosi nimi ja likimääräinen pinta-ala",
+      "Mitä lohkolla kasvoi viime kaudella",
+      "Tavoitesatosi tälle kaudelle",
+      "Laboratorion viljavuustutkimuksen raporttisi, jos sinulla on sellainen — kirjaamme sen menetelmän, syvyyden ja päivämäärän",
+      "Lyhyt puhelu, jossa käymme sen läpi"
+    ],
+    "getTitle": "Mitä saat",
+    "get": [
+      "Lannoitussuunnitelma vehnälohkollesi: mitä, kuinka paljon, milloin ja miksi",
+      "Ihmisagronomin hyväksymä ennen kuin se tulee sinulle",
+      "Todistusasiakirja, johon on kirjattu lähtötiedot, perustelut ja se, kuka sen tarkasti",
+      "Ilman viljavuustutkimusta suunnitelma kattaa vain typen, ja suosittelemme tutkimusta fosforia ja kaliumia varten"
+    ],
+    "control": "Päätösvalta säilyy sinulla: sinä päätät, mitä levität.",
+    "terms": "Kerromme pilotin ehdot puhelun aikana.",
     "name": "Koko nimi",
     "email": "Sähköposti",
     "country": "Maa",
@@ -166,7 +183,7 @@
     "submit": "Pyydä pilottisuunnitelma",
     "submitting": "Lähetetään…",
     "required": "Pakollinen",
-    "success": "Kiitos. Olemme vastaanottaneet pyyntösi ja otamme yhteyttä.",
+    "success": "Kiitos. Vastaamme sähköpostitse ja sovimme lyhyen puhelun. Jos sinulla on viljavuustutkimuksen raportti, pidä se käden ulottuvilla.",
     "notConnected": "Pilottipyyntöjä ei ole vielä kytketty. Tarkista tilanne pian uudelleen.",
     "error": "Jokin meni vikaan, eikä pyyntöäsi tallennettu. Yritä hetken kuluttua uudelleen.",
     "invalid": "Täytä pakolliset kentät ja hyväksy suostumus.",
@@ -179,7 +196,7 @@
     "back": "Takaisin",
     "stepOf": "Vaihe {current}/{total}",
     "successTitle": "Olet listalla.",
-    "successBody": "Kiitos. Olemme vastaanottaneet pyyntösi ja otamme yhteyttä.",
+    "successBody": "Kiitos. Vastaamme sähköpostitse ja sovimme lyhyen puhelun. Jos sinulla on viljavuustutkimuksen raportti, pidä se käden ulottuvilla.",
     "imageAlt": "Maanäyte, paperinen näytepussi ja muistivihko puupöydällä vehnäpellon reunalla"
   },
   "faq": {
@@ -199,15 +216,31 @@
       },
       {
         "q": "Kuka tarkastaa suositukset?",
-        "a": "Agronomi tarkastaa jokaisen suunnitelman ennen kuin näet sen. Jos hän muuttaa lukua, syy kirjataan."
+        "a": "Ihmisagronomi hyväksyy jokaisen suunnitelman ennen kuin näet sen. Automaattiset tarkistukset eivät koskaan korvaa tätä tarkastusta. Jos agronomi muuttaa lukua, syy kirjataan."
       },
       {
         "q": "Mihin todistusasiakirjaa käytetään?",
         "a": "Se on oma tallenteesi siitä, mitä suositeltiin, millä lähtötiedoilla ja miksi. Se ei ole sertifikaatti, eikä mikään kolmas osapuoli ole hyväksynyt sitä."
       },
       {
+        "q": "Onko pilotti vain vehnälle?",
+        "a": "Vuonna 2027 kyllä. Aiomme lisätä muita kasveja myöhemmin."
+      },
+      {
+        "q": "Maksaako pilotti jotain?",
+        "a": "Kerromme pilotin ehdot puhelun aikana, ennen kuin jaat mitään lohkotietoja."
+      },
+      {
+        "q": "Mitä tilani tiedoille tapahtuu?",
+        "a": "Käytämme niitä vain suunnitelmasi laatimiseen ja tarkastamiseen. Emme myy niitä emmekä jaa niitä markkinointiin. Tarkemmat tiedot ovat tietosuojaselosteessa."
+      },
+      {
+        "q": "Voinko jättää pilotin kesken?",
+        "a": "Kyllä, milloin tahansa. Pyydä meitä, niin poistamme yhteystietosi."
+      },
+      {
         "q": "Missä pilotti on saatavilla?",
-        "a": "Aloitamme pienellä määrällä tiloja. Saatavuus riippuu sijainnista, kasvista ja soveltuvuudesta — pyydä suunnitelma, niin kerromme rehellisesti."
+        "a": "Aloitamme pienellä määrällä vehnätiloja. Saatavuus riippuu sijainnista ja soveltuvuudesta — pyydä suunnitelma, niin kerromme rehellisesti."
       }
     ]
   },

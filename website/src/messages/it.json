@@ -16,7 +16,7 @@
     "language": "Lingua"
   },
   "hero": {
-    "eyebrow": "Stagione pilota 2027 · Candidature aperte",
+    "eyebrow": "Pilota frumento 2027 · Candidature aperte",
     "title": "Un piano più chiaro per ogni appezzamento.",
     "lead": "CloverProof unisce analisi del suolo, storico dell'appezzamento e obiettivi colturali in un unico piano di concimazione — cosa applicare, quanto, quando e perché — controllato da un agronomo prima che arrivi a te.",
     "ctaPrimary": "Richiedi un piano pilota",
@@ -153,7 +153,24 @@
   },
   "pilot": {
     "title": "Partecipa al pilota 2027",
-    "intro": "Lavoriamo con un numero ridotto di aziende agricole per la prossima stagione. Raccontaci della tua azienda e ti ricontatteremo.",
+    "intro": "Cerchiamo un numero ridotto di aziende che coltivano frumento per la stagione febbraio–aprile 2027. Raccontaci della tua azienda e ti ricontatteremo.",
+    "giveTitle": "Cosa ti chiederemo",
+    "give": [
+      "Il nome del tuo appezzamento e la sua superficie approssimativa",
+      "Cosa vi è stato coltivato la scorsa stagione",
+      "La tua resa obiettivo per questa stagione",
+      "Il referto della tua analisi del suolo di laboratorio, se ce l'hai — ne registriamo metodo, profondità e data",
+      "Una breve chiamata per esaminarlo insieme"
+    ],
+    "getTitle": "Cosa ottieni",
+    "get": [
+      "Un piano di concimazione per il tuo appezzamento di frumento: cosa, quanto, quando e perché",
+      "Approvato da un agronomo umano prima che ti arrivi",
+      "Un documento di prova che registra i dati di partenza, il ragionamento e chi lo ha revisionato",
+      "Senza analisi del suolo, il piano copre solo l'azoto e ti consiglieremo un'analisi per fosforo e potassio"
+    ],
+    "control": "Resti tu al comando: decidi tu cosa distribuire.",
+    "terms": "Ti spiegheremo le condizioni del pilota durante la chiamata.",
     "name": "Nome e cognome",
     "email": "Email",
     "country": "Paese",
@@ -166,7 +183,7 @@
     "submit": "Richiedi un piano pilota",
     "submitting": "Invio…",
     "required": "Obbligatorio",
-    "success": "Grazie. Abbiamo ricevuto la tua richiesta e ti ricontatteremo.",
+    "success": "Grazie. Ti risponderemo via email per fissare una breve chiamata. Se hai un referto di analisi del suolo, tienilo a portata di mano.",
     "notConnected": "Le richieste per il pilota non sono ancora attive. Torna a trovarci presto.",
     "error": "Si è verificato un errore e la tua richiesta non è stata salvata. Riprova tra un momento.",
     "invalid": "Compila i campi obbligatori e accetta la dichiarazione di consenso.",
@@ -179,7 +196,7 @@
     "back": "Indietro",
     "stepOf": "Passaggio {current} di {total}",
     "successTitle": "Sei in lista.",
-    "successBody": "Grazie. Abbiamo ricevuto la tua richiesta e ti ricontatteremo.",
+    "successBody": "Grazie. Ti risponderemo via email per fissare una breve chiamata. Se hai un referto di analisi del suolo, tienilo a portata di mano.",
     "imageAlt": "Una carota di suolo, un sacchetto di carta per campioni e un quaderno di campo su un tavolo di legno al margine di un campo di frumento"
   },
   "faq": {
@@ -199,15 +216,31 @@
       },
       {
         "q": "Chi controlla le raccomandazioni?",
-        "a": "Ogni piano viene revisionato da un agronomo prima che tu lo veda. Se modifica un numero, il motivo viene registrato."
+        "a": "Ogni piano viene approvato da un agronomo umano prima che tu lo veda. I controlli automatici non sostituiscono mai questa revisione. Se l'agronomo modifica un numero, il motivo viene registrato."
       },
       {
         "q": "A cosa serve il documento di prova?",
         "a": "È la tua registrazione di cosa è stato raccomandato, su quali dati e perché. Non è una certificazione e nessun soggetto terzo lo ha approvato."
       },
       {
+        "q": "Il pilota è solo per il frumento?",
+        "a": "Nel 2027 sì. Prevediamo di aggiungere altre colture in futuro."
+      },
+      {
+        "q": "Il pilota ha un costo?",
+        "a": "Ti spiegheremo le condizioni del pilota durante la chiamata, prima che tu condivida qualsiasi dato sui tuoi appezzamenti."
+      },
+      {
+        "q": "Cosa succede ai dati della mia azienda?",
+        "a": "Li usiamo solo per elaborare e revisionare il tuo piano. Non li vendiamo né li condividiamo per finalità di marketing. I dettagli sono nell'informativa sulla privacy."
+      },
+      {
+        "q": "Posso lasciare il pilota?",
+        "a": "Sì, in qualsiasi momento. Chiedicelo e cancelleremo i tuoi dati di contatto."
+      },
+      {
         "q": "Dove è disponibile il pilota?",
-        "a": "Iniziamo con un numero ridotto di aziende agricole. La disponibilità dipende da zona, coltura e idoneità — richiedi un piano e te lo diremo con franchezza."
+        "a": "Iniziamo con un numero ridotto di aziende che coltivano frumento. La disponibilità dipende da zona e idoneità — richiedi un piano e te lo diremo con franchezza."
       }
     ]
   },

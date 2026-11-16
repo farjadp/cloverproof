@@ -16,7 +16,7 @@
     "language": "Dil"
   },
   "hero": {
-    "eyebrow": "2027 pilot sezonu · Başvurular açık",
+    "eyebrow": "2027 buğday pilot programı · Başvurular açık",
     "title": "Her tarla için daha net bir plan.",
     "lead": "CloverProof toprak analizlerinizi, tarla geçmişinizi ve ürün hedeflerinizi tek bir gübreleme planında birleştirir — ne uygulanacağı, ne kadar, ne zaman ve neden — ve plan size ulaşmadan önce bir ziraat mühendisi tarafından kontrol edilir.",
     "ctaPrimary": "Pilot planı isteyin",
@@ -153,7 +153,24 @@
   },
   "pilot": {
     "title": "2027 pilot programına katılın",
-    "intro": "Önümüzdeki sezon için az sayıda çiftlikle çalışıyoruz. Bize işletmenizden bahsedin, size geri dönelim.",
+    "intro": "Şubat–Nisan 2027 sezonu için az sayıda buğday çiftliği arıyoruz. Bize işletmenizden bahsedin, size geri dönelim.",
+    "giveTitle": "Sizden isteyeceklerimiz",
+    "give": [
+      "Tarlanızın adı ve yaklaşık alanı",
+      "Geçen sezon tarlada yetiştirilen ürün",
+      "Bu sezon için hedef veriminiz",
+      "Varsa laboratuvar toprak analizi raporunuz — yöntemini, derinliğini ve tarihini kaydediyoruz",
+      "Bunları birlikte gözden geçirmek için kısa bir görüşme"
+    ],
+    "getTitle": "Neler alırsınız",
+    "get": [
+      "Buğday tarlanız için bir gübreleme planı: ne, ne kadar, ne zaman ve neden",
+      "Size ulaşmadan önce bir ziraat mühendisi onaylar — bir insan, yazılım değil",
+      "Girdileri, gerekçeyi ve kimin incelediğini kaydeden bir kanıt belgesi",
+      "Toprak analizi yoksa plan yalnızca azotu kapsar ve fosfor ile potasyum için analiz yaptırmanızı öneririz"
+    ],
+    "control": "Kontrol sizde kalır: neyi uygulayacağınıza siz karar verirsiniz.",
+    "terms": "Pilot program koşullarını görüşmede açıklayacağız.",
     "name": "Ad soyad",
     "email": "E-posta",
     "country": "Ülke",
@@ -166,7 +183,7 @@
     "submit": "Pilot planı isteyin",
     "submitting": "Gönderiliyor…",
     "required": "Zorunlu",
-    "success": "Teşekkürler. Talebinizi aldık, sizinle iletişime geçeceğiz.",
+    "success": "Teşekkürler. Kısa bir görüşme ayarlamak için size e-postayla dönüş yapacağız. Toprak analizi raporunuz varsa yanınızda bulundurun.",
     "notConnected": "Pilot talepleri henüz bağlı değil. Lütfen kısa süre sonra tekrar kontrol edin.",
     "error": "Bir sorun oluştu ve talebiniz kaydedilmedi. Lütfen biraz sonra tekrar deneyin.",
     "invalid": "Lütfen zorunlu alanları doldurun ve onay beyanını kabul edin.",
@@ -179,7 +196,7 @@
     "back": "Geri",
     "stepOf": "Adım {current} / {total}",
     "successTitle": "Listedesiniz.",
-    "successBody": "Teşekkürler. Talebinizi aldık, sizinle iletişime geçeceğiz.",
+    "successBody": "Teşekkürler. Kısa bir görüşme ayarlamak için size e-postayla dönüş yapacağız. Toprak analizi raporunuz varsa yanınızda bulundurun.",
     "imageAlt": "Bir buğday tarlasının kenarında, ahşap bir masa üzerinde toprak karotu, kâğıt numune torbası ve tarla defteri"
   },
   "faq": {
@@ -199,15 +216,31 @@
       },
       {
         "q": "Önerileri kim kontrol ediyor?",
-        "a": "Her plan, siz görmeden önce bir ziraat mühendisi tarafından incelenir. Bir rakamı değiştirirse gerekçesi kaydedilir."
+        "a": "Her plan, siz görmeden önce bir ziraat mühendisi tarafından bizzat onaylanır. Otomatik kontroller bu incelemenin yerini asla tutmaz. Ziraat mühendisi bir rakamı değiştirirse gerekçesi kaydedilir."
       },
       {
         "q": "Kanıt belgesi ne işe yarar?",
         "a": "Neyin, hangi girdilerle ve neden önerildiğine dair sizin kaydınızdır. Bir sertifika değildir ve hiçbir üçüncü taraf onu onaylamamıştır."
       },
       {
+        "q": "Pilot program yalnızca buğday için mi?",
+        "a": "2027'de evet. İleride başka ürünleri de eklemeyi planlıyoruz."
+      },
+      {
+        "q": "Pilot programın bir ücreti var mı?",
+        "a": "Pilot program koşullarını, herhangi bir tarla verisi paylaşmanızdan önce görüşmede açıklayacağız."
+      },
+      {
+        "q": "Çiftlik verilerime ne oluyor?",
+        "a": "Verilerinizi yalnızca planınızı hazırlamak ve incelemek için kullanırız. Satmayız ve pazarlama amacıyla paylaşmayız. Ayrıntılar gizlilik bildiriminde yer alıyor."
+      },
+      {
+        "q": "Pilot programdan ayrılabilir miyim?",
+        "a": "Evet, istediğiniz zaman. Bize bildirin, iletişim bilgilerinizi silelim."
+      },
+      {
         "q": "Pilot program nerede geçerli?",
-        "a": "Az sayıda çiftlikle başlıyoruz. Katılım konuma, ürüne ve uygunluğa bağlıdır — bir plan isteyin, size dürüstçe söyleyelim."
+        "a": "Az sayıda buğday çiftliğiyle başlıyoruz. Katılım konuma ve uygunluğa bağlıdır — bir plan isteyin, size dürüstçe söyleyelim."
       }
     ]
   },

@@ -16,7 +16,7 @@
     "language": "Idioma"
   },
   "hero": {
-    "eyebrow": "Temporada piloto 2027 · Solicitudes abiertas",
+    "eyebrow": "Piloto de trigo 2027 · Solicitudes abiertas",
     "title": "Un plan más claro para cada parcela.",
     "lead": "CloverProof reúne sus análisis de suelo, el historial de la parcela y sus objetivos de cultivo en un solo plan de fertilización — qué aplicar, cuánto, cuándo y por qué — revisado por un agrónomo antes de llegar a usted.",
     "ctaPrimary": "Solicitar un plan piloto",
@@ -153,7 +153,24 @@
   },
   "pilot": {
     "title": "Únase al piloto 2027",
-    "intro": "Trabajamos con un número reducido de fincas para la próxima temporada. Cuéntenos sobre su explotación y nos pondremos en contacto con usted.",
+    "intro": "Buscamos un número reducido de fincas de trigo para la temporada de febrero–abril de 2027. Cuéntenos sobre su explotación y nos pondremos en contacto con usted.",
+    "giveTitle": "Qué le pediremos",
+    "give": [
+      "El nombre de su parcela y su superficie aproximada",
+      "Qué se cultivó en ella la temporada pasada",
+      "Su rendimiento objetivo para esta temporada",
+      "Su informe de análisis de suelo de laboratorio, si lo tiene — registramos su método, profundidad y fecha",
+      "Una breve llamada para revisarlo juntos"
+    ],
+    "getTitle": "Qué obtiene",
+    "get": [
+      "Un plan de fertilización para su parcela de trigo: qué, cuánto, cuándo y por qué",
+      "Aprobado por un agrónomo humano antes de llegarle",
+      "Un documento de prueba que registra los datos de partida, el razonamiento y quién lo revisó",
+      "Sin análisis de suelo, el plan cubre solo el nitrógeno, y le recomendaremos un análisis para el fósforo y el potasio"
+    ],
+    "control": "Usted tiene el control: usted decide qué aplicar.",
+    "terms": "Le explicaremos las condiciones del piloto en la llamada.",
     "name": "Nombre completo",
     "email": "Correo electrónico",
     "country": "País",
@@ -166,7 +183,7 @@
     "submit": "Solicitar un plan piloto",
     "submitting": "Enviando…",
     "required": "Obligatorio",
-    "success": "Gracias. Hemos recibido su solicitud y nos pondremos en contacto con usted.",
+    "success": "Gracias. Le responderemos por correo electrónico para concertar una breve llamada. Si tiene un informe de análisis de suelo, téngalo a mano.",
     "notConnected": "Las solicitudes del piloto aún no están conectadas. Vuelva a consultar pronto.",
     "error": "Algo salió mal y su solicitud no se guardó. Inténtelo de nuevo en un momento.",
     "invalid": "Complete los campos obligatorios y acepte la declaración de consentimiento.",
@@ -179,7 +196,7 @@
     "back": "Atrás",
     "stepOf": "Paso {current} de {total}",
     "successTitle": "Ya está en la lista.",
-    "successBody": "Gracias. Hemos recibido su solicitud y nos pondremos en contacto con usted.",
+    "successBody": "Gracias. Le responderemos por correo electrónico para concertar una breve llamada. Si tiene un informe de análisis de suelo, téngalo a mano.",
     "imageAlt": "Una muestra de suelo, una bolsa de papel para muestras y una libreta de campo sobre una mesa de madera al borde de un campo de trigo"
   },
   "faq": {
@@ -199,15 +216,31 @@
       },
       {
         "q": "¿Quién revisa las recomendaciones?",
-        "a": "Cada plan lo revisa un agrónomo antes de que usted lo vea. Si cambia una cifra, el motivo queda registrado."
+        "a": "Cada plan lo aprueba un agrónomo humano antes de que usted lo vea. Las comprobaciones automáticas nunca sustituyen esa revisión. Si el agrónomo cambia una cifra, el motivo queda registrado."
       },
       {
         "q": "¿Para qué sirve el documento de prueba?",
         "a": "Es su registro de qué se recomendó, con qué datos y por qué. No es una certificación y ningún tercero lo ha respaldado."
       },
       {
+        "q": "¿El piloto es solo para trigo?",
+        "a": "En 2027, sí. Tenemos previsto añadir otros cultivos más adelante."
+      },
+      {
+        "q": "¿El piloto tiene algún coste?",
+        "a": "Le explicaremos las condiciones del piloto en la llamada, antes de que comparta ningún dato de sus parcelas."
+      },
+      {
+        "q": "¿Qué pasa con los datos de mi explotación?",
+        "a": "Los usamos únicamente para elaborar y revisar su plan. No los vendemos ni los compartimos con fines de marketing. Encontrará los detalles en el aviso de privacidad."
+      },
+      {
+        "q": "¿Puedo dejar el piloto?",
+        "a": "Sí, en cualquier momento. Pídanoslo y eliminaremos sus datos de contacto."
+      },
+      {
         "q": "¿Dónde está disponible el piloto?",
-        "a": "Empezamos con un número reducido de fincas. La disponibilidad depende de la ubicación, el cultivo y la adecuación — solicite un plan y le responderemos con honestidad."
+        "a": "Empezamos con un número reducido de fincas de trigo. La disponibilidad depende de la ubicación y la adecuación — solicite un plan y le responderemos con honestidad."
       }
     ]
   },
