@@ -109,7 +109,7 @@ export function PilotForm({ t, privacyHref, locale }: { t: Labels; privacyHref: 
         {t.steps.map((label, i) => (
           <li key={label} className="flex flex-col gap-2">
             <span className={`h-1.5 rounded-full transition-colors duration-500 ${i <= step ? "bg-olive" : "bg-rule"}`} />
-            <span className={`text-xs font-semibold uppercase tracking-wider ${i === step ? "text-olive" : "text-ink-soft"}`} aria-current={i === step ? "step" : undefined}>
+            <span className={`hyphens-auto text-xs font-semibold uppercase tracking-wider wrap-anywhere ${i === step ? "text-olive" : "text-ink-soft"}`} aria-current={i === step ? "step" : undefined}>
               {label}
             </span>
           </li>
@@ -146,12 +146,12 @@ export function PilotForm({ t, privacyHref, locale }: { t: Labels; privacyHref: 
       <div className="mt-7 flex flex-wrap items-center gap-4">
         {step > 0 && (
           <button type="button" onClick={() => setStep(step - 1)} className="rounded-full px-4 py-3 font-semibold text-ink-soft hover:text-olive">
-            ← {t.back}
+            <span aria-hidden="true" className="inline-block rtl:-scale-x-100">←</span> {t.back}
           </button>
         )}
         {step < total - 1 ? (
           <button key="next" type="button" onClick={next} className="rounded-full bg-olive px-6 py-3 font-semibold text-ivory transition-all hover:-translate-y-0.5 hover:bg-olive-deep">
-            {t.next} →
+            {t.next} <span aria-hidden="true" className="inline-block rtl:-scale-x-100">→</span>
           </button>
         ) : (
           <button key="submit" type="submit" disabled={pending} className="rounded-full bg-olive px-6 py-3 font-semibold text-ivory transition-all hover:-translate-y-0.5 hover:bg-olive-deep disabled:opacity-60">

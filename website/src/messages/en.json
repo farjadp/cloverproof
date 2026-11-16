@@ -1,7 +1,8 @@
 {
   "meta": {
     "title": "CloverProof — Field-specific fertilizer decisions, with proof",
-    "description": "CloverProof turns your field and soil-test data into a fertilizer plan — what, how much, when and why — reviewed by an agronomist and recorded in a proof document. Vendor-neutral, software only."
+    "description": "CloverProof turns your field and soil-test data into a fertilizer plan — what, how much, when and why — reviewed by an agronomist and recorded in a proof document. Vendor-neutral, software only.",
+    "translationStatus": "source"
   },
   "nav": {
     "how": "How it works",

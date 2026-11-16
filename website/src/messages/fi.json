@@ -1,0 +1,351 @@
+{
+  "meta": {
+    "title": "CloverProof — Lohkokohtaiset lannoituspäätökset, todisteineen",
+    "description": "CloverProof muuttaa lohkosi tiedot ja viljavuustutkimuksen lannoitussuunnitelmaksi — mitä, kuinka paljon, milloin ja miksi — agronomin tarkastamana ja todistusasiakirjaan kirjattuna. Toimittajista riippumaton, pelkkä ohjelmisto.",
+    "translationStatus": "machine — review pending"
+  },
+  "nav": {
+    "how": "Näin se toimii",
+    "proof": "Esimerkki",
+    "principles": "Periaatteet",
+    "faq": "UKK",
+    "cta": "Pyydä pilottisuunnitelma",
+    "skip": "Siirry sisältöön",
+    "menu": "Valikko",
+    "check": "Lohkotesti",
+    "language": "Kieli"
+  },
+  "hero": {
+    "eyebrow": "Pilottikausi 2027 · Haku auki",
+    "title": "Selkeämpi suunnitelma jokaiselle lohkolle.",
+    "lead": "CloverProof yhdistää viljavuustutkimuksesi, lohkon historian ja satotavoitteesi yhdeksi lannoitussuunnitelmaksi — mitä levitetään, kuinka paljon, milloin ja miksi — ja agronomi tarkastaa sen ennen kuin se tulee sinulle.",
+    "ctaPrimary": "Pyydä pilottisuunnitelma",
+    "ctaSecondary": "Kokeile 2 minuutin lohkotestiä",
+    "note": "Tuote on varhaisessa vaiheessa. Pilottiin pääsy riippuu sijainnista ja soveltuvuudesta.",
+    "figureCaption": "Jokainen suositus liittyy yhteen lohkoon, yhteen kauteen ja yhteen lähtötietojen joukkoon.",
+    "imageAlt": "Nuorta syysvehnää pitkissä riveissä auringonnousussa, etualalla apilanlehtiä",
+    "chips": {
+      "confidence": "Varmuus",
+      "confidenceValue": "Keskitaso",
+      "reviewed": "Agronomin tarkastama",
+      "version": "Versio 2 · syy kirjattu",
+      "ctaCheck": "Kokeile lohkotestiä"
+    }
+  },
+  "problem": {
+    "title": "Käytännön ongelma",
+    "intro": "Lannoituspäätökset tehdään usein hajanaisten tietojen ja yleisten neuvojen pohjalta, eikä perusteluista jää jälkeä.",
+    "items": [
+      {
+        "title": "Tiedot ovat eri paikoissa.",
+        "body": "Laboratorion raportit sähköpostissa, levitysmerkinnät vihkossa, viljelyhistoria jonkun muistissa. Mitään ei ole koottu yhteen edessäsi olevalle lohkolle."
+      },
+      {
+        "title": "Neuvot ovat yleisiä — tai sidottu tuotteeseen.",
+        "body": "Kaavamaiset määrät eivät huomioi lohkoa. Myyjän neuvoja ohjaa se, mitä hän myy. Kumpikaan ei näytä laskelmiaan."
+      },
+      {
+        "title": "Perusteluja ei kirjata.",
+        "body": "Kun kausi menee hyvin tai huonosti, ei ole mihin palata: mitä lähtötietoja käytettiin, mitä oletuksia tehtiin, kuka hyväksyi."
+      }
+    ]
+  },
+  "how": {
+    "title": "Näin se toimii",
+    "intro": "Neljä vaihetta, joka kerta samat. Mikään ei tule sinulle ilman, että ihminen tarkastaa sen.",
+    "steps": [
+      {
+        "title": "Tilan tiedot",
+        "body": "Lohkosi, kasvi, tavoitesato ja esikasvi. Laboratorion viljavuustutkimus, jos sinulla on — menetelmineen, syvyyksineen ja päivämäärineen."
+      },
+      {
+        "title": "Laskenta",
+        "body": "Läpinäkyvä laskelma tehdään versioidun alueellisen sääntökokonaisuuden mukaan. Jokainen luku saa kirjallisen perustelun ja varmuustason."
+      },
+      {
+        "title": "Agronomin tarkastus",
+        "body": "Agronomi hyväksyy, muuttaa tai hylkää suunnitelman. Jokainen muutos tallennetaan uutena versiona syineen — alkuperäistä ei koskaan korvata."
+      },
+      {
+        "title": "Todistusasiakirja",
+        "body": "Saat suunnitelma-asiakirjan: mitä, kuinka paljon, milloin ja miksi, sekä tarkastajan, käytetyt versiot ja digitaalisen tiivisteen."
+      }
+    ],
+    "active": "Olet tässä"
+  },
+  "proof": {
+    "title": "Mitä todistusasiakirja näyttää",
+    "intro": "Esimerkkiasettelu. Arvot on jätetty tarkoituksella tyhjiksi — todelliset arvot näkyvät vasta, kun agronomi on tarkastanut lohkosi.",
+    "docTitle": "Lohkosuunnitelma · Todiste",
+    "docId": "Asiakirjan tunnus",
+    "field": "Lohko",
+    "fieldValue": "Pohjoislohko",
+    "crop": "Kasvi",
+    "cropValue": "Syysvehnä",
+    "season": "Kausi",
+    "seasonValue": "—",
+    "soilTest": "Viljavuustutkimus",
+    "soilTestValue": "Menetelmä, syvyys ja päivämäärä kirjattu",
+    "nutrient": "Ravinne",
+    "rate": "Määrä",
+    "timing": "Ajoitus",
+    "confidence": "Varmuus",
+    "rows": [
+      {
+        "nutrient": "Typpi (N)",
+        "rate": "— kg/ha",
+        "timing": "Jaettu · —",
+        "confidence": "Keskitaso"
+      },
+      {
+        "nutrient": "Fosfori (P)",
+        "rate": "Tutkimus tarvitaan",
+        "timing": "—",
+        "confidence": "—"
+      },
+      {
+        "nutrient": "Kalium (K)",
+        "rate": "Tutkimus tarvitaan",
+        "timing": "—",
+        "confidence": "—"
+      }
+    ],
+    "whyTitle": "Miksi tämä määrä",
+    "whyLines": [
+      "Kasvin tarve tavoitesatoa varten, alueellisen sääntökokonaisuuden mukaan.",
+      "Esikasvin vaikutus.",
+      "Maassa jo oleva ravinnevara, laboratoriotutkimuksen mukaan."
+    ],
+    "reviewer": "Tarkastaja",
+    "reviewerValue": "Agronomi · päivämäärä",
+    "versions": "Laskennan / sääntöjen versio",
+    "versionsValue": "— / —",
+    "fingerprint": "SHA-256-tiiviste",
+    "fingerprintValue": "9f2c41b7…e41a",
+    "disclaimer": "Todistusasiakirja kertoo, mitä suositeltiin ja miksi. Se ei ole sertifikaatti, eikä mikään kolmas osapuoli ole myöntänyt tai hyväksynyt sitä.",
+    "stamp": "Tarkastettu",
+    "sampleTag": "Esimerkki"
+  },
+  "principles": {
+    "title": "Periaatteet, joista emme jousta",
+    "items": [
+      {
+        "title": "Toimittajista riippumaton",
+        "body": "Emme myy lannoitteita emmekä ota niistä provisioita."
+      },
+      {
+        "title": "Pelkkä ohjelmisto",
+        "body": "Ei ostettavia antureita tai laitteita. Työskentelemme lohkosi tietojen ja laboratoriotulosten pohjalta."
+      },
+      {
+        "title": "Varmuustaso jokaiselle luvulle",
+        "body": "Jokainen suositus merkitään varmuustasolla korkea, keskitaso tai matala, perusteluineen."
+      },
+      {
+        "title": "Ei viljavuustutkimusta, vain typpi",
+        "body": "Ilman laboratoriotutkimusta neuvomme vain typen osalta ja suosittelemme tutkimusta fosforia ja kaliumia varten."
+      },
+      {
+        "title": "Jokainen muutos versioidaan",
+        "body": "Suunnitelmia ei koskaan korvata. Muutokset tallennetaan uusina versioina: kuka muutti mitä ja miksi."
+      }
+    ]
+  },
+  "pilot": {
+    "title": "Liity pilottiin 2027",
+    "intro": "Teemme tulevalla kaudella yhteistyötä pienen tilajoukon kanssa. Kerro meille tilastasi, niin otamme yhteyttä.",
+    "name": "Koko nimi",
+    "email": "Sähköposti",
+    "country": "Maa",
+    "farmSize": "Tilan koko",
+    "farmSizeHint": "Arvio yksikön kanssa (ha tai eekkeriä)",
+    "crop": "Pääkasvi",
+    "notes": "Muuta tiedettävää (valinnainen)",
+    "consent": "Hyväksyn, että CloverProof saa tallentaa nämä tiedot ja ottaa minuun yhteyttä pilottiin liittyen. Voin milloin tahansa pyytää tietojen poistamista.",
+    "privacyLink": "Tietosuojaseloste",
+    "submit": "Pyydä pilottisuunnitelma",
+    "submitting": "Lähetetään…",
+    "required": "Pakollinen",
+    "success": "Kiitos. Olemme vastaanottaneet pyyntösi ja otamme yhteyttä.",
+    "notConnected": "Pilottipyyntöjä ei ole vielä kytketty. Tarkista tilanne pian uudelleen.",
+    "error": "Jokin meni vikaan, eikä pyyntöäsi tallennettu. Yritä hetken kuluttua uudelleen.",
+    "invalid": "Täytä pakolliset kentät ja hyväksy suostumus.",
+    "steps": [
+      "Sinä",
+      "Tilasi",
+      "Vahvista"
+    ],
+    "next": "Seuraava",
+    "back": "Takaisin",
+    "stepOf": "Vaihe {current}/{total}",
+    "successTitle": "Olet listalla.",
+    "successBody": "Kiitos. Olemme vastaanottaneet pyyntösi ja otamme yhteyttä.",
+    "imageAlt": "Maanäyte, paperinen näytepussi ja muistivihko puupöydällä vehnäpellon reunalla"
+  },
+  "faq": {
+    "title": "Kysymykset",
+    "items": [
+      {
+        "q": "Myyttekö lannoitteita?",
+        "a": "Emme. CloverProof on riippumaton kaikista toimittajista. Suunnitelma nimeää ravinteet ja määrät, ei tuotemerkkejä."
+      },
+      {
+        "q": "Tarvitsenko antureita tai erikoislaitteita?",
+        "a": "Et. CloverProof on pelkkä ohjelmisto. Työskentelemme lohkosi tietojen ja, jos sellainen on, laboratorion viljavuustutkimuksen pohjalta."
+      },
+      {
+        "q": "Entä jos minulla ei ole viljavuustutkimusta?",
+        "a": "Voimme silti neuvoa typen osalta, enintään keskitason varmuudella. Fosforin ja kaliumin osalta suosittelemme ensin tutkimusta."
+      },
+      {
+        "q": "Kuka tarkastaa suositukset?",
+        "a": "Agronomi tarkastaa jokaisen suunnitelman ennen kuin näet sen. Jos hän muuttaa lukua, syy kirjataan."
+      },
+      {
+        "q": "Mihin todistusasiakirjaa käytetään?",
+        "a": "Se on oma tallenteesi siitä, mitä suositeltiin, millä lähtötiedoilla ja miksi. Se ei ole sertifikaatti, eikä mikään kolmas osapuoli ole hyväksynyt sitä."
+      },
+      {
+        "q": "Missä pilotti on saatavilla?",
+        "a": "Aloitamme pienellä määrällä tiloja. Saatavuus riippuu sijainnista, kasvista ja soveltuvuudesta — pyydä suunnitelma, niin kerromme rehellisesti."
+      }
+    ]
+  },
+  "footer": {
+    "tagline": "Lohkokohtaiset lannoituspäätökset, todisteineen.",
+    "privacy": "Tietosuoja",
+    "languages": "Kielet",
+    "comingSoon": "tulossa pian",
+    "rights": "© 2026 CloverProof"
+  },
+  "privacy": {
+    "title": "Tietosuojaseloste",
+    "description": "Miten CloverProof kerää, käyttää ja suojaa tietoja, jotka annat pyytäessäsi pilottisuunnitelmaa.",
+    "draft": "Luonnos — tarkastettavana ennen julkaisua.",
+    "updated": "Päivitetty viimeksi: marraskuu 2026",
+    "sections": [
+      {
+        "h": "Mitä keräämme",
+        "p": "Kun pyydät pilottisuunnitelmaa, keräämme antamasi tiedot: nimen, sähköpostin, maan, tilan arvioidun koon, pääkasvin ja mahdolliset lisätiedot."
+      },
+      {
+        "h": "Miksi keräämme tietoja",
+        "p": "Ainoastaan arvioidaksemme, voimmeko ottaa tilasi mukaan pilottiin, ja ottaaksemme sinuun yhteyttä siihen liittyen. Emme myy tietojasi emmekä luovuta niitä markkinointiin."
+      },
+      {
+        "h": "Missä tiedot säilytetään",
+        "p": "Tietosi säilytetään tietokantapalvelumme tarjoajalla, ja pääsy niihin on rajattu CloverProof-tiimiin."
+      },
+      {
+        "h": "Kuinka kauan säilytämme tietoja",
+        "p": "Kunnes pilottivalinta on valmis, tai pidempään, jos liityt pilottiin. Voit milloin tahansa pyytää meitä poistamaan tietosi."
+      },
+      {
+        "h": "Oikeutesi",
+        "p": "Voit pyytää saada nähdä, korjata tai poistaa tietosi sekä peruuttaa suostumuksesi milloin tahansa."
+      }
+    ]
+  },
+  "check": {
+    "eyebrow": "Kahden minuutin lohkotesti",
+    "title": "Mitä suunnitelmasi voisi kattaa?",
+    "intro": "Vastaa neljään nopeaan kysymykseen. Jokainen vastaus täyttää yhden lehden. Lopuksi näet, millaisen suunnitelman voisimme tehdä tälle lohkolle — ennen kuin jaat mitään tietoja.",
+    "progress": "Täytetyt lehdet",
+    "back": "Takaisin",
+    "restart": "Aloita alusta",
+    "questions": [
+      {
+        "id": "soilTest",
+        "q": "Onko sinulla tälle lohkolle laboratorion viljavuustutkimus?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Kyllä"
+          },
+          {
+            "v": "no",
+            "label": "Ei"
+          },
+          {
+            "v": "unsure",
+            "label": "En tiedä"
+          }
+        ]
+      },
+      {
+        "id": "method",
+        "q": "Näkyykö raportissa uuttomenetelmä ja näytteenottosyvyys?",
+        "hint": "Esimerkiksi Olsen, Bray-1 tai Mehlich-3 sekä syvyys senttimetreinä tai tuumina.",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Kyllä, molemmat"
+          },
+          {
+            "v": "no",
+            "label": "Ei / en tiedä"
+          },
+          {
+            "v": "skip",
+            "label": "Minulla ei ole raporttia"
+          }
+        ]
+      },
+      {
+        "id": "previousCrop",
+        "q": "Tiedätkö, mitä lohkolla kasvoi viime kaudella?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Kyllä"
+          },
+          {
+            "v": "no",
+            "label": "En"
+          }
+        ]
+      },
+      {
+        "id": "target",
+        "q": "Onko sinulla realistinen satotavoite tälle kaudelle?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Kyllä"
+          },
+          {
+            "v": "no",
+            "label": "Ei vielä"
+          }
+        ]
+      }
+    ],
+    "results": {
+      "full": {
+        "title": "Täysi typpi-, fosfori- ja kaliumsuunnitelma",
+        "body": "Täydellisen laboratorioraportin avulla voimme suunnitella kaikki kolme ravinnetta, kunkin omalla varmuustasollaan ja perusteluillaan.",
+        "tag": "N · P · K"
+      },
+      "confirm": {
+        "title": "Täysi suunnitelma, kun laboratorion menetelmä on varmistettu",
+        "body": "Sinulla on viljavuustutkimus. Pyydämme raportin, jotta näemme uuttomenetelmän ja syvyyden — sitten suunnittelemme kaikki kolme ravinnetta.",
+        "tag": "N · P · K tarkistuksen jälkeen"
+      },
+      "nOnly": {
+        "title": "Typpisuunnitelma — ja viljavuustutkimus muille",
+        "body": "Ilman laboratoriotutkimusta neuvomme vain typen osalta, enintään keskitason varmuudella. Fosforin ja kaliumin osalta suosittelemme ensin tutkimusta.",
+        "tag": "Vain N"
+      }
+    },
+    "gapsTitle": "Mikä vahvistaisi sitä",
+    "gaps": {
+      "previousCrop": "Viime kauden kasvi — se vaikuttaa siihen, kuinka paljon typpeä maa jo luovuttaa.",
+      "target": "Satotavoite — suunnitelma rakennetaan sen ympärille.",
+      "method": "Laboratorion uuttomenetelmä ja näytteenottosyvyys.",
+      "soilTest": "Laboratorion viljavuustutkimus fosforia ja kaliumia varten."
+    },
+    "noGaps": "Mitään ei puutu. Lohko on valmis suunnitelmaa varten.",
+    "cta": "Pyydä pilottisuunnitelma tälle lohkolle",
+    "disclaimer": "Tämä testi näyttää vain suunnitelman laajuuden. Se ei anna määriä — ne tulevat vasta, kun agronomi on tarkastanut tietosi."
+  }
+}

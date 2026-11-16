@@ -126,7 +126,7 @@ export function FieldCheck({ t }: { t: T }) {
               </div>
               {step > 0 && (
                 <button type="button" onClick={back} className="mt-6 text-sm font-semibold text-ink-soft underline underline-offset-4 hover:text-olive">
-                  ← {t.back}
+                  <span aria-hidden="true" className="inline-block rtl:-scale-x-100">←</span> {t.back}
                 </button>
               )}
             </div>

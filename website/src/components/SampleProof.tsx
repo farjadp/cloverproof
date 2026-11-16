@@ -23,7 +23,7 @@ function Typed({ text, start }: { text: string; start: boolean }) {
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-[0.12em] text-ink-soft">{label}</dt>
+      <dt className="hyphens-auto text-xs uppercase tracking-[0.12em] text-ink-soft wrap-anywhere">{label}</dt>
       <dd className="mt-1 font-semibold text-ink">{value}</dd>
     </div>
   );
@@ -33,7 +33,7 @@ export function SampleProof({ t }: { t: Dictionary }) {
   const p = t.proof;
   const { ref, inView } = useInView<HTMLElement>(0.3);
   const step = ["delay-[200ms]", "delay-[500ms]", "delay-[800ms]"];
-  const show = (i: number) => `transition-all duration-500 ${step[i] ?? ""} ${inView ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-3"}`;
+  const show = (i: number) => `transition-all duration-500 ${step[i] ?? ""} ${inView ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-3 rtl:translate-x-3"}`;
   return (
     <section id="proof" aria-labelledby="proof-title" className="overflow-x-clip border-t border-rule">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1fr_1.6fr] lg:px-8 [&>*]:min-w-0">
@@ -102,7 +102,7 @@ export function SampleProof({ t }: { t: Dictionary }) {
             <Meta label={p.reviewer} value={p.reviewerValue} />
             <Meta label={p.versions} value={p.versionsValue} />
             <div>
-              <dt className="text-xs uppercase tracking-[0.12em] text-ink-soft">{p.fingerprint}</dt>
+              <dt className="hyphens-auto text-xs uppercase tracking-[0.12em] text-ink-soft wrap-anywhere">{p.fingerprint}</dt>
               <dd className="mt-1 font-mono text-olive"><Typed text={p.fingerprintValue} start={inView} /></dd>
             </div>
           </dl>

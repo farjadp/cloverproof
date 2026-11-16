@@ -1,0 +1,351 @@
+{
+  "meta": {
+    "title": "CloverProof — Tarlaya özel gübreleme kararları, kanıtıyla",
+    "description": "CloverProof, tarla ve toprak analizi verilerinizi bir gübreleme planına dönüştürür — ne, ne kadar, ne zaman ve neden — bir ziraat mühendisi tarafından incelenir ve bir kanıt belgesine kaydedilir. Tedarikçiden bağımsız, yalnızca yazılım.",
+    "translationStatus": "machine — review pending"
+  },
+  "nav": {
+    "how": "Nasıl çalışır",
+    "proof": "Örnek kanıt",
+    "principles": "İlkeler",
+    "faq": "SSS",
+    "cta": "Pilot planı isteyin",
+    "skip": "İçeriğe geç",
+    "menu": "Menü",
+    "check": "Tarla kontrolü",
+    "language": "Dil"
+  },
+  "hero": {
+    "eyebrow": "2027 pilot sezonu · Başvurular açık",
+    "title": "Her tarla için daha net bir plan.",
+    "lead": "CloverProof toprak analizlerinizi, tarla geçmişinizi ve ürün hedeflerinizi tek bir gübreleme planında birleştirir — ne uygulanacağı, ne kadar, ne zaman ve neden — ve plan size ulaşmadan önce bir ziraat mühendisi tarafından kontrol edilir.",
+    "ctaPrimary": "Pilot planı isteyin",
+    "ctaSecondary": "2 dakikalık tarla kontrolünü deneyin",
+    "note": "Erken aşamadaki bir ürün. Pilot programa katılım konuma ve uygunluğa bağlıdır.",
+    "figureCaption": "Her öneri tek bir tarlaya, tek bir sezona ve tek bir girdi setine bağlıdır.",
+    "imageAlt": "Gün doğumunda uzun sıralar halinde genç kışlık buğday, ön planda yonca yaprakları",
+    "chips": {
+      "confidence": "Güven",
+      "confidenceValue": "Orta",
+      "reviewed": "Ziraat mühendisi inceledi",
+      "version": "Sürüm 2 · gerekçe kayıtlı",
+      "ctaCheck": "Tarla kontrolünü deneyin"
+    }
+  },
+  "problem": {
+    "title": "Pratikteki sorun",
+    "intro": "Gübreleme kararları çoğu zaman dağınık kayıtlara ve genel tavsiyelere dayanarak verilir; gerekçeden hiçbir iz kalmaz.",
+    "items": [
+      {
+        "title": "Kayıtlar farklı yerlerde durur.",
+        "body": "Laboratuvar raporları e-postada, gübre serpme kayıtları bir defterde, ürün geçmişi birinin hafızasında. Önünüzdeki tarla için hiçbir şey bir araya getirilmemiştir."
+      },
+      {
+        "title": "Tavsiye ya genel ya da bir ürüne bağlı.",
+        "body": "Standart dozlar tarlayı hesaba katmaz. Bir tedarikçinin tavsiyesi sattığı ürüne göre şekillenir. İkisi de hesabını göstermez."
+      },
+      {
+        "title": "Nedeni kayıt altında değil.",
+        "body": "Bir sezon iyi ya da kötü geçtiğinde geriye dönüp bakacak bir şey yoktur: hangi girdiler kullanıldı, hangi varsayımlar yapıldı, kim onay verdi."
+      }
+    ]
+  },
+  "how": {
+    "title": "Nasıl çalışır",
+    "intro": "Dört adım, her seferinde aynı. Bir kişi kontrol etmeden size hiçbir şey ulaşmaz.",
+    "steps": [
+      {
+        "title": "Çiftlik verileri",
+        "body": "Tarlanız, ürününüz, hedef veriminiz ve önceki ürününüz. Varsa bir laboratuvar toprak analizi — yöntemi, derinliği ve tarihiyle birlikte."
+      },
+      {
+        "title": "Hesaplama motoru",
+        "body": "Şeffaf bir hesaplama, sürümlenmiş bir bölgesel kural setine göre çalışır. Her rakam yazılı bir gerekçe ve bir güven düzeyi alır."
+      },
+      {
+        "title": "Ziraat mühendisi incelemesi",
+        "body": "Bir ziraat mühendisi planı onaylar, düzenler ya da reddeder. Her değişiklik gerekçesiyle birlikte yeni bir sürüm olarak kaydedilir — orijinal asla üzerine yazılmaz."
+      },
+      {
+        "title": "Kanıt belgesi",
+        "body": "Bir plan belgesi alırsınız: ne, ne kadar, ne zaman ve neden; inceleyen kişi, kullanılan sürümler ve dijital bir parmak izi ile."
+      }
+    ],
+    "active": "Buradasınız"
+  },
+  "proof": {
+    "title": "Bir kanıt belgesi neleri gösterir",
+    "intro": "Örnek bir düzen. Değerler bilerek boş bırakılmıştır — gerçek değerler ancak bir ziraat mühendisi tarlanızı inceledikten sonra görünür.",
+    "docTitle": "Tarla planı · Kanıt",
+    "docId": "Belge numarası",
+    "field": "Tarla",
+    "fieldValue": "Kuzey tarlası",
+    "crop": "Ürün",
+    "cropValue": "Kışlık buğday",
+    "season": "Sezon",
+    "seasonValue": "—",
+    "soilTest": "Toprak analizi",
+    "soilTestValue": "Yöntem, derinlik ve tarih kayıtlı",
+    "nutrient": "Besin maddesi",
+    "rate": "Doz",
+    "timing": "Zamanlama",
+    "confidence": "Güven",
+    "rows": [
+      {
+        "nutrient": "Azot (N)",
+        "rate": "— kg/ha",
+        "timing": "Bölünmüş · —",
+        "confidence": "Orta"
+      },
+      {
+        "nutrient": "Fosfor (P)",
+        "rate": "Toprak analizi gerekli",
+        "timing": "—",
+        "confidence": "—"
+      },
+      {
+        "nutrient": "Potasyum (K)",
+        "rate": "Toprak analizi gerekli",
+        "timing": "—",
+        "confidence": "—"
+      }
+    ],
+    "whyTitle": "Neden bu doz",
+    "whyLines": [
+      "Hedef verim için ürünün ihtiyacı, bölgesel kural setine göre.",
+      "Önceki üründen gelen katkı.",
+      "Toprakta zaten bulunan miktar, laboratuvar analizine göre."
+    ],
+    "reviewer": "İnceleyen",
+    "reviewerValue": "Ziraat mühendisi · tarih",
+    "versions": "Motor / kural seti sürümü",
+    "versionsValue": "— / —",
+    "fingerprint": "SHA-256 parmak izi",
+    "fingerprintValue": "9f2c41b7…e41a",
+    "disclaimer": "Bir kanıt belgesi neyin önerildiğini ve nedenini kaydeder. Bir sertifika değildir ve hiçbir üçüncü taraf tarafından düzenlenmemiş veya onaylanmamıştır.",
+    "stamp": "İncelendi",
+    "sampleTag": "Örnek"
+  },
+  "principles": {
+    "title": "Taviz vermediğimiz ilkeler",
+    "items": [
+      {
+        "title": "Tedarikçiden bağımsız",
+        "body": "Gübre satmıyoruz ve gübre üzerinden komisyon almıyoruz."
+      },
+      {
+        "title": "Yalnızca yazılım",
+        "body": "Satın alınacak sensör ya da donanım yok. Tarla bilgileriniz ve laboratuvar sonuçlarınızla çalışıyoruz."
+      },
+      {
+        "title": "Her rakamda güven düzeyi",
+        "body": "Her öneri, gerekçesiyle birlikte yüksek, orta veya düşük güven düzeyiyle işaretlenir."
+      },
+      {
+        "title": "Toprak analizi yoksa yalnızca azot",
+        "body": "Laboratuvar analizi olmadan yalnızca azot konusunda öneri veririz; fosfor ve potasyum için analiz yaptırmanızı öneririz."
+      },
+      {
+        "title": "Her düzenleme sürümlenir",
+        "body": "Planların üzerine asla yazılmaz. Değişiklikler, kimin neyi neden değiştirdiğiyle birlikte yeni sürümler olarak kaydedilir."
+      }
+    ]
+  },
+  "pilot": {
+    "title": "2027 pilot programına katılın",
+    "intro": "Önümüzdeki sezon için az sayıda çiftlikle çalışıyoruz. Bize işletmenizden bahsedin, size geri dönelim.",
+    "name": "Ad soyad",
+    "email": "E-posta",
+    "country": "Ülke",
+    "farmSize": "Çiftlik büyüklüğü",
+    "farmSizeHint": "Yaklaşık, birimiyle (ha veya akre)",
+    "crop": "Ana ürün",
+    "notes": "Bilmemiz gereken bir şey (isteğe bağlı)",
+    "consent": "CloverProof'un bu bilgileri saklamasını ve pilot program hakkında benimle iletişime geçmesini kabul ediyorum. Bilgilerin silinmesini istediğim zaman talep edebilirim.",
+    "privacyLink": "Gizlilik bildirimi",
+    "submit": "Pilot planı isteyin",
+    "submitting": "Gönderiliyor…",
+    "required": "Zorunlu",
+    "success": "Teşekkürler. Talebinizi aldık, sizinle iletişime geçeceğiz.",
+    "notConnected": "Pilot talepleri henüz bağlı değil. Lütfen kısa süre sonra tekrar kontrol edin.",
+    "error": "Bir sorun oluştu ve talebiniz kaydedilmedi. Lütfen biraz sonra tekrar deneyin.",
+    "invalid": "Lütfen zorunlu alanları doldurun ve onay beyanını kabul edin.",
+    "steps": [
+      "Siz",
+      "Çiftliğiniz",
+      "Onay"
+    ],
+    "next": "İleri",
+    "back": "Geri",
+    "stepOf": "Adım {current} / {total}",
+    "successTitle": "Listedesiniz.",
+    "successBody": "Teşekkürler. Talebinizi aldık, sizinle iletişime geçeceğiz.",
+    "imageAlt": "Bir buğday tarlasının kenarında, ahşap bir masa üzerinde toprak karotu, kâğıt numune torbası ve tarla defteri"
+  },
+  "faq": {
+    "title": "Sorular",
+    "items": [
+      {
+        "q": "Gübre satıyor musunuz?",
+        "a": "Hayır. CloverProof hiçbir tedarikçiye bağlı değildir. Plan markaları değil, besin maddelerini ve dozları belirtir."
+      },
+      {
+        "q": "Sensöre veya özel ekipmana ihtiyacım var mı?",
+        "a": "Hayır. CloverProof yalnızca yazılımdır. Tarla bilgilerinizle ve varsa bir laboratuvar toprak analiziyle çalışıyoruz."
+      },
+      {
+        "q": "Toprak analizim yoksa ne olur?",
+        "a": "Yine de azot konusunda öneri verebiliriz, en fazla orta güven düzeyinde. Fosfor ve potasyum için önce analiz yaptırmanızı öneririz."
+      },
+      {
+        "q": "Önerileri kim kontrol ediyor?",
+        "a": "Her plan, siz görmeden önce bir ziraat mühendisi tarafından incelenir. Bir rakamı değiştirirse gerekçesi kaydedilir."
+      },
+      {
+        "q": "Kanıt belgesi ne işe yarar?",
+        "a": "Neyin, hangi girdilerle ve neden önerildiğine dair sizin kaydınızdır. Bir sertifika değildir ve hiçbir üçüncü taraf onu onaylamamıştır."
+      },
+      {
+        "q": "Pilot program nerede geçerli?",
+        "a": "Az sayıda çiftlikle başlıyoruz. Katılım konuma, ürüne ve uygunluğa bağlıdır — bir plan isteyin, size dürüstçe söyleyelim."
+      }
+    ]
+  },
+  "footer": {
+    "tagline": "Tarlaya özel gübreleme kararları, kanıtıyla.",
+    "privacy": "Gizlilik",
+    "languages": "Diller",
+    "comingSoon": "yakında",
+    "rights": "© 2026 CloverProof"
+  },
+  "privacy": {
+    "title": "Gizlilik bildirimi",
+    "description": "CloverProof'un, pilot planı istediğinizde paylaştığınız bilgileri nasıl topladığı, kullandığı ve koruduğu.",
+    "draft": "Taslak — yayından önce inceleniyor.",
+    "updated": "Son güncelleme: Kasım 2026",
+    "sections": [
+      {
+        "h": "Ne topluyoruz",
+        "p": "Bir pilot planı istediğinizde girdiğiniz bilgileri topluyoruz: ad, e-posta, ülke, yaklaşık çiftlik büyüklüğü, ana ürün ve varsa notlarınız."
+      },
+      {
+        "h": "Neden topluyoruz",
+        "p": "Yalnızca çiftliğinizi pilot programa dahil edip edemeyeceğimizi değerlendirmek ve bu konuda sizinle iletişime geçmek için. Bilgilerinizi pazarlama amacıyla satmıyor veya paylaşmıyoruz."
+      },
+      {
+        "h": "Nerede saklanıyor",
+        "p": "Bilgileriniz veritabanı sağlayıcımızda saklanır ve erişim CloverProof ekibiyle sınırlıdır."
+      },
+      {
+        "h": "Ne kadar süre saklıyoruz",
+        "p": "Pilot seçimi tamamlanana kadar veya pilot programa katılırsanız daha uzun süre. Bilgilerinizi istediğiniz zaman silmemizi isteyebilirsiniz."
+      },
+      {
+        "h": "Haklarınız",
+        "p": "Verilerinizi görmeyi, düzeltmeyi veya silmeyi talep edebilir ve onayınızı istediğiniz zaman geri çekebilirsiniz."
+      }
+    ]
+  },
+  "check": {
+    "eyebrow": "İki dakikalık tarla kontrolü",
+    "title": "Planınız neleri kapsayabilir?",
+    "intro": "Dört kısa soruyu yanıtlayın. Her yanıt bir yaprağı doldurur. Sonunda, hiçbir bilgi paylaşmadan önce, bu tarla için ne tür bir plan hazırlayabileceğimizi göreceksiniz.",
+    "progress": "Dolan yapraklar",
+    "back": "Geri",
+    "restart": "Baştan başla",
+    "questions": [
+      {
+        "id": "soilTest",
+        "q": "Bu tarla için bir laboratuvar toprak analiziniz var mı?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Evet"
+          },
+          {
+            "v": "no",
+            "label": "Hayır"
+          },
+          {
+            "v": "unsure",
+            "label": "Emin değilim"
+          }
+        ]
+      },
+      {
+        "id": "method",
+        "q": "Raporda ekstraksiyon yöntemi ve örnekleme derinliği yazıyor mu?",
+        "hint": "Örneğin Olsen, Bray-1 veya Mehlich-3 ve cm ya da inç cinsinden derinlik.",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Evet, ikisi de"
+          },
+          {
+            "v": "no",
+            "label": "Hayır / emin değilim"
+          },
+          {
+            "v": "skip",
+            "label": "Raporum yok"
+          }
+        ]
+      },
+      {
+        "id": "previousCrop",
+        "q": "Geçen sezon bu tarlada ne yetiştiğini biliyor musunuz?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Evet"
+          },
+          {
+            "v": "no",
+            "label": "Hayır"
+          }
+        ]
+      },
+      {
+        "id": "target",
+        "q": "Bu sezon için gerçekçi bir hedef veriminiz var mı?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Evet"
+          },
+          {
+            "v": "no",
+            "label": "Henüz yok"
+          }
+        ]
+      }
+    ],
+    "results": {
+      "full": {
+        "title": "Eksiksiz bir azot, fosfor ve potasyum planı",
+        "body": "Eksiksiz bir laboratuvar raporuyla üç besin maddesinin hepsini planlayabiliriz; her biri kendi güven düzeyi ve gerekçeleriyle.",
+        "tag": "N · P · K"
+      },
+      "confirm": {
+        "title": "Laboratuvar yöntemini doğruladıktan sonra eksiksiz bir plan",
+        "body": "Toprak analiziniz var. Ekstraksiyon yöntemini ve derinliği okuyabilmek için raporu isteyeceğiz — ardından üç besin maddesinin hepsini planlayacağız.",
+        "tag": "Kontrolden sonra N · P · K"
+      },
+      "nOnly": {
+        "title": "Bir azot planı — ve geri kalanı için toprak analizi",
+        "body": "Laboratuvar analizi olmadan yalnızca azot konusunda öneri veririz, en fazla orta güven düzeyinde. Fosfor ve potasyum için önce analiz yaptırmanızı öneririz.",
+        "tag": "Yalnızca N"
+      }
+    },
+    "gapsTitle": "Planı ne güçlendirir",
+    "gaps": {
+      "previousCrop": "Geçen sezonun ürünü — toprağın zaten ne kadar azot sağladığını değiştirir.",
+      "target": "Bir hedef verim — plan bunun etrafında kurulur.",
+      "method": "Laboratuvarın ekstraksiyon yöntemi ve örnekleme derinliği.",
+      "soilTest": "Fosfor ve potasyum için bir laboratuvar toprak analizi."
+    },
+    "noGaps": "Eksik bir şey yok. Bu tarla bir plan için hazır.",
+    "cta": "Bu tarla için pilot planı isteyin",
+    "disclaimer": "Bu kontrol yalnızca bir planın kapsamını gösterir. Doz vermez — dozlar, bir ziraat mühendisi verilerinizi inceledikten sonra gelir."
+  }
+}
