@@ -21,6 +21,7 @@ Audience: `product-manager` (CPO), who forwards 10 lines to Farjad Iranmehr at t
 4. **Estimates and proxies are labelled** (`proxy`, `estimate`). Unknowns are written `no data` plus the reason, never filled in.
 5. **No personal or farm-identifying data**: no names, emails, farm or field names, free-text reasons. Plan counts only.
 6. **No agronomic targets.** The report states what happened, not whether a kg N/ha value is good.
+7. **Human vs AI reviews (D4, 2026-11-16).** Sections B-F count **human (`agronomist_approved`) reviews only**. AI sign-offs by `cp-agronomist` (`ai_reviewed`) appear only in section H and are never added to a human count, rate, gate or baseline. If reviewer kind is not yet recorded in the database (G9), sections C-E print "reviewer kind not recorded" instead of numbers. Until a human agronomist is named, expect "0 human-approved plans" — that is the correct output.
 
 ## Sections (one screen: at most 45 lines, no charts; a table plus one line of reading each)
 
@@ -31,9 +32,10 @@ Audience: `product-manager` (CPO), who forwards 10 lines to Farjad Iranmehr at t
 | B. Plans | Plans created, plans not yet reviewed, plans approved this sprint, plans open (reviewed, not approved) | M1, M3 counts |
 | C. Agronomist time | Median and p90 minutes per approved plan; minutes of open plans so far (count and sum only) | M1 |
 | D. Review outcomes | First-pass approval, first-pass edit, first-pass reject (plan-level cohort); plans with a reject; approved after edit; review-level shares as secondary line | M3, M2 |
-| E. Engine vs final | N rate, kg N/ha: signed bias, median relative delta, share edited, share N changed; confidence/crop/method cuts only if n >= 10 per cell. Fixed line: "P/K: no numeric engine output (G1)" with the note-code count | M4 |
+| E. Engine vs final | Per nutrient and form from `calibration_delta` (R2, human only): signed bias, median relative delta, lines changed / added / removed, product changes; cuts only if n >= 10 per cell. Before `recommendation_line` is migrated: N rate only, with the fixed line "P/K: no numeric engine output (G1, solved by R2 once migrated)" | M4 |
 | F. Data freshness | Query run time, last review timestamp, last pilot request timestamp, plans not yet reviewed, share of zero-minute reviews (M5), open schema gaps that affected this report | M5, q_fresh |
 | G. Flags (max 3 lines) | Anomalies and data gaps, each with a source; "what would change this reading" in one clause | - |
+| H. AI review diagnostics (not agronomist approval) | Counts only: plans signed `ai_reviewed`, AI approve/edit/reject, AI lines added/removed vs engine. Titled so it cannot be read as approval | M2-M4 (ai) |
 
 Layout per metric row: `metric | this sprint value (n) | last sprint value (n) | flag | note (<= 12 words)`.
 
@@ -82,20 +84,23 @@ D. Review outcomes (M3, M2)
  Plans with a reject               1 plan                         last: 0          TSR
  Review-level (approve/edit/rej)   5 / 4 / 1 of 10 reviews        last: 3/2/0 of 5 n=10 shown, last n=5: no comparison
 
-E. Engine vs final, N rate kg N/ha (M4), approved plans, descriptive
- Overall signed delta (final-engine)  n=4: -15, -10, 0, +5   TSR  no bias or median shown
+E. Engine vs final (M4), human-approved plans only, descriptive
+ N total signed delta (final-engine)   n=4: -15, -10, 0, +5   TSR  no bias or median shown
  Share edited / N rate changed        3 of 4 / 3 of 4        TSR
  By crop, confidence, method          suppressed (n<10)
- P and K                              no numeric engine output (G1): 4 of 4 plans carry a note only
+ P and K lines (R2, per line)         P: 2 matched, 1 added, 0 removed | K: 1 matched   TSR  counts only
 
 F. Freshness (M5)
  Last review Thu Feb 25 16:42 | last request Wed Feb 24 09:03 | 1 plan not yet reviewed
  Zero-minute reviews: 1 of 10 (M5)
- Gaps affecting this report: G2 (no request-to-farm link), G1 (no P/K numbers)
+ Gaps affecting this report: G2 (no request-to-farm link)
 
 G. Flags
  1. Minutes are review minutes only; intake time not recorded (G4).
  2. Plan 4 of 6 took 41 min; cannot say if first-farm learning or complexity (n too small).
+
+H. AI review diagnostics (cp-agronomist, ai_reviewed - NOT agronomist approval)
+ Plans signed ai_reviewed 5 | AI approve/edit/reject 3 / 2 / 0 | lines added 1, removed 0   counts only
 ```
 
 Reading note for the CPO (printed under every report): "With 5-10 farms these are counts of what happened, not statistics. Do not draw a trend or change an agronomic constant from them."

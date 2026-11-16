@@ -1,6 +1,6 @@
 # Calibration loop — how each reviewed plan becomes evidence
 
-Owner: `data-scientist` (reports to `head-of-data`). Status: DRAFT spec, S2 (2026-11-16).
+Owner: `data-scientist` (reports to `head-of-data`). Status: DRAFT spec, S2 (2026-11-16); updated 2026-11-16 for D4 + R2.
 Applies to: engine `0.2.0`, pack `placeholder` `v0`, migrations `0001`–`0009` in `db/migrations/`.
 
 This spec defines the calibration dataset (engine output vs agronomist final + reason), how it is
@@ -8,6 +8,37 @@ queried, tagged and analysed, and how a finding may turn into a pack change. It 
 agronomic constant values**. Every value in examples is a symbolic placeholder (`<CURRENT>`,
 `<PROPOSED>`, `<TOLERANCE>`). The data team never edits `engine/` or `packs/`, and nothing in this
 loop produces a number that reaches a farmer.
+
+## Update 2026-11-16 — D4 (AI reviewer) and R2 (per-line storage)
+
+Source: `docs/plans/backend-plan-reconciliation.md` (D4, R2) and `docs/plans/backend-plan.md` §6.4.
+These rules override anything below that conflicts with them.
+
+1. **Two kinds of sign-off.** Until a human agronomist is named, the reviewer is the AI agent
+   `cp-agronomist`; its sign-off is **`ai_reviewed`**. A human user with the `agronomist` role gives
+   **`agronomist_approved`**. The kind is stamped on each `review` row (`review.reviewer_kind`,
+   proposed name; cp-database flag in migrations 0011+).
+2. **Only human-approved units are calibration evidence.** `ai_reviewed` units never count toward:
+   the 90 % agreement gate, the calibration baseline, Tier 1 flags, Tier 2 constant-change
+   proposals (§4.1), or the approval / review-gate rates. They may be reported in a separate block
+   "AI review diagnostics (not agronomist approval)" and are never pooled with human units
+   (added to §5.2).
+3. **No baseline without human cases** (traceability NB-DAT-03, OQ-04). Until human-approved
+   units exist, the S3 deliverable is the baseline **method** plus the line "no human-approved
+   cases yet" (§7).
+4. **Per-line evidence (R2).** The engine-vs-final delta is computed per `recommendation_line`
+   (nutrient + explicit form + split, with product and timing as attributes), not on P/K columns
+   of `recommendation`. The view is specified in `docs/data/calibration-delta-spec.md` (DM-16).
+   Old gap G1 ("no P/K numbers") is **SOLVED BY R2** once `recommendation_line` is migrated and the
+   engine writes P/K lines (S3 per backend plan R5).
+5. **The 90 % agreement gate is undefined.** The reconciliation names it; nothing defines unit
+   (line or nutrient total), tolerance per nutrient (agronomist-todo #10), treatment of
+   added/removed lines, or population. Data does not invent it (open question).
+6. **Target schema.** Queries in §2 below are written against migrations 0001–0009
+   (`recommendation_diff`, N only) and remain valid for today's data. The per-line replacement is
+   the reference SQL in `calibration-delta-spec.md` §5 — **target schema (§6.4), not yet migrated**.
+   Who the human agronomist is (Farjad Iranmehr, named in CLAUDE.md, or someone else) is open
+   (OQ-04, risk RK-X1); this file's "Farjad Iranmehr" means "the human agronomist" until resolved.
 
 ---
 
@@ -48,6 +79,13 @@ of its `parent_id` chain**, deduplicated to one unit per field × season × crop
 - **Approved without edits** (`edit_depth = 0`, Δ = 0) is evidence: agreement is data. Leaving
   these out would bias every statistic away from zero.
 - Unapproved versions (drafts, edits not yet approved, superseded intermediates) are **not** units.
+- **D4/R2 (target schema):** the unit becomes one *human-approved* final per season, read as a set
+  of line pairs from `calibration_delta` (`counts_toward_calibration = true`). Line matching
+  (key `nutrient` + `nutrient_form` + `split_no`; added/removed lines are separate signals, never a
+  zero delta; product and timing changes are attributes) is defined in
+  `calibration-delta-spec.md` §2. Statistics are computed per nutrient on matched lines and on the
+  per-nutrient total (spec §6.2), with add and removal rates reported beside them. An
+  `ai_reviewed` final is never a unit.
 
 ### 1.2 Multi-step edits
 
@@ -62,7 +100,8 @@ Chain `engine → A1 → A2 (approved)`:
 ### 1.3 Rejects
 
 `review.decision = 'reject'` has no resulting numbers, so a reject is **never a numeric unit**.
-- Counted per stratum as **reject rate** = rejects / (rejects + approvals) on engine roots.
+- Counted per stratum as **reject rate** = rejects / (rejects + approvals) on engine roots,
+  human reviews only (D4); AI rejects are a diagnostic.
 - Its reason is tagged with the same taxonomy (§3). A reject tagged `ENGINE_BUG` goes to the bug
   list in the same sprint.
 - If the crop plan is later re-run (a new engine root) and approved, the approved re-run is the
@@ -114,7 +153,7 @@ chains, approvals, rejects). Q6 flagged the edited rows as inconsistent, which c
 | Stratum | Column / path | Note |
 |---|---|---|
 | Nutrient N | `recommendation.n_rate_kg_ha` (generated from `result.nitrogen.rate.value`) | Only nutrient with a number in v0 |
-| P / K | `result -> 'phosphorus_potassium'` is a `Note {code, text}` only | **No P/K numbers anywhere** (gap G1) |
+| P / K | Today: `result -> 'phosphorus_potassium'` is a `Note {code, text}` only. Target (R2): `recommendation_line` rows with `nutrient` + explicit form | Gap G1 **SOLVED BY R2** once migrated; use `calibration_delta` |
 | Crop | `result ->> 'crop'` (immutable) | `crop_plan.crop` is mutable; do not use |
 | Previous crop, target yield, area, plan date | `inputs_snapshot ->> 'previous_crop'`, `'target_yield_t_ha'`, `'area_ha'`, `'plan_date'` | Snapshot, not `crop_plan` (mutable) |
 | Soil test present / source | `inputs_snapshot -> 'soil_test'` (JSON `null` when none), `->> 'source'` | |
@@ -245,7 +284,7 @@ cross join lateral jsonb_array_elements(
 ```
 
 In engine v0 the soil test does not change the N rate (only confidence and the P/K note), so this
-stratum matters for P/K once P/K numbers exist (gap G1).
+stratum matters for P/K once P/K lines exist (gap G1, SOLVED BY R2: `recommendation_line`).
 
 ### 2.5 Q4 — reasons along each chain (for tagging)
 
@@ -319,10 +358,16 @@ and total comparisons are unreliable and only the rate is analysed.
 
 ### 2.8 P/K
 
+**Status: SOLVED BY R2 (target).** With `recommendation_line` (§6.4) P and K are ordinary lines with
+an explicit form; the P/K engine-vs-final delta comes from `calibration_delta` exactly like N
+(`calibration-delta-spec.md`). P/K numbers appear only when the engine emits P/K with a soil test
+(S3 per R5) and stay N-only without a test (hard rule 3). The text below describes v0 / migrations
+0001–0009 and applies only to plans created before the migration.
+
 There is no P/K dataset in v0: `result.phosphorus_potassium` holds only a code
 (`PK_NOT_CALCULATED_V0` or `PK_SOIL_TEST_RECOMMENDED`). The only query possible is a count of
 codes. The agronomist's own P/K numbers have no column and would be lost except as free text
-(gap G1, the most serious one before the field season).
+(gap G1 — now SOLVED BY R2 for plans created after `recommendation_line` is migrated).
 
 ```sql
 -- <Q1 CTEs here>
@@ -349,7 +394,7 @@ Free text stays as written; the code is added alongside it.
 | `RATE_BOUND` | Engine rate hit min/max and he disagrees with the bound | `min_rate`, `max_rate` | Yes |
 | `SPLIT_TIMING` | Changes split fractions or timing, not the total | `splits[*]` | Yes (splits only) |
 | `MANURE_ORGANIC` | Manure / organic amendment not modelled | Method gap (#6c), not a constant | No for constants; yes for method |
-| `SOIL_TEST_PK` | P/K decision or soil-test interpretation | No P/K in v0 (gap G1) | Later |
+| `SOIL_TEST_PK` | P/K decision or soil-test interpretation | P/K lines (R2), pack P/K critical values | Yes, once P/K lines exist |
 | `LOCAL_PRACTICE` | Regional norm, experience, no specific component named | Unattributed | Weak: question to agronomist, never a constant change alone |
 | `FARMER_CONSTRAINT` | Budget, product availability, equipment, farmer preference | — | No |
 | `ROUNDING` | Rounded to product / spreader rate | — | No if within tolerance |
@@ -413,6 +458,10 @@ Notes:
 | **1 — Direction flag** | "Consistent direction" flag + a question to the agronomist; **no value** | n_plans ≥ 5 from ≥ 3 farms, ≥ 80% of non-agreeing units in one direction | Five same-sign cases are the smallest set that is even suggestive; exact two-sided sign test with 5/5 is p = 0.0625, so it **cannot** exclude chance. A flag, not evidence |
 | **2 — Constant-change proposal** | Evidence memo with an estimate and interval | **n_plans ≥ 20 from ≥ 10 farms**, one `pack_sha256`, one crop, one nutrient, one season/region stratum; AND farm-bootstrap 95% CI of mean Δ excludes 0 and \|mean Δ\| > tolerance; AND direction consistency ≥ 15/20 (Wilson lower bound > 0.5); AND ≥ 60% of edits carry a primary code pointing at the same constant, confirmed by the agronomist | t-interval half-width on the mean is 1.24 SD at n = 5, 0.72 SD at n = 10, 0.47 SD at n = 20. If fields cluster fully by farm, n_eff = farms, so ≥ 10 farms keeps the worst case near 0.72 SD; below 10 clusters a cluster bootstrap is unreliable. 15/20 is the smallest count whose Wilson lower bound is above 0.5 (0.531; 14/20 gives 0.481). The code rule is needed because the rate cannot identify which constant is off |
 
+**Human-only (D4).** Every tier counts only `agronomist_approved` units. `ai_reviewed` units can
+feed Tier 0 (a bug report is a bug whoever finds it) but never Tier 1 or Tier 2, and never appear in
+a proposal memo's evidence numbers.
+
 **Plainly:** the 5 Dec 18 wheat cases and a 5–10-farm season are **anecdotes**. They can support
 bug finding, consistent-direction flags (Tier 1) and a list of questions for the agronomist. They
 **cannot** support re-fitting or re-estimating any constant. With at most 10 farms in the whole
@@ -446,6 +495,8 @@ engine confidence, country/region.
 - **Pack status:** `placeholder` and validated packs are never pooled.
 - **Crops, nutrients:** never pooled.
 - **Blind (golden cases) vs anchored (tool reviews):** never pooled.
+- **`ai_reviewed` vs `agronomist_approved` (D4):** never pooled; AI units are excluded from every
+  calibration statistic and shown only as diagnostics.
 - **Seasons / regions:** stratify; pooled totals are descriptive only.
 
 ### 5.3 Replay (the legitimate way to pool across versions)
@@ -468,7 +519,9 @@ calibration review states which units fall before and after.
    bug, not a constant change).
 2. **`head-of-data`** reviews method and sample rule; may send back.
 3. **CPO (`product-manager`)** reviews scope and timing (season freeze, release gate).
-4. **Farjad Iranmehr approves or rejects.** The decision, date, his value and **source** are
+4. **The human agronomist (Farjad Iranmehr unless OQ-04 names someone else) approves or
+   rejects.** A `cp-agronomist` (AI) opinion may be attached as context, labelled `ai_reviewed`;
+   it never approves (D4) and the constant stays PLACEHOLDER until the human decides. The decision, date, his value and **source** are
    recorded in the memo's Decision section and in the Notion decision log via
    `documentation-manager`. A rejection is recorded with its reason and closes the memo.
    The data team never chooses the final value.
@@ -526,6 +579,16 @@ Follow-up: golden case <id> (cp-engine), pack <id> <new version>, guard review <
 
 ## 7. S3 plan — calibration baseline from the 5 real wheat cases (due Dec 18)
 
+**Revised after D4 (2026-11-16).** A baseline number is produced **only from human-approved cases**.
+If no human agronomist has supplied cases by the S3 cut-off, the S3 output is:
+(a) this baseline **method** (items 1–8 below, applied per `recommendation_line` once R2 is
+migrated), and (b) the line **"no human-approved cases yet — no baseline produced"**. Reference
+cases drafted by `cp-agronomist` from published sources (`external_reference`, `ai_reviewed`) may be
+tabulated in a separate appendix "AI review diagnostics" for bug finding only; they are not a
+baseline, not agronomist judgement, and not pooled.
+
+The plan below applies when the human cases arrive.
+
 Input: 5 cases from Farjad Iranmehr (agronomist-todo #1), given **blind** (input → his rate,
 splits, confidence, reason). Expected mix: ≥ 1 without soil test, ≥ 1 after a legume.
 
@@ -563,6 +626,8 @@ Run in week 2 of each field-season sprint; output `docs/data/calibration-review-
 `head-of-data` before the Friday review.
 
 - [ ] Freeze the snapshot: query timestamp, migration level, row counts per table.
+- [ ] Split every unit by `reviewer_kind` (D4); statistics below use human-approved units only;
+      AI units go to a separate "AI review diagnostics" block (counts, add/remove rates).
 - [ ] Apply exclusions (§1.5); list excluded units by reason (counts only).
 - [ ] Run Q6 data-quality checks; open tickets for inconsistent splits/totals, changed inputs,
       pack mismatch, duplicate approvals.
@@ -588,7 +653,8 @@ gaps still open, recommendation for the 2028 sample size.
 
 | # | Gap | Impact | Suggested direction (needs ADR) |
 |---|---|---|---|
-| G1 | No P/K numbers in `result` (only a Note); `Recommendation` is `extra="forbid"` | Agronomist's P/K finals are lost or free text only; no P/K calibration possible | Decide where his P/K numbers go before Feb 1 |
+| G1 | ~~No P/K numbers in `result`~~ **SOLVED BY R2**: `recommendation_line` per nutrient with explicit form (§6.4) | Closed once cp-database migrates `recommendation_line` and the engine writes P/K lines; verify before Feb 1 | Track in `calibration-delta-spec.md` (DM-16) |
+| G11 | No reviewer kind (D4): cannot separate `ai_reviewed` from `agronomist_approved` | AI sign-offs would contaminate calibration and gates | `review.reviewer_kind` stamped at insert (cp-database, migrations 0011+, REC-D4) |
 | G2 | No reason code; two free-text reasons (`recommendation.reason`, `review.reason`) | Tagging is manual and after the fact | Coded `reason_code` on edits/rejects, picked at review time |
 | G3 | No test/demo flag on `organisation` | Exclusion by name pattern is fragile | Boolean flag or org kind |
 | G4 | `recommendation` has no `field_id` / `soil_test_id`; `crop_plan` is mutable | Farm/region join goes through a mutable row; snapshot soil test has no id | Store field/soil-test ids at insert time |

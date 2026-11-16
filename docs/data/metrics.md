@@ -1,6 +1,6 @@
 # CloverProof metric catalogue
 
-Owner: `head-of-data`. Written by `data-analyst`. Status: DRAFT v0, 2026-11-16 (Sprint 2). Single catalogue: a metric without an entry here is not reported.
+Owner: `head-of-data`. Written by `data-analyst`. Status: DRAFT v0, 2026-11-16 (Sprint 2); updated 2026-11-16 for D4 + R2. Single catalogue: a metric without an entry here is not reported.
 
 ## Read this first
 
@@ -9,6 +9,26 @@ Owner: `head-of-data`. Written by `data-analyst`. Status: DRAFT v0, 2026-11-16 (
 - **No farmer data.** Reports contain counts and aggregates only. A segment (crop, method, confidence...) with fewer than 10 plans is shown as a count only (see `docs/data/sprint-metrics-report.md`). Do not copy `pilot_request` names or emails, `farmer.display_name`, `notes` or `reason` free text into any report.
 - **"n at which it starts to mean anything"** below is a reporting convention proposed by data, not a statistical power calculation. At n below that, report the raw count and the plain rows. CPO to confirm (open question 3 in the hand-off).
 - Source: Postgres schema `db/migrations/0001`-`0009` and `engine/cloverproof_engine/results.py` as of branch `myca/data-s2-693748`, 2026-11-16. Queries were run against a throwaway local PostGIS (migrations 0001-0009 applied, 5 invented plans) to check that they execute and return the expected shape. They have NOT been run on real data (none exists yet).
+
+## D4 / R2 update (2026-11-16) — applies to M1–M6
+
+Source: `docs/plans/backend-plan-reconciliation.md` D4 + R2; `docs/plans/backend-plan.md` §6.4.
+
+- **Two reviewer kinds.** For now the reviewer is the AI agent `cp-agronomist`; its sign-off is `ai_reviewed`. Later a human with the `agronomist` role signs `agronomist_approved`. The kind is stamped on each review row: `review.reviewer_kind` (`ai` / `human`) — **target schema (§6.4 + D4 flag from cp-database, migrations 0011+), not yet migrated**; the column name is data's proposal.
+- **Every metric is segmented by reviewer kind.** Headline numbers use **human reviews only**. AI reviews are shown in a separate block "AI review diagnostics (not agronomist approval)" and are never added to a human numerator or denominator. Mechanically: each query below gets one extra predicate on its review rows, `and rv.reviewer_kind = :'reviewer_kind'`, and is run twice (`human` for the headline, `ai` for diagnostics). Until the column exists the kind cannot be read from the database: the CPO report prints "reviewer kind not recorded (G9)" and publishes no headline rate, unless the CPO confirms in writing that every review in the window was by a human.
+- **What AI reviews never count toward:** the 90 % agreement gate, the calibration baseline, constant-change proposals, the approval / review-gate rates (M2, M3), the key metric "agronomist minutes per plan" (M1), and "farms with an approved plan" (M6). Under D4 an AI sign-off cannot make a real-farm plan `approved`; it stays `in_review`.
+- **Baseline needs human cases.** No baseline number is published until human-approved cases exist (OQ-04). Until then the report line is "no human-approved cases yet".
+- **The 90 % agreement gate is not defined** (unit, tolerance per nutrient = agronomist-todo #10, treatment of added/removed lines, population). Open question; data does not invent it.
+- **Per metric:**
+
+| Metric | Headline (human only) | AI diagnostic (separate block) |
+|---|---|---|
+| M1 minutes per plan | Sum of human `minutes_spent` per plan approved by a human. With §6.4, also report measured `finished_at − started_at` beside typed minutes (closes G7 partly) | AI review count per plan; AI minutes are agent run time, not agronomist time — never shown as "agronomist minutes" |
+| M2 review outcome shares | Human reviews | AI approve / edit / reject counts |
+| M3 plan approval / first-pass rates (review gate) | Plan "approved" = human approval with `status = 'approved'`; first pass among human reviews | Share of plans the AI signed off unchanged (`ai_reviewed`); AI-vs-human agreement on the same plan once both exist |
+| M4 engine vs final | Per `recommendation_line` from `calibration_delta` where `counts_toward_calibration` (see M4 below) | Same columns for `reviewer_kind = 'ai'` |
+| M5 zero-minute check | Human reviews | Not applicable (AI minutes are not timed by a person) |
+| M6 funnel | Farms with a human-approved plan | Farms with an AI-reviewed plan still awaiting a human (count only) |
 
 ## Conventions shared by all queries
 
@@ -182,10 +202,34 @@ where first_review_at >= t0 and first_review_at < t1;   -- cohort: plans first r
 
 ## M4. Engine vs final difference (calibration signal)
 
+> **Superseded for the target schema by R2.** Once `recommendation_line` (§6.4) is migrated, M4 is computed **per line** from the view `calibration_delta` (`docs/data/calibration-delta-spec.md`): one row per nutrient + explicit form + split, engine root vs final, `diff_kg_ha = final − engine`, `abs_diff_kg_ha`, `rel_diff` (NULL when the engine value is 0, explained by `rel_diff_status`), `match_status` (`matched` / `added` / `removed` — added and removed lines are reported as add / removal rates, never as a zero delta), `product_changed`, timing shifts, `reviewer_kind`. Headline = `counts_toward_calibration = true` (human). Summaries per nutrient (and form) with the same cuts as below (crop, confidence, soil-test method, pack version). The P/K gap G1 is **SOLVED BY R2**. The text and SQL below describe today's schema (migrations 0001–0009, N only) and stay valid for plans created before the migration.
+>
+> Target-schema query (not yet migrated):
+> ```sql
+> select nutrient, nutrient_form, pack_id, pack_version,
+>        count(*) filter (where match_status = 'matched')                    as n_matched_lines,
+>        count(*) filter (where match_status = 'added')                      as n_added_lines,
+>        count(*) filter (where match_status = 'removed')                    as n_removed_lines,
+>        count(*) filter (where diff_kg_ha <> 0)                             as n_changed_lines,
+>        avg(diff_kg_ha)                                                     as signed_bias_kg_ha,
+>        percentile_cont(0.5) within group (order by diff_kg_ha)             as median_diff_kg_ha,
+>        avg(abs_diff_kg_ha)                                                 as mean_abs_diff_kg_ha,
+>        count(rel_diff)                                                     as n_with_relative,
+>        percentile_cont(0.5) within group (order by rel_diff)               as median_rel_diff,
+>        count(*) filter (where product_changed)                             as n_product_changed
+> from calibration_delta
+> where reviewer_kind = :'reviewer_kind'        -- 'human' headline; 'ai' diagnostics
+>   and signed_at >= :'sprint_start'::timestamptz and signed_at < :'sprint_end'::timestamptz
+>   and not inputs_changed and not pack_changed
+> group by nutrient, nutrient_form, pack_id, pack_version
+> order by 1, 2, 3, 4;
+> ```
+> Aggregates ignore NULL diffs, so added/removed lines do not enter bias or median. With n < 10 lines per cell the report shows the list, not the statistic (rules unchanged).
+
 - **Question:** where, and in which direction, does the agronomist's approved number differ from the engine's number, per nutrient, crop, soil-test method and confidence?
 - **Nutrients the schema exposes today (honest status):**
   - **N: yes.** `recommendation.n_rate_kg_ha` (generated from `result.nitrogen.rate.value`, unit kg N/ha, CHECK-enforced) and the view `recommendation_diff` (`engine_n_rate_kg_ha`, `final_n_rate_kg_ha`, `n_rate_delta_kg_ha`). Also in `result` jsonb: `nitrogen.total` (= rate x area, kg N), `nitrogen.splits[]` (stage fractions and rates), `nitrogen.components[]`, `nitrogen.bound_applied`, `nitrogen.constants_used[]` (with PLACEHOLDER status).
-  - **P and K: no number exists.** `Recommendation.phosphorus_potassium` is a `Note` (a code and text, e.g. `PK_NOT_CALCULATED_V0`, `PK_SOIL_TEST_RECOMMENDED`). The engine returns no P or K rate and the document model (`extra="forbid"`) has no field for the agronomist to enter one. So **there is no P/K engine-vs-final delta to compute, in SQL or otherwise.** This is schema gap G1. `application_log` has P/K-capable `form` and rates but records what was applied, not the engine-vs-final difference.
+  - **P and K: no number exists.** `Recommendation.phosphorus_potassium` is a `Note` (a code and text, e.g. `PK_NOT_CALCULATED_V0`, `PK_SOIL_TEST_RECOMMENDED`). The engine returns no P or K rate and the document model (`extra="forbid"`) has no field for the agronomist to enter one. So **there is no P/K engine-vs-final delta to compute, in SQL or otherwise.** This is schema gap G1 (v0 only; SOLVED BY R2 in the target schema, see the box above). `application_log` has P/K-capable `form` and rates but records what was applied, not the engine-vs-final difference.
   - So the metric is **N rate only** until G1 is closed. Query `q_diff_pk` shows what is stored for P/K so the report can state "P/K: no numeric output" with a count instead of silence.
 - **Population:** approved plans (final = latest approved version) with approval in the window. One row per plan.
 - **Formulas** (per plan, then summarised; `delta` = final minus engine, kg N/ha):
@@ -456,7 +500,7 @@ select (select count(*) from pilot_request where deleted_at is null)            
 
 | # | Gap | Effect today | Proposal (owner: `cp-database` / `cto`, decision: CPO) |
 |---|---|---|---|
-| G1 | No P or K number in the engine document or anywhere in the schema; `phosphorus_potassium` is a Note | No P/K engine-vs-final delta, ever, until the engine emits P/K numbers | When the engine adds P/K, add typed generated columns like `n_rate_kg_ha` (`p_rate_kg_ha`, `k_rate_kg_ha`) with the explicit form (P vs P2O5, K vs K2O) stored beside each, and extend `recommendation_diff`. Until then M4 is N-only and the report says so. |
+| G1 | **SOLVED BY R2.** Was: no P or K number in the engine document or schema | P/K deltas come from `recommendation_line` via `calibration_delta` once migrated and the engine writes P/K lines (S3) | Reconciliation R2: do **not** add `p_rate_kg_ha` / `k_rate_kg_ha` to `recommendation` (the earlier proposal here is withdrawn). Spec: `calibration-delta-spec.md` |
 | G2 | `pilot_request` has no link to `organisation` / `farmer` / `farm` | Funnel stops at "accepted"; request to first approved plan is not a measurable conversion | Add nullable `pilot_request.farmer_id` (or `organisation_id` + `farmer_id`), set by the concierge when a request is accepted and a farmer record is created. |
 | G3 | `pilot_request.status` has no history | No time in stage, no "moved in this sprint", past sprint counts not reproducible | Append-only `pilot_request_status_event(pilot_request_id, status, at, by)`; or at least `contacted_at`, `decided_at`. Interim: snapshot counts at each report. |
 | G4 | Agronomist time outside review is not recorded | M1 covers review minutes only | Optional `minutes_intake` per `crop_plan`, or a `work_log`. CPO decides whether the extra data-entry burden is worth it. |
@@ -464,3 +508,4 @@ select (select count(*) from pilot_request where deleted_at is null)            
 | G6 | No acquisition channel on `pilot_request`; `country`, `main_crop`, `farm_size_text` are free text | No funnel by channel, region or size | Optional `source` (utm or referrer); normalised crop and country; numeric `farm_size_ha` entered by the concierge. Needs `legal-compliance-specialist` check for any new personal-data field. |
 | G7 | Timer semantics and `minutes_spent` provenance not stored | Cannot tell a measured from a typed-in value | Add `minutes_source` (`timer` / `manual`) to `review`, or document the app behaviour in an ADR. |
 | G8 | `recommendation_diff` collapses an edit chain to engine vs final and exposes only N rate | Intermediate edits and split changes are only in jsonb | Optional second view with N splits flattened (`nitrogen.splits[]`) per stage, once calibration needs it. |
+| G9 | No reviewer kind on `review` (D4) | `ai_reviewed` and human approvals cannot be separated; every metric would mix them | `review.reviewer_kind` (`ai` / `human`) stamped at insert — cp-database, migrations 0011+ (REC-D4) |
