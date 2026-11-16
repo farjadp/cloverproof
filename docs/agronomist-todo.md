@@ -1,11 +1,28 @@
 # Inputs needed from Farjad Iranmehr (agronomist)
 
 Owned by `cp-agronomy-guard`. Nothing here is validated until Farjad Iranmehr signs it off.
+Last reviewed against engine v0 (`ENGINE_VERSION = "0.1.0"`, pack `placeholder` v0).
 
-| # | Item | Where used | Current value | Needed from Farjad Iranmehr | Status |
-|---|------|-----------|---------------|----------------------|--------|
-| 1 | 5 real wheat cases (input → his recommendation) | `engine/tests/golden/` | sample cases | Field, soil test, crop history, target yield, his N rate + splits + reason | OPEN |
-| 2 | N mass-balance constants for wheat | `packs/placeholder/v0.yaml` | PLACEHOLDER | Values + source per constant | OPEN |
-| 3 | Previous-crop N credits | `packs/placeholder/v0.yaml` | PLACEHOLDER | Table by previous crop + source | OPEN |
-| 4 | Split plan + timing windows | `packs/placeholder/v0.yaml` | PLACEHOLDER | Splits by growth stage | OPEN |
-| 5 | Confidence rules | `engine/cloverproof_engine/confidence.py` | draft rules | Review and approve | OPEN |
+Every value in `packs/placeholder/v0.yaml` is `status: PLACEHOLDER`, `source: null`, with a
+`TODO(agronomist)` comment. They were picked only to make the arithmetic easy to check. They are
+not recommendations. When you give a value, also give the source (reference, trial, or "own
+experience, region X") so it can be marked `VALIDATED`.
+
+| # | Item | Where used | Current placeholder | Needed from Farjad Iranmehr | Status |
+|---|------|-----------|---------------------|-----------------------------|--------|
+| 1 | 5 real wheat cases (input -> his recommendation) | `engine/tests/golden/` (today only `sample_wheat_no_soil_test.yaml`, `sample_wheat_lab_soil_test_after_soybean.yaml`, `sample_wheat_rate_capped_after_field_pea.yaml`, all labelled SAMPLE, derived from the placeholder pack) | 3 SAMPLE cases, not agronomist decisions | 5 real fields, due **Dec 18**: field + area, soil test (method, depth, date, lab, values with form and units) or "no test", previous crop, target yield, plan date; his N rate (kg N/ha), splits with timing, his confidence, and `expected.reason` in his own words (why this rate). Mix: at least one without a soil test, one after a legume. | OPEN (due Dec 18) |
+| 2 | N mass-balance constants for wheat | `packs/placeholder/v0.yaml` lines 25-46 (`n_uptake_per_t_grain`, `soil_n_supply`, `fertilizer_n_efficiency`); used in `engine/cloverproof_engine/methods/n_mass_balance.py:44-48` | N uptake 30 kg N/t; soil N supply 40 kg N/ha (fixed default, not from a test); fertilizer N efficiency 0.8 | Value + source for each, for the region(s) of the 5 farms. Does soil N supply vary by soil type / organic matter / region? | OPEN |
+| 3 | Previous-crop N credits | `packs/placeholder/v0.yaml` lines 66-106 (`previous_crop_credits`); used in `methods/n_mass_balance.py:35-46` | wheat 0, canola 0, corn 0, soybean 20, field pea 20 kg N/ha | Credit per previous crop + source. See also #8 (which crops to list). | OPEN |
+| 4 | Split plan + timing windows | `packs/placeholder/v0.yaml` lines 109-125 (`splits`); used in `methods/n_mass_balance.py:92-122`; stage labels are printed to the plan | 2 splits: 0.4 "At or before seeding (PLACEHOLDER timing)", 0.6 "Tillering to start of stem elongation (PLACEHOLDER timing)" | Number of splits, fraction per split, growth stage (e.g. Zadoks / BBCH) and calendar window per region; when to use 1 vs 2 vs 3 splits | OPEN |
+| 5 | Confidence rules C1-C6 | `engine/cloverproof_engine/confidence.py:8-18` (rules), `:86-146` (logic); thresholds `packs/placeholder/v0.yaml` lines 128-148 | C1 no soil test -> medium; C2 estimated soil test -> medium; C3 soil test older than 3 years -> medium; C4 target yield outside 2-10 t/ha -> low; C5 rate cut to min/max -> medium; C6 pack has any PLACEHOLDER -> low | Approve or change each rule and its cap; value + source for yield range (2-10 t/ha) and soil-test age limit (3 years). Note: while C6 is in force every v0 plan is `low`. | OPEN |
+| 6 | Method form (the equation itself) | `engine/cloverproof_engine/methods/n_mass_balance.py:3-8, 43-48` | rate = (yield x uptake - soil supply - previous-crop credit) / efficiency | (a) Should soil N supply and previous-crop credit be divided by fertilizer efficiency (as now), or only fertilizer N? (b) Is uptake per tonne meant as whole-crop N per tonne of grain (pack comment line 24 says whole crop; plan text says "per tonne of grain") or grain N only? (c) Anything missing (e.g. residual N, organic amendments, protein target)? | OPEN |
+| 7 | Min / max N rate | `packs/placeholder/v0.yaml` lines 49-62 (`min_rate`, `max_rate`); used in `methods/n_mass_balance.py:49-55`, triggers C5 | min 0 kg N/ha, max 200 kg N/ha | Value + source for both; should the cap differ by region, irrigation or target yield? | OPEN |
+| 8 | Previous-crop list incl. generic "other" | `packs/placeholder/v0.yaml` lines 66-106; an unlisted crop raises `UnknownPreviousCropError` (`methods/n_mass_balance.py:35-41`) | wheat, canola, corn, soybean, field pea only; no "other", no fallow, no forage legume | Full list of previous crops you see on the 5 farms (incl. fallow, alfalfa/clover, barley, potato, etc.) and a generic "other" entry with its credit (0?) and source | OPEN |
+| 9 | Use of measured soil nitrate | Not used in v0: `engine/cloverproof_engine/engine.py:36-37` emits `SOIL_NITRATE_NOT_USED`; conversion ready in `engine/cloverproof_engine/units.py:71-84` (needs bulk density + layer depth as inputs) | none (pack default soil N supply 40 kg N/ha is used instead) | Should measured NO3-N replace or add to the default soil supply? Sampling depth(s) required (0-30? 0-60 cm?), bulk density to use per soil type (value + source) when the lab does not report it, nitrate extraction method (e.g. KCl) to record | OPEN |
+| 10 | Golden-case agreement tolerances | `engine/tests/golden/sample_*.yaml` `tolerance:` block (each has `TODO(agronomist)`); compared in `engine/cloverproof_engine/golden.py:88-101` | 0.5 kg N/ha per rate/split; 10 kg N per field total | What difference between engine and your number counts as "agree" (absolute kg N/ha, %, or rounded to product rate)? | OPEN |
+
+## Not agronomy constants (no input needed)
+
+- Oxide factors P<->P2O5 and K<->K2O are computed from IUPAC atomic weights in
+  `engine/cloverproof_engine/units.py:16-27` (P2O5->P 0.4364, K2O->K 0.8301), tested in
+  `engine/tests/test_units.py`. lb/ac<->kg/ha uses exact pound/acre definitions.
