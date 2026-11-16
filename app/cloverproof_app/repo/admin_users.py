@@ -3,7 +3,7 @@
 Rules enforced here (not only in the UI):
 - the web app grants and removes only `staff` (WEB_ROLES), through the database functions
   web_grant_member_role / web_revoke_member_role; `agronomist` and `owner` are changed
-  with the CLI only (cp_admin, ADR 0006) and shown read-only;
+  with the CLI only (cp_admin, ADR 0007) and shown read-only;
 - passwords of agronomist/owner accounts are reset with the CLI only, so an owner page
   cannot take over the approver's account;
 - an organisation never loses its last enabled owner (disable);

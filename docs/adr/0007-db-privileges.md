@@ -1,4 +1,4 @@
-# ADR 0006 — Database roles and privileges
+# ADR 0007 — Database roles and privileges
 
 - Status: Proposed (2026-11-16) — decided by the lead for Sprint 2 security fixes; needs Farjad Iranmehr's acceptance
 - Decider: Farjad Iranmehr

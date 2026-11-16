@@ -18,7 +18,7 @@ def test_cp_app_passes(db: psycopg.Connection) -> None:
 
 
 def test_cp_admin_is_refused(db: psycopg.Connection) -> None:
-    # cp_admin is a member of cp_app but may write memberships: CLI only (ADR 0006).
+    # cp_admin is a member of cp_app but may write memberships: CLI only (ADR 0007).
     with as_role(db, "cp_admin"), pytest.raises(ConfigError, match="cp_admin"):
         check_least_privilege(db)
 

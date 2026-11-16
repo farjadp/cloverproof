@@ -332,7 +332,7 @@ def test_cli_reset_password_sets_flag_and_revokes(db: psycopg.Connection, org_a:
     with_password(db, org_a.agronomist)
     agro_email = email_of(db, org_a.agronomist)
     signed = signed_in(db, agro_email)
-    with as_role(db, "cp_admin"):  # the CLI logs in as cp_admin_login (ADR 0006)
+    with as_role(db, "cp_admin"):  # the CLI logs in as cp_admin_login (ADR 0007)
         result = cli.user_create(
             db, email=agro_email, org=str(org_a.id), role="agronomist", display_name=None,
             create_org=False, reset_password=True, read_password=lambda: "temporary password 1",

@@ -1,4 +1,4 @@
--- Review gate hardening and admin audit (ADR 0006 "Migration 0012"; security review
+-- Review gate hardening and admin audit (ADR 0007 "Migration 0012"; security review
 -- S2-review-pr7-delta B1, F1, F2, F4, N11, N16; CPO decision D4).
 --
 --   B1/D4  app_user.actor_kind human|service; service accounts hold no password, never

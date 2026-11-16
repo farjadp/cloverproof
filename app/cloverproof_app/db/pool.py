@@ -17,7 +17,7 @@ from psycopg_pool import ConnectionPool
 from cloverproof_app.config import ConfigError
 
 APP_ROLE = "cp_app"
-ADMIN_ROLE = "cp_admin"  # CLI login (ADR 0006); the web app must not hold it
+ADMIN_ROLE = "cp_admin"  # CLI login (ADR 0007); the web app must not hold it
 
 
 def check_least_privilege(conn: psycopg.Connection) -> None:
@@ -42,9 +42,9 @@ def check_least_privilege(conn: psycopg.Connection) -> None:
         raise ConfigError("DATABASE_URL: the login role was not found in pg_roles")
     superuser, bypassrls, app_member, admin_member = row
     if superuser:
-        raise ConfigError("DATABASE_URL logs in as a superuser; use cp_app_login (ADR 0006)")
+        raise ConfigError("DATABASE_URL logs in as a superuser; use cp_app_login (ADR 0007)")
     if bypassrls:
-        raise ConfigError("DATABASE_URL role has BYPASSRLS; use cp_app_login (ADR 0006)")
+        raise ConfigError("DATABASE_URL role has BYPASSRLS; use cp_app_login (ADR 0007)")
     if not app_member:
         raise ConfigError(f"DATABASE_URL role is not a member of {APP_ROLE}; use cp_app_login")
     if admin_member:

@@ -1,9 +1,9 @@
 # Runbook — move to the shared PostGIS database on Railway
 
 Status: NOT RUN. Each step needs the named owner; the website switch needs an agreed window with `cp-website`.
-Decisions: ADR 0002, ADR 0004, ADR 0006 (database roles), `docs/plans/webapp-v1.md` §5. Never commit passwords or URLs with credentials.
+Decisions: ADR 0002, ADR 0004, ADR 0007 (database roles), `docs/plans/webapp-v1.md` §5. Never commit passwords or URLs with credentials.
 
-**The superuser URL is never a variable of the app or the website service.** It is used only by an operator to run migrations (step 2). Each service logs in with its own least-privilege login (ADR 0006):
+**The superuser URL is never a variable of the app or the website service.** It is used only by an operator to run migrations (step 2). Each service logs in with its own least-privilege login (ADR 0007):
 
 | Who | Login | Member of | Can |
 |---|---|---|---|

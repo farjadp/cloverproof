@@ -1,4 +1,4 @@
-"""Least-privilege roles (migration 0011, ADR 0006; security review S5 and A1).
+"""Least-privilege roles (migration 0011, ADR 0007; security review S5 and A1).
 
 - cp_app cannot write organisation/membership and only some app_user columns, so it can
   never make anyone an approver; staff/farmer roles go through SECURITY DEFINER functions.

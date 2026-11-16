@@ -24,7 +24,7 @@ def run(db: psycopg.Connection, **overrides: object) -> cli.UserCreateResult:
         "read_password": lambda: PASSWORD,
     }
     values.update(overrides)
-    with as_role(db, "cp_admin"):  # the CLI logs in as cp_admin_login (ADR 0006)
+    with as_role(db, "cp_admin"):  # the CLI logs in as cp_admin_login (ADR 0007)
         return cli.user_create(db, **values)  # type: ignore[arg-type]
 
 
