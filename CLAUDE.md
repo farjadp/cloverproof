@@ -26,7 +26,10 @@ Every plan must record: the engine output AND the agronomist's final numbers + r
 - **Internal tool:** one Python service — FastAPI + Jinja2 + HTMX (`app/`).
 - **PDF:** HTML templates → WeasyPrint (`app/pdf/`), SHA-256 hash stored per document.
 - **Next.js farmer app:** LATER (Phase 4). Do not create it now.
-- **Out of scope now:** OCR/LLM report reading, Sentinel-2, map drawing, weather APIs, multi-language, payments, native mobile.
+- **Out of scope now:** OCR/LLM report reading, Sentinel-2, map drawing, weather APIs, payments. Multi-language applies to the public website only (ADR 0003); the internal tool stays English.
+
+## Build order (Farjad Iranmehr, 2026-11-16)
+Website (`website/`, Next.js, 8 locales, en first) → web app portal (internal concierge tool, then farmer portal) → mobile app. One step at a time; each step is planned and approved before code. Plan: `docs/plans/website-v1.md`.
 
 ## Repo layout
 ```
