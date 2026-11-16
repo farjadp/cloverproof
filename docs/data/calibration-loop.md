@@ -16,7 +16,9 @@ These rules override anything below that conflicts with them.
 
 1. **Two kinds of sign-off.** Until a human agronomist is named, the reviewer is the AI agent
    `cp-agronomist`; its sign-off is **`ai_reviewed`**. A human user with the `agronomist` role gives
-   **`agronomist_approved`**. The kind is stamped on each `review` row (`review.reviewer_kind`,
+   **`agronomist_approved`**. `ai_reviewed` rows exist only on synthetic, de-identified or
+   `external_reference` cases (item 7); real pilot plans stay `in_review` until the human
+   agronomist approves them. The kind is stamped on each `review` row (`review.reviewer_kind`,
    proposed name; cp-database flag in migrations 0011+).
 2. **Only human-approved units are calibration evidence.** `ai_reviewed` units never count toward:
    the 90 % agreement gate, the calibration baseline, Tier 1 flags, Tier 2 constant-change
@@ -39,6 +41,11 @@ These rules override anything below that conflicts with them.
    the reference SQL in `calibration-delta-spec.md` §5 — **target schema (§6.4), not yet migrated**.
    Who the human agronomist is (Farjad Iranmehr, named in CLAUDE.md, or someone else) is open
    (OQ-04, risk RK-X1); this file's "Farjad Iranmehr" means "the human agronomist" until resolved.
+7. **D-7 data boundary (CLAUDE.md rules 11–12).** Real-case evidence (pilot plans, Δ, reasons,
+   tags, memos' evidence sections) is seen only by the data team and the human agronomist;
+   `cp-agronomist` never receives it and comments only on method and published sources, and its
+   `ai_reviewed` / `external_reference` cases stay separate and never enter the calibration dataset.
+   Wherever this file says "the agronomist" for a real case, it means the human agronomist.
 
 ---
 
@@ -101,7 +108,7 @@ Chain `engine → A1 → A2 (approved)`:
 
 `review.decision = 'reject'` has no resulting numbers, so a reject is **never a numeric unit**.
 - Counted per stratum as **reject rate** = rejects / (rejects + approvals) on engine roots,
-  human reviews only (D4); AI rejects are a diagnostic.
+  human reviews only (D4); AI rejects (non-real cases only, D-7) are a diagnostic.
 - Its reason is tagged with the same taxonomy (§3). A reject tagged `ENGINE_BUG` goes to the bug
   list in the same sprint.
 - If the crop plan is later re-run (a new engine root) and approved, the approved re-run is the
@@ -405,7 +412,8 @@ Free text stays as written; the code is added alongside it.
 Rules:
 - **Who tags.** Target state: the agronomist picks the code in the edit/reject form at review time
   (needs a column, gap G2). Interim: `data-scientist` proposes a code from the free text; the
-  agronomist confirms or changes it at the sprint calibration review. **His code wins.** Once
+  human agronomist confirms or changes it at the sprint calibration review. **His code wins.**
+  Free-text reasons and tags are never sent to `cp-agronomist` (D-7). Once
   there are ≥ 20 tagged edits, `data-analyst` tags a copy blind and Cohen's κ is reported; if
   κ is low, the definitions are rewritten before any analysis uses the codes.
 - **Interim storage.** Tags live outside the immutable tables, in a session temp table loaded from
@@ -458,9 +466,9 @@ Notes:
 | **1 — Direction flag** | "Consistent direction" flag + a question to the agronomist; **no value** | n_plans ≥ 5 from ≥ 3 farms, ≥ 80% of non-agreeing units in one direction | Five same-sign cases are the smallest set that is even suggestive; exact two-sided sign test with 5/5 is p = 0.0625, so it **cannot** exclude chance. A flag, not evidence |
 | **2 — Constant-change proposal** | Evidence memo with an estimate and interval | **n_plans ≥ 20 from ≥ 10 farms**, one `pack_sha256`, one crop, one nutrient, one season/region stratum; AND farm-bootstrap 95% CI of mean Δ excludes 0 and \|mean Δ\| > tolerance; AND direction consistency ≥ 15/20 (Wilson lower bound > 0.5); AND ≥ 60% of edits carry a primary code pointing at the same constant, confirmed by the agronomist | t-interval half-width on the mean is 1.24 SD at n = 5, 0.72 SD at n = 10, 0.47 SD at n = 20. If fields cluster fully by farm, n_eff = farms, so ≥ 10 farms keeps the worst case near 0.72 SD; below 10 clusters a cluster bootstrap is unreliable. 15/20 is the smallest count whose Wilson lower bound is above 0.5 (0.531; 14/20 gives 0.481). The code rule is needed because the rate cannot identify which constant is off |
 
-**Human-only (D4).** Every tier counts only `agronomist_approved` units. `ai_reviewed` units can
-feed Tier 0 (a bug report is a bug whoever finds it) but never Tier 1 or Tier 2, and never appear in
-a proposal memo's evidence numbers.
+**Human-only (D4).** Every tier counts only `agronomist_approved` units. `ai_reviewed` units
+(synthetic / de-identified / `external_reference` only, D-7) can feed Tier 0 (a bug report is a bug
+whoever finds it) but never Tier 1 or Tier 2, and never appear in a proposal memo's evidence numbers.
 
 **Plainly:** the 5 Dec 18 wheat cases and a 5–10-farm season are **anecdotes**. They can support
 bug finding, consistent-direction flags (Tier 1) and a list of questions for the agronomist. They
@@ -520,8 +528,12 @@ calibration review states which units fall before and after.
 2. **`head-of-data`** reviews method and sample rule; may send back.
 3. **CPO (`product-manager`)** reviews scope and timing (season freeze, release gate).
 4. **The human agronomist (Farjad Iranmehr unless OQ-04 names someone else) approves or
-   rejects.** A `cp-agronomist` (AI) opinion may be attached as context, labelled `ai_reviewed`;
-   it never approves (D4) and the constant stays PLACEHOLDER until the human decides. The decision, date, his value and **source** are
+   rejects.** No `cp-agronomist` (AI) opinion is attached to a proposal: the memo is built from
+   real-farm evidence and never goes to `cp-agronomist` (D-7). Separately, `cp-agronomist` may be
+   asked — with only the constant path, the statistical method and no case data — what published
+   sources say about the constant and whether the method is sound; that comment is labelled
+   `ai_reviewed` and lives in the memo's "Method and literature" section. The constant stays
+   PLACEHOLDER until the human decides. The decision, date, his value and **source** are
    recorded in the memo's Decision section and in the Notion decision log via
    `documentation-manager`. A rejection is recorded with its reason and closes the memo.
    The data team never chooses the final value.
@@ -566,6 +578,10 @@ One sentence: what the engine does and how the agronomist differs.
 ## Limits
 Anchoring, single rater, placeholder reference, farm clustering, in-sample.
 
+## Method and literature (optional; cp-agronomist, ai_reviewed)
+Comment on the method and published sources only, written from the constant path and method
+text alone. cp-agronomist never sees the Evidence section or any case data (D-7).
+
 ## What would change our mind
 Prospective check: on the next <n> approved plans under the new pack, expect <metric> within <range>.
 
@@ -585,7 +601,8 @@ If no human agronomist has supplied cases by the S3 cut-off, the S3 output is:
 migrated), and (b) the line **"no human-approved cases yet — no baseline produced"**. Reference
 cases drafted by `cp-agronomist` from published sources (`external_reference`, `ai_reviewed`) may be
 tabulated in a separate appendix "AI review diagnostics" for bug finding only; they are not a
-baseline, not agronomist judgement, and not pooled.
+baseline, not agronomist judgement, not pooled, and never enter the calibration dataset (rule 11).
+The 5 real cases and their baseline are never shared with `cp-agronomist` (D-7).
 
 The plan below applies when the human cases arrive.
 
@@ -597,7 +614,7 @@ Output: `docs/data/calibration-baseline-S3.md`, delivered to `head-of-data` by D
 1. **Case table** (5 rows, ids only, no farm names): inputs summary (crop, previous crop, target
    yield, soil test source/method/depth/date), engine `0.2.0` under `placeholder v0` (rate,
    components, bound, splits, confidence, P/K code), his rate/splits/confidence, Δ, relative Δ,
-   his reason, proposed primary code (for his confirmation).
+   his reason, proposed primary code (for the human agronomist's confirmation).
 2. **Descriptive summary only:** signed Δ per case, mean and median, range, sign count
    (k of 5 up/down). Stated in the file: *n = 5, one agronomist, cases chosen by him, not a random
    sample; a 5/5 sign split cannot reach p < 0.05; no constant is re-estimated.*
@@ -611,7 +628,8 @@ Output: `docs/data/calibration-baseline-S3.md`, delivered to `head-of-data` by D
    agronomist-todo #5.
 6. **Tolerance proposal request:** the Δ distribution shown to him as context for agronomist-todo
    #10 (he sets the tolerance; we do not).
-7. **Questions for the agronomist** (≤ 10), each tied to a case.
+7. **Questions for the human agronomist** (≤ 10), each tied to a case (not sent to
+   `cp-agronomist`, D-7).
 8. **Second run** once his first validated pack exists: the same 5 cases replayed under it,
    labelled separately. Caveat stated: if the constants and the cases come from the same person,
    agreement is expected and is not validation.
@@ -627,18 +645,21 @@ Run in week 2 of each field-season sprint; output `docs/data/calibration-review-
 
 - [ ] Freeze the snapshot: query timestamp, migration level, row counts per table.
 - [ ] Split every unit by `reviewer_kind` (D4); statistics below use human-approved units only;
-      AI units go to a separate "AI review diagnostics" block (counts, add/remove rates).
+      AI units (synthetic / de-identified / `external_reference` only) go to a separate "AI review
+      diagnostics" block (counts, add/remove rates). Check no real pilot plan carries an
+      `ai_reviewed` review; if one does, report it to `head-of-data` as a D-7 breach.
 - [ ] Apply exclusions (§1.5); list excluded units by reason (counts only).
 - [ ] Run Q6 data-quality checks; open tickets for inconsistent splits/totals, changed inputs,
       pack mismatch, duplicate approvals.
-- [ ] Tag new edit and reject reasons (Q4, Q5); agronomist confirms tags at the review.
+- [ ] Tag new edit and reject reasons (Q4, Q5); the human agronomist confirms tags at the review
+      (never `cp-agronomist`, D-7).
 - [ ] Update per-stratum tables (Q2, Q3) **separately per `pack_sha256`**, with n_plans and n_farms.
 - [ ] Bias, MAE, spread, agreement, direction, edit rate, reject rate (§4), with intervals only
       where §4 allows.
 - [ ] Tier check (§4.1) per stratum; list Tier 1 flags; state "no proposal: below minimum
       sample" where true.
 - [ ] Bug list (`ENGINE_BUG` tags, rejects, Q6 findings) to `cp-engine` via `head-of-data`.
-- [ ] Questions for the agronomist (≤ 5 per sprint).
+- [ ] Questions for the human agronomist (≤ 5 per sprint).
 - [ ] Status of earlier proposals: decision recorded? prospective check on new plans?
 - [ ] Note any pack/engine version change in the sprint and which units fall either side.
 - [ ] Hand minutes-per-plan vs edit depth to `data-analyst` for the product metrics review.

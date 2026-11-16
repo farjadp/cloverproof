@@ -1,6 +1,6 @@
 # CloverProof metric catalogue
 
-Owner: `head-of-data`. Written by `data-analyst`. Status: DRAFT v0, 2026-11-16 (Sprint 2); updated 2026-11-16 for D4 + R2. Single catalogue: a metric without an entry here is not reported.
+Owner: `head-of-data`. Written by `data-analyst`. Status: DRAFT v0, 2026-11-16 (Sprint 2); updated 2026-11-16 for D4 + R2 and M7 (website funnel). Single catalogue: a metric without an entry here is not reported.
 
 ## Read this first
 
@@ -10,7 +10,7 @@ Owner: `head-of-data`. Written by `data-analyst`. Status: DRAFT v0, 2026-11-16 (
 - **"n at which it starts to mean anything"** below is a reporting convention proposed by data, not a statistical power calculation. At n below that, report the raw count and the plain rows. CPO to confirm (open question 3 in the hand-off).
 - Source: Postgres schema `db/migrations/0001`-`0009` and `engine/cloverproof_engine/results.py` as of branch `myca/data-s2-693748`, 2026-11-16. Queries were run against a throwaway local PostGIS (migrations 0001-0009 applied, 5 invented plans) to check that they execute and return the expected shape. They have NOT been run on real data (none exists yet).
 
-## D4 / R2 update (2026-11-16) — applies to M1–M6
+## D4 / R2 update (2026-11-16) — applies to M1–M6 (M7 is views-based and has its own rules)
 
 Source: `docs/plans/backend-plan-reconciliation.md` D4 + R2; `docs/plans/backend-plan.md` §6.4.
 
@@ -494,6 +494,181 @@ select (select count(*) from pilot_request where deleted_at is null)            
          where rv.decision = 'approve' and rv.organisation_id <> all (:'excluded_orgs'::uuid[])) as farms_with_approved_plan;
 ```
 
+## M7. Website funnel from `site_event` (visit to request to first approved plan)
+
+> **Target schema, not yet migrated (cto / ADR).** `site_event` and the new `pilot_request` columns (`check_scope`, `utm_*`, `referrer_host`, `is_test`) do not exist on main. Decision (CPO, 2026-11-16): first-party events in our own Postgres (Option A). Spec: `docs/growth/landing-tracking-brief.md` §4-6 and `docs/growth/pilot-funnel.md` on branch `origin/myca/growth-s2-a73813`. Names below follow that spec; the `site_event` column layout (`props jsonb` for the per-event extras) is data's proposal for `cto` to confirm. **None of the SQL has been run** (no table to run it on); it is written against the spec and must be tested on a dev copy after the migration. M7 extends M6: M6 keeps the request-and-after stages from `pilot_request` and `review`; M7 adds the stages before the request and the per-view splits.
+
+- **Question:** where do website visits drop out on the way to a pilot request, and which part of the funnel (check, form, channel, locale) loses them?
+- **Unit is the VIEW, not the person.** `view_id` is a random uuid made in memory on each page load; no cookie, no device storage, no user id. A reload or a return visit is a new view; one farmer can be many views and one view is not one farmer. So "visitors", "unique users" and "conversion of people" are not valid words here: say "views". Views and requests are never joined per person (no `view_id` on `pilot_request`, on purpose). Bot filtering is basic (user-agent list in the collector; the stored rows are already filtered); a bot that evades it inflates `page_view`. Team test traffic is excluded with `is_test` (proposed on `site_event`) or, until then, `utm_source = 'test'`.
+- **Source:** `site_event` (target), `pilot_request` (existing + target columns), `farmer.pilot_request_id` (target, only after `docs/runbook-db-switch.md`; see M6 gap G2), `review`.
+- **Events used** (spec names): `page_view`, `check_view`, `check_start`, `check_answer`, `check_result` (`type` in `full` / `confirm` / `nOnly`), `check_cta_click` (`type`), `cta_click` (`location`), `form_step` (`n` 1-3), `form_submit_success` (server-side after the insert; honeypot hits never produce it), `form_submit_error` (`reason` in `invalid` / `notConnected` / `error`). Common properties: `view_id`, `ts`, `locale`, `path`, `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `referrer_host`, `device` (`mobile` / `desktop`), `country`.
+- **Cohort rule:** a view belongs to the sprint of its own `page_view` timestamp (Toronto time). A view whose events arrive without a `page_view` ("orphan" view) is counted and reported separately, not dropped silently; a large orphan share is a collector bug flag.
+
+### Stage counts (distinct `view_id`, per sprint)
+
+| # | Stage | A view counts here if it has... |
+|---|---|---|
+| 0 | Viewed | a `page_view` |
+| 1 | Check started | a `check_start` |
+| 2 | Check result | a `check_result` (first one per view; "Start again" does not count twice) |
+| 3 | CTA clicked | a `check_cta_click` **or** a `cta_click` (also split: via check / via other CTA / both) |
+| 4 | Form step 1, 2, 3 | a `form_step` with `n` = 1, 2, 3 |
+| 5 | Request sent | a `form_submit_success` carrying this `view_id` |
+
+The stages are **not strictly nested**: the form can be reached without the check or a CTA click (anchor, scrolling). So each rate below names its own numerator and denominator, and "of which came through the check" is a split, not an assumption. A step-1 view with no stage-3 event is counted as "reached the form without a CTA click", not an error.
+
+After the request (aggregate only, never per view; see "Joining to requests"): requests by current `status` `new` -> `contacted` -> `accepted` (+ `declined`), then farms with a human-approved plan.
+
+### Rates (exact numerator / denominator; always printed as `k of n`)
+
+| Rate | Numerator | Denominator |
+|---|---|---|
+| Check start rate | views with stage 1 | views (stage 0) |
+| **Check completion rate** | views with stage 2 | views with stage 1 |
+| Result mix | views with stage 2 and `type` = t | views with stage 2 |
+| Check to CTA | views with `check_cta_click` | views with stage 2 (also per `type`) |
+| Form start rate | views with `form_step` n=1 | views (stage 0) |
+| Form step carry-over | n=2 / n=1; n=3 / n=2; stage 5 / n=3 | the previous step's views |
+| **Form completion rate** | views with stage 5 | views with `form_step` n=1 |
+| **Form error rate** | views with `form_submit_error` | views with `form_submit_success` or `form_submit_error` (a view that errs then succeeds is in both; shown, not hidden) |
+| Form error by reason | views with an error of reason r | views with any error |
+| View to request (aggregate only) | `form_submit_success` events in the window | `page_view` views in the window; **a ratio of two counts, not a per-person conversion** |
+
+Splits: `locale`, `utm_source`, `utm_medium` (and `utm_source` x `utm_medium` only if n allows), `device`, and `check_result` type (for CTA and form rates among views that finished the check). No `country` split in the CPO report (see privacy).
+
+- **Min-n rule:** a segment (any split cell) with fewer than **10 views** (stages 0-5) or **10 requests** (post-request stages) is suppressed: shown as "suppressed (n<10)". A rate is printed as a percentage only when its denominator is >= 10; below that print `k of n`. At pilot volume most cells will be suppressed; the unsplit totals are descriptive counts. Do not read a difference between two locales or two sources at these sizes. (Growth proposed "n<20 = noise" for rates; data keeps the catalogue rule of 10 for showing and adds: no comparison between segments below 20 per cell, labelled estimate.)
+- **Owner:** `data-analyst` (definitions and SQL); `cro` (funnel actions, channel decisions). Sign-off of the definitions: `head-of-data`.
+- **Caveats:**
+  - Views, not people (above). A farmer who reads on a phone, then submits on a laptop is two views, one request: view to request is an aggregate ratio only.
+  - `device` comes from viewport width, `country` from the edge; both can be null. UTM is lost on reload (the form's `heard_from` covers part of it); an untagged view is `utm_source` null = "direct or unknown", not "organic".
+  - Stage 5 depends on the server-side success event carrying the `view_id` posted with the form. If the success event has no `view_id`, stage 5 and the form completion rate cannot be computed per view; only counts remain (open question OQ-M7-1).
+  - Acceptance check from the spec: over 7 days `form_submit_success` events = new non-test `pilot_request` rows; a difference is reported, not smoothed.
+  - Basic bot filtering and no cookies mean the counts are an upper bound on human visits (estimate, direction known, size not).
+  - Events are only sent if the visitor's browser runs the script and is not blocked; blocked views are missing (the form still works). Undercount of early stages; stage 5 is server-side and unaffected. Another reason not to compute a visit to request rate as a precise number.
+- **Starts to mean something at:** n >= 10 views in the denominator for a percentage; n >= 10 requests for any request-side rate.
+
+```sql
+-- target schema, not yet migrated (cto / ADR). Not run.
+-- One row per view_id: which stages it reached. Window = page_view time.
+with
+params as (
+  select :'sprint_start'::timestamptz as t0, :'sprint_end'::timestamptz as t1
+),
+views as (
+  select e.view_id,
+         min(e.ts) filter (where e.event = 'page_view')                         as viewed_at,
+         (array_agg(e.locale order by e.ts))[1]                                 as locale,
+         (array_agg(e.utm_source order by e.ts) filter (where e.utm_source is not null))[1] as utm_source,
+         (array_agg(e.utm_medium order by e.ts) filter (where e.utm_medium is not null))[1] as utm_medium,
+         (array_agg(e.device order by e.ts) filter (where e.device is not null))[1]         as device,
+         bool_or(e.event = 'check_start')                                       as s_check_start,
+         bool_or(e.event = 'check_result')                                      as s_check_result,
+         (array_agg(e.props ->> 'type' order by e.ts)
+            filter (where e.event = 'check_result'))[1]                         as result_type,   -- first result only
+         bool_or(e.event = 'check_cta_click')                                   as s_check_cta,
+         bool_or(e.event = 'cta_click')                                         as s_other_cta,
+         bool_or(e.event = 'form_step' and (e.props ->> 'n')::int = 1)          as s_form1,
+         bool_or(e.event = 'form_step' and (e.props ->> 'n')::int = 2)          as s_form2,
+         bool_or(e.event = 'form_step' and (e.props ->> 'n')::int = 3)          as s_form3,
+         bool_or(e.event = 'form_submit_success')                               as s_success,
+         bool_or(e.event = 'form_submit_error')                                 as s_error
+  from site_event e
+  where e.is_test is not true                                                   -- proposed column
+  group by e.view_id
+),
+win as (
+  select v.* from views v, params p where v.viewed_at >= p.t0 and v.viewed_at < p.t1
+)
+select count(*)                                                                  as n_views,
+       count(*) filter (where s_check_start)                                     as n_check_start,
+       count(*) filter (where s_check_result)                                    as n_check_result,
+       count(*) filter (where s_check_cta or s_other_cta)                        as n_cta,
+       count(*) filter (where s_form1)                                           as n_form_step1,
+       count(*) filter (where s_form2)                                           as n_form_step2,
+       count(*) filter (where s_form3)                                           as n_form_step3,
+       count(*) filter (where s_success)                                         as n_request_sent,
+       count(*) filter (where s_error)                                           as n_with_error,
+       count(*) filter (where s_success or s_error)                              as n_submit_attempted,
+       -- rates as k of n; percentage only if the denominator >= 10 (applied in the report, not here)
+       count(*) filter (where s_check_result)  as check_completion_num,  count(*) filter (where s_check_start) as check_completion_den,
+       count(*) filter (where s_success)       as form_completion_num,   count(*) filter (where s_form1)       as form_completion_den,
+       count(*) filter (where s_error)         as form_error_num,        count(*) filter (where s_success or s_error) as form_error_den,
+       (select count(*) from views v, params p
+         where v.viewed_at is null
+           and exists (select 1 from site_event e where e.view_id = v.view_id and e.ts >= p.t0 and e.ts < p.t1)) as n_orphan_views
+from win;
+
+-- Splits: same counters per cell; cells with < 10 views are suppressed in SQL so they cannot leak into a report.
+-- (reuses the `win` CTE above; dimension values are labels, not identifiers)
+with cut as (
+  select 'locale' dim, coalesce(locale, 'unknown') val, w.* from win w
+  union all select 'utm_source', coalesce(utm_source, 'none'), w.* from win w
+  union all select 'utm_medium', coalesce(utm_medium, 'none'), w.* from win w
+  union all select 'device',     coalesce(device, 'unknown'),  w.* from win w
+  union all select 'check_result_type', result_type, w.* from win w where s_check_result
+)
+select dim, val,
+       count(*)                                          as n_views,
+       count(*) filter (where s_check_start)             as n_check_start,
+       count(*) filter (where s_check_result)            as n_check_result,
+       count(*) filter (where s_check_cta or s_other_cta) as n_cta,
+       count(*) filter (where s_form1)                   as n_form_step1,
+       count(*) filter (where s_success)                 as n_request_sent,
+       count(*) filter (where s_error)                   as n_with_error
+from cut
+group by dim, val
+having count(*) >= 10                                    -- min-n rule; the report prints "suppressed (n<10)" for the rest
+order by dim, val;
+
+-- Form errors by reason (distinct views per reason; denominator = views with any error in the same window).
+select e.props ->> 'reason' as reason, count(distinct e.view_id) as n_views_with_error
+from site_event e
+where e.event = 'form_submit_error'
+  and e.is_test is not true
+  and e.ts >= :'sprint_start'::timestamptz and e.ts < :'sprint_end'::timestamptz
+group by 1 having count(distinct e.view_id) >= 10 order by 2 desc;   -- below 10: report the bare count in the report layer
+```
+
+### Joining to requests and plans (aggregate only)
+
+- **No per-view join.** `pilot_request` carries no `view_id` (privacy design, `pilot-funnel.md` §4.2). The two sources meet only at the aggregate: per week, and per attribution value that exists on both sides (`utm_source`, `utm_medium`, `utm_campaign`, `check_scope` on the request; the same on the events). Report "N requests (pilot_request) beside M `form_submit_success` events"; they should be equal (acceptance 6).
+- **Request stages after submission** reuse M6 (current `status` only; no status history, G3): `new` -> `contacted` -> `accepted` (+ `declined`; `qualified` / `withdrawn` if the status model is adopted). Counts per cohort week of `created_at`, `is_test = false`, `deleted_at is null` (M6 rule; deleted rows shrink history, snapshot at each report).
+- **First human-approved plan.** Today (G2) there is no `pilot_request` -> farmer/farm link: the last stage is printed beside the request counts as "farms with a human-approved plan (M6)", labelled "not a conversion". **Existing gap, unchanged by M7.** After the DB switch and a `farmer.pilot_request_id` column (target) it becomes a join:
+
+```sql
+-- target schema, not yet migrated (cto / ADR; needs runbook-db-switch). Not run.
+-- Requests by attribution and how far each got; human reviews only (D4).
+select coalesce(pr.utm_source, 'none') as utm_source,
+       coalesce(pr.check_scope, 'none') as check_scope,
+       count(*)                                           as n_requests,
+       count(*) filter (where pr.status in ('contacted','accepted','declined')) as n_contacted_or_later,
+       count(*) filter (where pr.status = 'accepted')     as n_accepted,
+       count(*) filter (where exists (
+              select 1 from farmer fa
+              join farm f on f.farmer_id = fa.id
+              join field fl on fl.farm_id = f.id
+              join crop_plan cp on cp.field_id = fl.id
+              join recommendation r on r.crop_plan_id = cp.id
+              join review rv on rv.recommendation_id = r.id
+              where fa.pilot_request_id = pr.id
+                and rv.decision = 'approve' and rv.reviewer_kind = 'human'))   as n_with_human_approved_plan
+from pilot_request pr
+where pr.deleted_at is null and pr.is_test = false
+  and pr.created_at >= :'sprint_start'::timestamptz and pr.created_at < :'sprint_end'::timestamptz
+group by 1, 2
+having count(*) >= 10;                                     -- min-n rule; smaller cells: bare totals only
+```
+
+  Join columns (`farm.farmer_id`, `field.farm_id`) follow the data dictionary; `farmer.pilot_request_id` is the target column. Until the link exists the segment split of the last stage is `no data (G2)`.
+
+### Privacy and retention for `site_event` (proposal for `data-governance-specialist`; see `docs/data/pii-and-retention.md`)
+
+- **Proposed PII class: P1 (Internal)**, conditional on the spec holding: random `view_id` (never stored on the device, not on `pilot_request`), no IP, no user-agent string, no form values, no email domain, no `pilot_request.id`, no full referrer URL, `path` without query string, UTM values lowercased and <= 100 chars, **no person names in any UTM** (a name in `utm_content` makes the row P2). `country` and `device` only; no city, no coordinates. If any forbidden field is stored, the class becomes P2 and this proposal is void.
+- **Re-identification note:** at pilot volume a small cell (country + `utm_content` + timestamp) can point at the one person who received an outreach link. Mitigations: min-n 10 in every report, no `country` x `utm_*` cross, no row-level export outside the `cp_analyst` role.
+- **PROPOSED retention (governance and legal decide):** raw `site_event` rows 12 months from `ts` (covers one full recruiting-to-season cycle), then hard delete; a per-week aggregate (counts per stage and split, n >= 10 cells only) is kept in the sprint reports. Shorter (90 days) is defensible if no analysis needs older rows.
+- **Access:** inserts by the website server role only; reads by `cp_analyst` through an `analytics.*` view (see `docs/data/analytics-access.md`), never row-level to agents or the CPO. Needs `legal-compliance-specialist` for the privacy-notice wording (spec §9 item 10).
+- **For the data dictionary:** `site_event` and the new `pilot_request` columns are listed as proposals (README register SG16, gaps G10-G12 below). The new `pilot_request` attribution columns are P2 (they sit on a P2 row).
+
 ---
 
 ## Schema gaps (proposals only; migrations are not edited here)
@@ -509,3 +684,6 @@ select (select count(*) from pilot_request where deleted_at is null)            
 | G7 | Timer semantics and `minutes_spent` provenance not stored | Cannot tell a measured from a typed-in value | Add `minutes_source` (`timer` / `manual`) to `review`, or document the app behaviour in an ADR. |
 | G8 | `recommendation_diff` collapses an edit chain to engine vs final and exposes only N rate | Intermediate edits and split changes are only in jsonb | Optional second view with N splits flattened (`nitrogen.splits[]`) per stage, once calibration needs it. |
 | G9 | No reviewer kind on `review` (D4) | `ai_reviewed` and human approvals cannot be separated; every metric would mix them | `review.reviewer_kind` (`ai` / `human`) stamped at insert — cp-database, migrations 0011+ (REC-D4) |
+| G10 | `site_event` table, collector and `is_test` flag do not exist (CPO decision 2026-11-16: first-party events, Option A) | M7 stages 0-5 cannot be computed; funnel before the request is `no data` | `cto` / `cp-database`: migration + ADR; table per `landing-tracking-brief.md` §5 plus `props jsonb`, `is_test`; website role INSERT only; read via `analytics.*` |
+| G11 | `pilot_request` lacks `check_scope`, `utm_*`, `referrer_host`, `is_test`; no `view_id` on the row (deliberate) | No per-channel or per-check-result request counts; views and requests join only at the aggregate | `pilot-funnel.md` §4.2 columns (new migration, not an edit of 0001); P2 class for the new columns |
+| G12 | Server-side `form_submit_success` may not carry `view_id` (OQ-M7-1); `site_event` has no PII class or retention yet | Stage 5 and form completion rate per view not computable; no deletion rule | Confirm the event carries the posted `view_id` (not stored on `pilot_request`); governance adopts P1 + retention in `pii-and-retention.md` |
