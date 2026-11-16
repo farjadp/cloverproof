@@ -55,7 +55,10 @@ export function PilotForm({ t, privacyHref, locale }: { t: Labels; privacyHref: 
   const formRef = useRef<HTMLFormElement>(null);
   const total = t.steps.length;
 
-  function next() {
+  // Distinct `key`s on Next/Submit stop React reusing the DOM node: otherwise the click that
+  // reveals the last step lands on a node that has just become type="submit" and posts the form.
+  function next(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault();
     const fields = formRef.current?.querySelectorAll<HTMLInputElement>(`[data-step="${step}"] input[required]`);
     for (const f of fields ?? []) {
       if (!f.reportValidity()) return;
@@ -81,7 +84,15 @@ export function PilotForm({ t, privacyHref, locale }: { t: Labels; privacyHref: 
     : null;
 
   return (
-    <form ref={formRef} action={action} noValidate className="rounded-2xl border border-rule bg-ivory p-6 shadow-[0_24px_60px_-40px_rgba(39,49,37,0.6)] sm:p-8">
+    <form
+      ref={formRef}
+      action={action}
+      noValidate
+      onSubmit={(e) => {
+        const consent = formRef.current?.querySelector<HTMLInputElement>('input[name="consent"]');
+        if (consent && !consent.reportValidity()) e.preventDefault();
+      }}
+      className="rounded-2xl border border-rule bg-ivory p-6 shadow-[0_24px_60px_-40px_rgba(39,49,37,0.6)] sm:p-8">
       <input type="hidden" name="locale" value={locale} />
       <div className="hidden" aria-hidden="true">
         <label htmlFor="website">Website</label>
@@ -133,11 +144,11 @@ export function PilotForm({ t, privacyHref, locale }: { t: Labels; privacyHref: 
           </button>
         )}
         {step < total - 1 ? (
-          <button type="button" onClick={next} className="rounded-full bg-olive px-6 py-3 font-semibold text-ivory transition-all hover:-translate-y-0.5 hover:bg-olive-deep">
+          <button key="next" type="button" onClick={next} className="rounded-full bg-olive px-6 py-3 font-semibold text-ivory transition-all hover:-translate-y-0.5 hover:bg-olive-deep">
             {t.next} →
           </button>
         ) : (
-          <button type="submit" disabled={pending} className="rounded-full bg-olive px-6 py-3 font-semibold text-ivory transition-all hover:-translate-y-0.5 hover:bg-olive-deep disabled:opacity-60">
+          <button key="submit" type="submit" disabled={pending} className="rounded-full bg-olive px-6 py-3 font-semibold text-ivory transition-all hover:-translate-y-0.5 hover:bg-olive-deep disabled:opacity-60">
             {pending ? t.submitting : t.submit}
           </button>
         )}

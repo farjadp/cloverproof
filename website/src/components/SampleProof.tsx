@@ -98,7 +98,7 @@ export function SampleProof({ t }: { t: Dictionary }) {
             </ul>
           </div>
 
-          <footer className="grid gap-4 border-t border-rule px-6 py-4 text-sm sm:grid-cols-3">
+          <footer className="grid grid-cols-2 gap-4 border-t border-rule px-6 py-4 text-sm sm:grid-cols-3">
             <Meta label={p.reviewer} value={p.reviewerValue} />
             <Meta label={p.versions} value={p.versionsValue} />
             <div>
@@ -108,7 +108,7 @@ export function SampleProof({ t }: { t: Dictionary }) {
           </footer>
 
           {inView && (
-            <div aria-hidden="true" className="pointer-events-none absolute bottom-28 end-10 animate-stamp bg-white/70 rounded-md border-4 border-olive px-4 py-1 font-serif text-2xl font-bold uppercase tracking-widest text-olive opacity-90 [animation-delay:1.3s]">
+            <div aria-hidden="true" className="pointer-events-none absolute bottom-5 end-5 animate-stamp rounded-md border-[3px] border-olive bg-white/70 px-3 py-0.5 font-serif text-base font-bold uppercase tracking-widest text-olive opacity-90 [animation-delay:1.3s] sm:bottom-28 sm:end-10 sm:border-4 sm:px-4 sm:py-1 sm:text-2xl">
               {p.stamp}
             </div>
           )}

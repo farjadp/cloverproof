@@ -27,7 +27,7 @@ export function Hero({ t }: { t: Dictionary }) {
 
       <div className="relative mx-auto grid min-h-[86vh] max-w-6xl items-center px-4 py-24 sm:px-6 lg:px-8">
         <div className="max-w-2xl text-ivory">
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-ivory/15 px-3 py-1 text-sm font-semibold uppercase tracking-[0.14em] text-sage backdrop-blur">
+          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-ivory/25 bg-ink/45 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-ivory backdrop-blur sm:text-sm">
             <span className="size-2 animate-pulse rounded-full bg-sage" aria-hidden="true" />
             {t.hero.eyebrow}
           </p>
