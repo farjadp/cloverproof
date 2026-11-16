@@ -18,14 +18,21 @@ from fastapi.responses import PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from cloverproof_app import account
+from cloverproof_app import account, security
 from cloverproof_app.auth import SESSION_COOKIE, NotAuthenticated, OrgSelectionRequired, csrf_guard
 from cloverproof_app.config import ConfigError, Settings
 from cloverproof_app.db.migrate import REPO_ROOT
 from cloverproof_app.db.pool import Database, PooledDatabase
 from cloverproof_app.plan_web import router as plan_router
 from cloverproof_app.ratelimit import LoginGuard, UnlockListener
-from cloverproof_app.web import LOGIN_FORM_EXPIRED, clear_cookie, login_page, render, router
+from cloverproof_app.web import (
+    LOGIN_FORM_EXPIRED,
+    LOGIN_PAUSED,
+    clear_cookie,
+    login_page,
+    render,
+    router,
+)
 from cloverproof_engine.loaders import load_pack
 from cloverproof_engine.pack import Pack
 
@@ -84,7 +91,12 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
         ip_window=settings.login_window_minutes * 60,
         account_max=settings.login_account_max_failures,
         account_window=settings.login_account_window_minutes * 60,
-        global_max=1_000_000,  # S2 sets the real budget
+        global_max=settings.login_global_max_failures_per_minute,
+        global_window=60,
+    )
+    security.configure_hashing(
+        max_concurrency=settings.argon2_max_concurrency,
+        acquire_timeout_seconds=settings.argon2_acquire_timeout_seconds,
     )
     if database is None:
         database = PooledDatabase(settings.database_url, settings.db_pool_max_size)
@@ -161,6 +173,21 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
                 error.status_code,
             )  # fmt: skip
         return PlainTextResponse(str(error.detail), status_code=error.status_code)
+
+    @app.exception_handler(security.HashingBusy)
+    async def hashing_busy(request: Request, _: security.HashingBusy) -> Response:
+        # Too many password checks at once (S2): nothing was saved; ask to retry.
+        headers = {"Retry-After": "30"}
+        if request.url.path == "/login":
+            response = login_page(request, settings, error=LOGIN_PAUSED, status=503)
+            response.headers.update(headers)
+            return response
+        detail = "The server is busy. Nothing was saved. Try again in a minute."
+        if wants_html(request):
+            response = render(request, "error.html", {"status": 503, "detail": detail}, 503)
+            response.headers.update(headers)
+            return response
+        return PlainTextResponse(detail, status_code=503, headers=headers)
 
     @app.exception_handler(Exception)
     async def server_error(request: Request, error: Exception) -> Response:

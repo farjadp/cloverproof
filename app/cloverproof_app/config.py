@@ -57,6 +57,11 @@ class Settings:
     # Empty = the TCP peer (request.client.host). Set to the one header the proxy controls,
     # e.g. X-Real-IP on Railway. Never "*"; a list header uses its rightmost entry.
     trusted_proxy_header: str = ""
+    # S2: at most N argon2 computations at once; wait this long for a slot, else 503.
+    argon2_max_concurrency: int = 2
+    argon2_acquire_timeout_seconds: int = 5
+    # S2: failed logins per minute across all accounts and IPs before every login gets 503.
+    login_global_max_failures_per_minute: int = 30
     db_pool_max_size: int = 5
     # Empty = the repo's packs/placeholder/v0.yaml (resolved in main.py).
     pack_path: str = ""
@@ -98,6 +103,9 @@ class Settings:
             ("LOGIN_IP_MAX_FAILURES", "login_ip_max_failures"),
             ("LOGIN_ACCOUNT_MAX_FAILURES", "login_account_max_failures"),
             ("LOGIN_ACCOUNT_WINDOW_MINUTES", "login_account_window_minutes"),
+            ("ARGON2_MAX_CONCURRENCY", "argon2_max_concurrency"),
+            ("ARGON2_ACQUIRE_TIMEOUT_SECONDS", "argon2_acquire_timeout_seconds"),
+            ("LOGIN_GLOBAL_MAX_FAILURES_PER_MINUTE", "login_global_max_failures_per_minute"),
             ("DB_POOL_MAX_SIZE", "db_pool_max_size"),
         ):
             if env.get(name):
