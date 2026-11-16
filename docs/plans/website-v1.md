@@ -60,4 +60,6 @@ Test gate on every deploy: `npm run lint`, `npm run build`, 375 px + 1280 px che
 Learning loop: `docs/sprints/S2-website-review.md` + retro at sprint end, summary to the CPO, standard report to `documentation`.
 Later: S3 growth landing-page fixes (via CPO) · S4 French, enabled only after native review.
 
-Still open with Farjad Iranmehr: design feedback on v1, contact email + legal entity, privacy legal review, flag choice for English (UK) and Arabic (Arab League).
+Decided (Farjad Iranmehr, 2026-11-16): flags stay — UK for English, Arab League for Arabic.
+Before public launch (deferred by Farjad Iranmehr): contact email + legal entity in privacy notice and footer; privacy legal review.
+Still open: design feedback on v1.
