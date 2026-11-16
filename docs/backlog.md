@@ -22,7 +22,7 @@ Screens for the review queue and the engine-vs-edit diff are specified in `docs/
 
 - Story and Given/When/Then acceptance criteria written (allowed and denied cases where permissions apply).
 - Data-model impact known; migration sketched (0011+).
-- Permissions defined: roles per §3.2 + reconciliation, RLS policy and its two-user test (RLS is Postgres RLS on Railway, ADR 0006, not a Supabase JWT).
+- Permissions defined: roles per §3.2 + reconciliation, RLS policy and its two-user test (RLS is Postgres RLS on Railway, ADR 0008, not a Supabase JWT).
 - Agronomic rules confirmed by a human agronomist or marked `PLACEHOLDER` + `TODO(agronomist)`.
 - Blocking decisions listed; no story starts on an assumed answer.
 
@@ -31,7 +31,7 @@ Screens for the review queue and the engine-vs-edit diff are specified in `docs/
 - Code + tests merged by `release-manager` only; CI green (ruff, mypy, tests); golden report unchanged or explained.
 - RLS tests for any new table or policy; audit events for any admin or sensitive action.
 - Reviews attached where required: `GRD` on any PR that computes or displays a number, `SR` on auth/RLS/storage, `LR` on wording.
-- API/route docs updated (OpenAPI once `/api/v1` exists, S9); ADR written for any decision (ADR 0006 first).
+- API/route docs updated (OpenAPI once `/api/v1` exists, S9); ADR written for any decision (ADR 0008 first).
 - "Deployed to staging and demoed" applies once AR-03 and staging exist (S3-PLT-01); before that, Done = verified on local PostGIS (`make db-up`).
 - No new GPL/EUPL or unknown licence in production; no secrets in git.
 - D-7 (CPO 2026-11-16): `cp-agronomist` never receives real pilot farmers' personal or identifiable farm data — published, synthetic or de-identified cases only.
@@ -42,7 +42,7 @@ Screens for the review queue and the engine-vs-edit diff are specified in `docs/
 | Sprint | Dates | Goal | Stories | Points | Agent-days (S=0.25, M=0.5, L=1) |
 |---|---|---|---|---|---|
 | S1 carry-over | by Nov 27 (S1) | #7 merged with CISO fixes; layout decisions recorded; five sample plans proven | 4 | 6 | 1.5 |
-| S2 | Nov 30–Dec 11 | **Agronomist-ready foundation:** RLS v0 on Railway-style Postgres (ADR 0006), the review queue with engine-vs-edit diff, human-only approval on real farms, the Ontario winter wheat pack (all constants PLACEHOLDER), per-line recommendations and a first proof PDF | 53 | 99 | 27 |
+| S2 | Nov 30–Dec 11 | **Agronomist-ready foundation:** RLS v0 on Railway-style Postgres (ADR 0008), the review queue with engine-vs-edit diff, human-only approval on real farms, the Ontario winter wheat pack (all constants PLACEHOLDER), per-line recommendations and a first proof PDF | 53 | 99 | 27 |
 | S3 | Dec 14–Jan 1 (50 %, code merged by **Dec 23**, no deploys Dec 25–Jan 3) | **No-test and P/K paths on staging:** SoilGrids cache, N-only no-test plan, P/K with lab test, private proof storage, staging environment with demo | 16 | 30 | 8 |
 
 Capacity assumption (stated, not measured): about five parallel agent lanes with disjoint file sets (DB, engine, app, PDF, platform/QA); FI reviews and decisions are the real limit (OQ-03 open, RK-X12). S2 is a two-week window of about 10 working days, i.e. roughly 50 lane-days; S2 holds 27 agent-days, so it is **loaded to about 54 % of the raw lane capacity before review time and rework**. S3 holds 8 agent-days against 50 % capacity (about 25 lane-days), i.e. 32 %. S3 is about 30 % of S2 by points, below the half asked for; the reason is that S3 depends on S2 outputs and on FI decisions, and the holiday freeze leaves no slack for more. Overflow rule: if S2 runs over, move in this order and never cut RLS, PDF or guard review (RK-X12): S2-ENG-05 (product matching) → S2-APP-12, S2-APP-11, S2-APP-09 → S2-DB-16. If S2 finishes early, pull S3-ENG-01 forward.
@@ -161,7 +161,7 @@ Capacity assumption (stated, not measured): about five parallel agent lanes with
 - **Dependencies / Blocked-by:** —  Decisions out: RK-X4, RK-X5, RK-X7, RK-X11 (CPO)
 - **Out of scope:** anything not in the criteria above; later-sprint rows of the same matrix ID are separate stories.
 
-### S2-DB-02 ADR 0006: Postgres RLS on Railway
+### S2-DB-02 ADR 0008: Postgres RLS on Railway
 
 - **Sprint:** S2 · **Workstream:** 1B · **Owner:** cp-database + system-architect; ciso review · **Size:** M (2 pt)
 - **Story:** As a security reviewer, I want an accepted ADR for RLS driven by `SET LOCAL app.user_id/app.org_id/app.platform_role` with a non-bypass `cp_app` role so that RLS is defence in depth without a Supabase JWT.

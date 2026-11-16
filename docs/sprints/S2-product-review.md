@@ -28,7 +28,7 @@ Integration fixes made by the CPO team (specialists' outputs disagreed):
 
 **From the CPO (by Nov 27, with cto's RK-X decisions):**
 - Q2 — S2 DoD asks for "1 full PDF", but PDFs come only from approved plans, and no human agronomist exists. Options: (a) a human approves a sample plan, (b) a watermarked "Sample — not reviewed by an agronomist" test PDF from an AI review on sample plans (needs coo PD-05 wording). Recommend (b) for S2 only.
-- Q3 — owner/org_admin: 403 on queue/detail after ADR 0006 (recommended).
+- Q3 — owner/org_admin: 403 on queue/detail after ADR 0008 (recommended).
 - `REVIEW_DUE_DAYS` default and business vs calendar days.
 - Backlog: S3 is ~30 % of S2 by points, not 50 % — accept, or pull S2 overflow (S2-ENG-05, S2-APP-12/11/09, S2-DB-16) into S3.
 - Where review due date lives (not on immutable `recommendation`) — gap analysis S2-DB-01.

@@ -161,7 +161,7 @@ Enforcement for every cell: service-layer check **and** Postgres RLS (D1, DM-R1.
 | AR-07 | 4.1 | External calls only from worker: NASA POWER, forecast API (later) | missing | | cto/cp-concierge-app | S4, S8 | UT | XD-05, XD-06 |
 | AR-08 | 4.2 | DB: Supabase Postgres + PostGIS | superseded | **D1** → Railway Postgres + PostGIS (AR-03) | cto/cp-database | S2 | — | AR-03 |
 | AR-09 | 4.2 | API: FastAPI + Pydantic v2, OpenAPI | partial | FastAPI + Pydantic in engine; no API schemas/OpenAPI contract yet | cto/cp-concierge-app | S9 | API | — |
-| AR-10 | 4.2 | DB access: SQLAlchemy 2 Core / asyncpg; migrations in `supabase/migrations` (SQL) | partial | Migrations SQL in `db/migrations/` (D1 ✓). DB access is **psycopg pool + hand SQL** (#7 `db/pool.py`, `repo/`), not SQLAlchemy/asyncpg → decide: keep psycopg (record in ADR 0006) or migrate | cto/system-architect | S2 | DEC | REC-D1 |
+| AR-10 | 4.2 | DB access: SQLAlchemy 2 Core / asyncpg; migrations in `supabase/migrations` (SQL) | partial | Migrations SQL in `db/migrations/` (D1 ✓). DB access is **psycopg pool + hand SQL** (#7 `db/pool.py`, `repo/`), not SQLAlchemy/asyncpg → decide: keep psycopg (record in ADR 0008) or migrate | cto/system-architect | S2 | DEC | REC-D1 |
 | AR-11 | 4.2 | Auth: Supabase JWT, `request.jwt.claims` + `SET LOCAL ROLE authenticated` per transaction | superseded | **D1:** app session → `SET LOCAL app.user_id/app.org_id/app.platform_role` per transaction for RLS. Not built | cto/cp-database + cp-concierge-app | S2 | RLS, SR | REC-D1 |
 | AR-12 | 4.2 | Queue: Procrastinate (Postgres), revisit > 50 jobs/min | missing | Second Railway service = cost → FI go | cto/cp-platform | S4 | UT | HC-09 |
 | AR-13 | 4.2 | PDF: Jinja2 HTML → WeasyPrint | missing | `app/pdf/` not started (webapp Step 6) | cto/cp-pdf | S1–S2 | UT, E2E | — |
@@ -284,7 +284,7 @@ R1: §6 is the target; gaps close with **forward-only** migrations after a `cp-d
 | DM-29 | 6.7 | `data_request`: user_id, kind export/delete, status, approved_by, completed_at | missing | | cto/cp-database | S13 | DBT | U14 |
 | DM-30 | 6.7 | `weather_daily`: cell_id, date, tmin, tmax, precip, source, retrieved_at | missing | | cto/cp-database | S4 | DBT | JB-03 |
 
-### 6.8 RLS (D1: Postgres RLS on Railway keyed on `SET LOCAL app.user_id / app.org_id / app.platform_role`; new ADR 0006)
+### 6.8 RLS (D1: Postgres RLS on Railway keyed on `SET LOCAL app.user_id / app.org_id / app.platform_role`; new ADR 0008)
 
 | ID | § | Requirement | Status | Evidence / gap | Owner | Sprint | Test | Depends on |
 |---|---|---|---|---|---|---|---|---|
@@ -522,7 +522,7 @@ For every row: owner `cto/cp-concierge-app` (DB parts `cp-database`), test `API`
 | S01-1 | 15 S1 | Audit existing MVP → ADR-0001 | done | ADR 0001 "start fresh" (R6) | cto | S1 | DEC | — |
 | S01-2 | 15 S1 | Monorepo scaffold, CI, Makefile, pre-commit | done | `pyproject.toml`, `Makefile`, `.pre-commit-config.yaml`, `ci.yml` (`main`, PR #1) | cto/cp-platform | S1 | CI | — |
 | S01-3 | 15 S1 | Migrations v0: profile, organisation, org_membership, farmer, farm, field, field_geometry_version, season, soil_sample, soil_measurement, recommendation, recommendation_line, review, proof_document, audit_event | partial | 0001–0009 cover 11 of 15 under other names; missing `recommendation_line`, `audit_event`, `profile` fields, season shape (R1 gap analysis) | cto/cp-database | S1–S2 | DBT | REC-R1 |
-| S01-4 | 15 S1 | RLS v0 + tests (two users) | missing | D1 reinstated RLS; ADR 0006 first | cto/cp-database | S2 (slips from S1) | RLS | REC-D1 |
+| S01-4 | 15 S1 | RLS v0 + tests (two users) | missing | D1 reinstated RLS; ADR 0008 first | cto/cp-database | S2 (slips from S1) | RLS | REC-D1 |
 | S01-5 | 15 S1 | Engine v0: wheat, N only, placeholder pack, explanations, confidence | done | Engine 0.2.0 (`main`, PR #2), guard ACCEPT | cto/cp-engine | S1 | UT, GT, GRD | — |
 | S01-6 | 15 S1 | Internal tool v0: farmer → field → season → soil (manual) → run engine → review (approve/edit/reject + reason + timer) | partial | All in #7 (open, under CISO fixes); not merged | cto/cp-concierge-app | S1 | API, E2E, SR | R8 |
 | S01-7 | 15 S1 | PDF v0 (English, brand colours, SHA-256) | missing | Step 6 not started | cto/cp-pdf | S1→S2 | UT, GRD | AR-05 |
@@ -669,7 +669,7 @@ For every row: owner `cto/cp-concierge-app` (DB parts `cp-database`), test `API`
 
 | ID | Source | Action created | Status | Evidence / gap | Owner | Sprint | Test | Depends on |
 |---|---|---|---|---|---|---|---|---|
-| REC-D1 | D1 | ADR 0006 "Postgres RLS on Railway" (SET LOCAL app.* from server session; `cp_app` non-bypass role); bucket; read every Supabase mention as Railway | missing | No ADR 0006 yet | cto/cp-database + system-architect + ciso | S2 | DEC, RLS, SR | — |
+| REC-D1 | D1 | ADR 0008 "Postgres RLS on Railway" (SET LOCAL app.* from server session; `cp_app` non-bypass role); bucket; read every Supabase mention as Railway | missing | No ADR 0008 yet | cto/cp-database + system-architect + ciso | S2 | DEC, RLS, SR | — |
 | REC-D2 | D2 | Native app planned by `head-of-mobile` from S11 (stack ADR, offline sync), build after S12 | missing | | head-of-mobile | S11 | DEC | AC-02 |
 | REC-D3 | D3 | S1–S30 master calendar; roadmap gates + learning loop merged | partial | Roadmap header updated (`main`); per-group mapping = section below | CPO | S1 | DR | — |
 | REC-D4 | D4 | `ai_reviewed` label; approve on a real farm requires a **human** agronomist; real-farm plans stay `in_review` until one is named | missing | Needs: `app_user.is_human`/`kind` (or separate role), `review.review_kind`, golden `kind`, PDF wording | cto/cp-database + cp-concierge-app + cp-engine | S2 | DBT, API, GT | — |
@@ -724,7 +724,7 @@ Source: `docs/sprints/roadmap.md` group content (dates re-mapped to S1–S30), p
 | NB-DAT-07 | Data | Extraction spike, boundary pre-fill, previous-crop suggestion | missing | = S19-1, S20-1, S22-1 | head-of-data | S19–S22 | accuracy set | REC-CL |
 | NB-DAT-08 | Data | Pilot report data pack → decision memo | missing | = S24-1 | head-of-data | S24 | DR | — |
 | NB-SEC-01 | Security | Threat model, Step 5 auth review, secret/dependency scan, CI security | partial | Unpushed `myca/security-s2-bb8ef7` (a49da95) | ciso + release-manager | S2 | SR | — |
-| NB-SEC-02 | Security | Review ADR 0006 RLS-on-Railway + RLS test suite | missing | | ciso/security-engineer | S2–S3 | SR | REC-D1 |
+| NB-SEC-02 | Security | Review ADR 0008 RLS-on-Railway + RLS test suite | missing | | ciso/security-engineer | S2–S3 | SR | REC-D1 |
 | NB-SEC-03 | Security | Backup/restore test; pre-release gate (with cp-qa + CPO) | missing | | ciso + devops-engineer | S5 | RST, SR | SC-09 |
 | NB-SEC-04 | Security | Data residency + Railway DPA recommendation | missing | | ciso + coo/legal | S3 | DEC | OQ-06 |
 | NB-SEC-05 | Security | View-as review (S8), ASVS L1 (S11), incident runbook (S13), external pen test (S29) | missing | | ciso | S8, S11, S13, S29 | SR | — |
@@ -754,11 +754,11 @@ Source: `docs/sprints/roadmap.md` group content (dates re-mapped to S1–S30), p
 | RK-X8 | **Feature work during the concierge season.** Plan builds A5/A7 (S6), farmer accounts (S9), app log (S10) during Feb–Apr; roadmap said "fixes only", §14 freeze Feb 1–14 | S06-2, S09-*, S10-* | Build behind flags, deploy outside freeze, never touch the review path during Feb 1–14 | CPO |
 | RK-X9 | **Holiday:** S3 runs to Jan 1 but roadmap freezes deploys Dec 25–Jan 3 | SP-03 | Keep freeze; S3 code merges by Dec 23 | CPO |
 | RK-X10 | **Unpushed work.** ciso, coo, cro S2 outputs exist only on local branches; R8 findings not on remote; #7 open with CISO SHOULD-FIX items | REC-R8, NB-SEC-01, NB-OPS-01, NB-GRO-01 | release-manager pushes + opens PRs; #7 merges only after R8 fixes | CPO / release-manager |
-| RK-X11 | **Role model mismatch.** Current org roles owner/agronomist/staff/farmer vs plan org_admin/advisor/agronomist + platform staff/superadmin; superadmin "approve" vs D4 | RO-*, PM-AP-sa, PM-DR-oa | Map in ADR 0006: owner→org_admin; staff→platform role; superadmin cannot approve unless human agronomist | cto → CPO |
+| RK-X11 | **Role model mismatch.** Current org roles owner/agronomist/staff/farmer vs plan org_admin/advisor/agronomist + platform staff/superadmin; superadmin "approve" vs D4 | RO-*, PM-AP-sa, PM-DR-oa | Map in ADR 0008: owner→org_admin; staff→platform role; superadmin cannot approve unless human agronomist | cto → CPO |
 | RK-X12 | **S1 overrun / S2 overload.** RLS v0 and PDF v0 slip to S2, which also carries pack v1, access_grant, queue, catalog, product matching, splits, line table | S01-4, S01-7, S02-* | Product matching (S02-4 engine part) can move to S3 if needed; never cut RLS or PDF | CPO + cto |
 | RK-X13 | **API auth for native app** undefined after D1 (no JWT) | AC-02, NB-MOB-02 | ADR by S8, before S9 API | cto + ciso + head-of-mobile |
 | RK-X14 | **Data residency** before real farm data (S5) with US-only Railway | SC-08, OQ-06 | Decide by S3; consent text names the US (coo draft already does) | FI |
-| RK-X15 | **DB access library** psycopg vs plan's SQLAlchemy/asyncpg | AR-10 | Keep psycopg + hand SQL (works, tested); record in ADR 0006 | cto |
+| RK-X15 | **DB access library** psycopg vs plan's SQLAlchemy/asyncpg | AR-10 | Keep psycopg + hand SQL (works, tested); record in ADR 0008 | cto |
 
 ## Self-check — plan items vs matrix rows
 

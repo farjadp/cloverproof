@@ -1,6 +1,6 @@
-# ADR 0006 (RLS on Railway) — CISO review criteria
+# ADR 0008 (RLS on Railway) — CISO review criteria
 
-Owner: `security-engineer` for `ciso`. Date: 2026-11-16. Applies to: `cp-database`'s draft ADR 0006 and the S3 RLS test suite.
+Owner: `security-engineer` for `ciso`. Date: 2026-11-16. Applies to: `cp-database`'s draft ADR 0008 and the S3 RLS test suite.
 Source decisions: `docs/plans/backend-plan-reconciliation.md` (branch `cpo-backend-plan`) **D1** (Postgres RLS on Railway, keyed on per-transaction `app.user_id` / `app.org_id` / `app.platform_role` set from the server-side session) and **D4** (the AI agronomist can never approve a real farm's plan).
 Current state read: `db/migrations/0002`–`0009` (no RLS anywhere; `cp_app` gets table grants; `cp_migrator` owns objects; `recommendation_diff` already `security_invoker = true`; `review_check_reviewer` is the approve gate), `app/cloverproof_app/db/pool.py` on `origin/webapp-step5-app` (psycopg `ConnectionPool`, non-autocommit, no `reset` callback, no context setting yet).
 
