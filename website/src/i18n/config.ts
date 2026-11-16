@@ -5,15 +5,16 @@ export type Locale = (typeof locales)[number];
 
 export const defaultLocale: Locale = "en";
 
-export const localeMeta: Record<Locale, { label: string; dir: "ltr" | "rtl"; enabled: boolean }> = {
-  en: { label: "English", dir: "ltr", enabled: true },
-  fr: { label: "Français", dir: "ltr", enabled: false },
-  it: { label: "Italiano", dir: "ltr", enabled: false },
-  es: { label: "Español", dir: "ltr", enabled: false },
-  bg: { label: "Български", dir: "ltr", enabled: false },
-  fi: { label: "Suomi", dir: "ltr", enabled: false },
-  tr: { label: "Türkçe", dir: "ltr", enabled: false },
-  ar: { label: "العربية", dir: "rtl", enabled: false },
+// `flag` is a file in public/flags/ (flag-icons, MIT). English uses the UK flag, Arabic the Arab League flag.
+export const localeMeta: Record<Locale, { label: string; flag: string; dir: "ltr" | "rtl"; enabled: boolean }> = {
+  en: { label: "English", flag: "gb", dir: "ltr", enabled: true },
+  fr: { label: "Français", flag: "fr", dir: "ltr", enabled: false },
+  it: { label: "Italiano", flag: "it", dir: "ltr", enabled: false },
+  es: { label: "Español", flag: "es", dir: "ltr", enabled: false },
+  bg: { label: "Български", flag: "bg", dir: "ltr", enabled: false },
+  fi: { label: "Suomi", flag: "fi", dir: "ltr", enabled: false },
+  tr: { label: "Türkçe", flag: "tr", dir: "ltr", enabled: false },
+  ar: { label: "العربية", flag: "arab", dir: "rtl", enabled: false },
 };
 
 export const enabledLocales = locales.filter((l) => localeMeta[l].enabled);

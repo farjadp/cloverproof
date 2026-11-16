@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { locales, localeMeta, type Locale } from "@/i18n/config";
+import { Flag } from "./Flag";
 import { Logo } from "./Logo";
 
 export function Footer({ t, lang }: { t: Dictionary; lang: Locale }) {
@@ -18,18 +19,26 @@ export function Footer({ t, lang }: { t: Dictionary; lang: Locale }) {
         </nav>
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-sage">{t.footer.languages}</h2>
-          <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm">
-            {locales.map((l) => (
-              <li key={l} lang={l} dir={localeMeta[l].dir}>
-                {localeMeta[l].enabled ? (
-                  <Link href={`/${l}`} aria-current={l === lang ? "page" : undefined} className="font-semibold text-ivory">
-                    {localeMeta[l].label}
-                  </Link>
-                ) : (
-                  <span className="text-ivory/50" title={t.footer.comingSoon}>{localeMeta[l].label}</span>
-                )}
-              </li>
-            ))}
+          <ul className="mt-3 flex flex-wrap gap-2 text-sm">
+            {locales.map((l) => {
+              const m = localeMeta[l];
+              const chip = "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-semibold uppercase";
+              return (
+                <li key={l}>
+                  {m.enabled ? (
+                    <Link href={`/${l}`} lang={l} aria-label={m.label} aria-current={l === lang ? "page" : undefined} className={`${chip} border-sage/60 text-ivory hover:bg-ivory/10`}>
+                      <Flag locale={l} />
+                      {l}
+                    </Link>
+                  ) : (
+                    <span lang={l} aria-label={`${m.label} (${t.footer.comingSoon})`} title={`${m.label} — ${t.footer.comingSoon}`} className={`${chip} border-ivory/15 text-ivory/50`}>
+                      <Flag locale={l} className="h-4 w-auto opacity-60" />
+                      {l}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>

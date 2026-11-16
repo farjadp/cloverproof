@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/config";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Logo } from "./Logo";
 
 export function Header({ t, lang }: { t: Dictionary; lang: Locale }) {
@@ -16,7 +17,7 @@ export function Header({ t, lang }: { t: Dictionary; lang: Locale }) {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-3 focus:rounded focus:bg-olive focus:px-3 focus:py-2 focus:text-ivory">
         {t.nav.skip}
       </a>
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:gap-6 sm:px-6 lg:px-8">
         <Link href={`/${lang}`} className="shrink-0">
           <Logo className="h-8 w-auto sm:h-9" />
         </Link>
@@ -29,9 +30,12 @@ export function Header({ t, lang }: { t: Dictionary; lang: Locale }) {
             ))}
           </ul>
         </nav>
-        <a href="#pilot" className="rounded-full bg-olive px-4 py-2 text-sm font-semibold text-ivory transition-colors hover:bg-olive-deep">
-          {t.nav.cta}
-        </a>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <LanguageSwitcher lang={lang} label={t.nav.language} comingSoon={t.footer.comingSoon} />
+          <a href="#pilot" className="whitespace-nowrap rounded-full bg-olive px-4 py-2 text-sm font-semibold text-ivory transition-colors hover:bg-olive-deep">
+            {t.nav.cta}
+          </a>
+        </div>
       </div>
     </header>
   );
