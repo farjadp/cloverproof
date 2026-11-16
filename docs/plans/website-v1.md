@@ -53,7 +53,8 @@ Status (2026-11-16, commit `62310a5`, live):
 - ✅ 1 SEO basics — robots.txt, sitemap.xml, canonical, hreflang + x-default, Open Graph/Twitter. Privacy stays `noindex` and out of the sitemap until legal review (deliberate; its Lighthouse SEO = 69 for that reason only).
 - ✅ 2 Lighthouse mobile, live: `/en` 95 / 100 / 100 / 100 · `/en/privacy` 100 / 100 / 100 / 69 (perf / a11y / best practices / SEO).
 - ✅ 3 Keyboard / a11y — axe 0 violations at 375 + 1280 px in 5 states (page, language menu open, field check done, form step 2, privacy); focus moves to the new step in the field check and the form; proof table scroll region focusable.
-- ⏳ 4 Funnel counts — request counts per day/locale need no schema change; a request *rate* needs a server-side visit counter (new table), which waits for the shared DB (item 5).
+- ⏳ 4 Funnel events — CPO decision (option A, growth brief PR #15): first-party events in our Postgres (`site_event`, insert-only grant for `cp_website_login`), `POST /api/e`, `view_id` in memory only, form success/error written server-side in `requestPilot`. **No `country` property. Events only from en, fr, es, it, tr — none from fi, bg, ar until legal confirms. No consent banner.** Deploy only together with coo's privacy-notice wording. Blocked on `site_event`.
+- (superseded) Funnel counts — request counts per day/locale need no schema change; a request *rate* needs a server-side visit counter (new table), which waits for the shared DB (item 5).
 - ⏳ 5 DB switch — waiting for PostGIS to be healthy and a window with `cloverproof-lead`.
 
 Test gate on every deploy: `npm run lint`, `npm run build`, 375 px + 1280 px checks, no horizontal scroll, Lighthouse score noted.
