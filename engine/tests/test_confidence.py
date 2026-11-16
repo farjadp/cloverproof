@@ -79,7 +79,51 @@ def test_rate_at_bound_caps_at_medium(lab_soil_test, make_input, validated_pack)
 def test_placeholder_pack_caps_at_low(lab_soil_test, make_input, placeholder_pack) -> None:
     level, hits = _assess(make_input(soil_test=lab_soil_test()), placeholder_pack)
     assert level is Confidence.LOW
-    assert _ids(hits) == ["C6_PACK_HAS_PLACEHOLDERS"]
+    assert _ids(hits) == ["C6_PLACEHOLDER_CONSTANT_USED"]
+
+
+N = "crops.wheat.nitrogen"
+
+
+def test_unused_placeholder_constant_does_not_fire_c6(
+    lab_soil_test, make_input, pack_with_placeholders
+) -> None:
+    pack = pack_with_placeholders(f"{N}.previous_crop_credits.corn.credit")
+    assert pack.has_placeholders
+    level, hits = _assess(make_input(previous_crop="canola", soil_test=lab_soil_test()), pack)
+    assert level is Confidence.HIGH
+    assert hits == []
+
+
+def test_used_placeholder_constant_fires_c6(
+    lab_soil_test, make_input, pack_with_placeholders
+) -> None:
+    path = f"{N}.previous_crop_credits.canola.credit"
+    pack = pack_with_placeholders(path)
+    level, hits = _assess(make_input(previous_crop="canola", soil_test=lab_soil_test()), pack)
+    assert level is Confidence.LOW
+    assert _ids(hits) == ["C6_PLACEHOLDER_CONSTANT_USED"]
+    assert path in hits[0].reason
+
+
+def test_placeholder_split_fraction_fires_c6(
+    lab_soil_test, make_input, pack_with_placeholders
+) -> None:
+    pack = pack_with_placeholders(f"{N}.splits[1].fraction")
+    level, hits = _assess(make_input(soil_test=lab_soil_test()), pack)
+    assert level is Confidence.LOW
+    assert _ids(hits) == ["C6_PLACEHOLDER_CONSTANT_USED"]
+
+
+def test_placeholder_confidence_threshold_alone_does_not_fire_c6(
+    lab_soil_test, make_input, pack_with_placeholders
+) -> None:
+    # C6 looks at constants that feed the recommended numbers, not the
+    # confidence thresholds. TODO(agronomist): confirm (see report).
+    pack = pack_with_placeholders("crops.wheat.confidence.target_yield_max")
+    level, hits = _assess(make_input(soil_test=lab_soil_test()), pack)
+    assert level is Confidence.HIGH
+    assert hits == []
 
 
 def test_no_soil_test_never_above_medium(make_input, validated_pack) -> None:

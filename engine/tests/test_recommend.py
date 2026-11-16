@@ -125,5 +125,5 @@ def test_confidence_reasons_are_recorded(make_input, placeholder_pack) -> None:
     assert rec.confidence is Confidence.LOW
     assert {h.rule_id for h in rec.confidence_reasons} == {
         "C1_NO_SOIL_TEST",
-        "C6_PACK_HAS_PLACEHOLDERS",
+        "C6_PLACEHOLDER_CONSTANT_USED",
     }

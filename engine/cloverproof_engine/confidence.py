@@ -14,8 +14,12 @@ Rules (each TODO(agronomist): review):
 - C4_TARGET_YIELD_IMPLAUSIBLE target yield outside pack
                             [target_yield_min, target_yield_max] -> cap low
 - C5_RATE_AT_BOUND          N rate was cut to the pack min/max   -> cap medium
-- C6_PACK_HAS_PLACEHOLDERS  pack holds PLACEHOLDER constants     -> cap low
-  (numbers built on unvalidated constants are never more than low)
+- C6_PLACEHOLDER_CONSTANT_USED a constant the method actually used
+                            for this recommendation (its
+                            `constants_used`) is PLACEHOLDER    -> cap low
+  (numbers built on unvalidated constants are never more than low; unused
+  pack entries, e.g. credits for other previous crops, and the confidence
+  thresholds themselves do not trigger C6)
 """
 
 from __future__ import annotations
@@ -134,12 +138,13 @@ def assess(
         )
 
     # C6 — TODO(agronomist): review.
-    if pack.has_placeholders:
+    placeholders = [c.path for c in nitrogen.constants_used if c.is_placeholder]
+    if placeholders:
         hits.append(
             ConfidenceRuleHit(
-                rule_id="C6_PACK_HAS_PLACEHOLDERS",
+                rule_id="C6_PLACEHOLDER_CONSTANT_USED",
                 cap=Confidence.LOW,
-                reason=explain.c6_pack_has_placeholders(pack.id, pack.version),
+                reason=explain.c6_placeholder_constant_used(pack.id, pack.version, placeholders),
             )
         )
 

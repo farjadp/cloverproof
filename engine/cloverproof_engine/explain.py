@@ -178,8 +178,8 @@ def c5_rate_at_bound(bound: Literal["min", "max"]) -> str:
     return f"The N rate was limited by the pack {side} limit: confidence is at most medium."
 
 
-def c6_pack_has_placeholders(pack_id: str, version: str) -> str:
+def c6_placeholder_constant_used(pack_id: str, version: str, paths: list[str]) -> str:
     return (
-        f"Pack '{pack_id}' {version} uses PLACEHOLDER constants: confidence is low "
-        "until the agronomist validates them."
+        f"This recommendation uses PLACEHOLDER constants from pack '{pack_id}' {version}: "
+        f"{', '.join(paths)}. Confidence is low until the agronomist validates them."
     )
