@@ -1,6 +1,6 @@
 # ADR 0010 — `site_event`: first-party website events
 
-- Status: Proposed (2026-11-16) — retention needs Farjad Iranmehr's approval
+- Status: Accepted (2026-11-16) — retention approved by Farjad Iranmehr (2026-11-16)
 - Decider: Farjad Iranmehr (CPO chose option A in the growth brief)
 - Related: `docs/growth/landing-tracking-brief.md` §3/§5/§9, `docs/plans/website-v1.md` item 4, `docs/operations/legal/website-measurement-review.md` (C2, C4, C5, C10), ADR 0007, `db/migrations/0013_site_event.sql`
 
@@ -18,8 +18,8 @@ One table `site_event`, owned by `cp_migrator`, with a column only for each prop
 ## Privacy rationale
 Nothing stored can identify, locate or profile a person: `view_id` dies with the page, the IP is used in transit for bot filtering only, country is not collected (Quebec P-39.1 s. 8.1 risk), and the locale gate keeps fi/bg/ar out until legal confirms. The database enforces this, so a collector bug cannot widen what is stored. The website cannot read events back, so a compromised website leaks nothing.
 
-## Retention (PROPOSED — Farjad Iranmehr to approve)
-The growth brief sets no period. Proposal, matching the legal review (C4/C5) and the draft privacy notice: raw rows **90 days** from `occurred_at`, then rolled into daily counts (no `view_id`) and deleted; daily counts kept **up to 25 months**, reviewed yearly. Data's M7 proposed 12 months raw; 90 days is the stricter option and covers the recruit window to 2027-01-15. The rollup + purge will be a scheduled worker job (future; not built). Index `site_event_occurred_at_idx` supports it. Until that job exists nothing is deleted: it must ship before day 90 of live events.
+## Retention (approved by Farjad Iranmehr, 2026-11-16)
+Decision: 90 days raw, daily counts up to 25 months. Matches the legal review (C4/C5) and the draft privacy notice: raw rows **90 days** from `occurred_at`, then rolled into daily counts (no `view_id`) and deleted; daily counts kept **up to 25 months**, reviewed yearly. Data's M7 proposed 12 months raw; 90 days is the stricter option and covers the recruit window to 2027-01-15. The rollup + purge will be a scheduled worker job (future; not built). Index `site_event_occurred_at_idx` supports it. Until that job exists nothing is deleted: it must ship before day 90 of live events.
 
 ## Consequences for `cp-website`
 - Connect as `cp_website_login`. Use plain `INSERT` without `RETURNING` (no SELECT grant; `RETURNING` fails with permission denied). Do not send `id` or `occurred_at`.

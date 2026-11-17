@@ -10,7 +10,7 @@
 -- are server defaults it cannot set). cp_app and cp_admin: nothing. Reads for reports go
 -- through a future read-only analytics role (not created here).
 --
--- Retention (PROPOSED, Farjad Iranmehr to approve; ADR 0010): raw rows 90 days from
+-- Retention (approved by Farjad Iranmehr 2026-11-16; ADR 0010): raw rows 90 days from
 -- occurred_at, then rolled into daily counts without view_id and deleted; daily counts kept
 -- up to 25 months. The purge/rollup is a future worker job; nothing deletes rows yet.
 set local role cp_migrator;
@@ -84,7 +84,7 @@ grant insert (view_id, event, locale, path, utm_source, utm_medium, utm_campaign
 
 comment on table site_event is
   'First-party website events (ADR 0010). Whitelisted columns only; no IP, country, UA, PII.'
-  ' cp_website INSERT only. Retention PROPOSED: raw 90 days, then daily counts 25 months'
+  ' cp_website INSERT only. Retention (approved): raw 90 days, then daily counts 25 months'
   ' (future worker job).';
 comment on column site_event.view_id is
   'Per-page-load random id held in browser memory. Never a join key to pilot_request.';
