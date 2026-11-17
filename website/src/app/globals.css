@@ -16,7 +16,25 @@
   --font-sans: var(--font-source-sans), "Segoe UI", system-ui, sans-serif;
 }
 
+/* Arabic: Arabic faces first, Latin faces still render Latin names, symbols and units. */
+html[lang="ar"] {
+  --font-serif: var(--font-arabic-serif), var(--font-source-serif), serif;
+  --font-sans: var(--font-arabic-sans), var(--font-source-sans), system-ui, sans-serif;
+}
+
+/* Hebrew: same pattern; Latin names, symbols and units keep the Latin faces. */
+html[lang="he"] {
+  --font-serif: var(--font-hebrew-serif), var(--font-source-serif), serif;
+  --font-sans: var(--font-hebrew-sans), var(--font-source-sans), system-ui, sans-serif;
+}
+
 @layer base {
+  /* Long compounds (fi, bg, de-style words) hyphenate and never push past their box. */
+  body {
+    hyphens: auto;
+    overflow-wrap: break-word;
+  }
+
   html {
     scroll-behavior: smooth;
     scroll-padding-top: 5rem;

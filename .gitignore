@@ -15,3 +15,6 @@ supabase/.temp/
 *.pdf
 !docs/**/*.pdf
 .claude/settings.local.json
+
+# Offline open-data caches (SoilGrids clips etc.); regenerate with the fetch CLIs
+data/cache/

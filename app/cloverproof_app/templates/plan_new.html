@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% from "_macros.html" import error, invalid, error_summary, breadcrumb %}
+{% block title %}New plan{% endblock %}
+{% block breadcrumb %}{{ breadcrumb([("Farmers", "/farmers"), (field.farmer_name, "/farmers/" ~ field.farmer_id), (field.name, "/fields/" ~ field.id), ("New plan", None)]) }}{% endblock %}
+{% block content %}
+<h1>New plan for {{ field.name }}</h1>
+{{ error_summary(errors, "running the engine") }}
+<form class="form plan-form" method="post" action="/fields/{{ field.id }}/plans" novalidate
+      hx-disabled-elt="find button[type=submit]">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="started" value="{{ started }}">
+
+  <fieldset>
+    <legend>Crop and target</legend>
+    <div class="field">
+      <label for="crop">Crop</label>
+      <select id="crop" name="crop"{{ invalid(errors, "crop") }}>
+        {% for code, label in planning.CROP_LABELS.items() %}<option value="{{ code }}"{% if f.crop == code %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      {{ error(errors, "crop") }}
+    </div>
+    <div class="field">
+      <label for="target_yield">Target yield</label>
+      <div class="suffixed"><input id="target_yield" name="target_yield" type="text" inputmode="decimal" value="{{ f.target_yield }}" aria-describedby="target_yield-hint"{{ invalid(errors, "target_yield") }} autofocus><span class="suffix">t/ha</span></div>
+      <p class="hint" id="target_yield-hint">Realistic yield for this field, not the best year.</p>
+      {{ error(errors, "target_yield") }}
+    </div>
+    <div class="field">
+      <label for="previous_crop">Previous crop</label>
+      <select id="previous_crop" name="previous_crop"{{ invalid(errors, "previous_crop") }}>
+        <option value="">Choose…</option>
+        {% for code, label in previous_crops %}<option value="{{ code }}"{% if f.previous_crop == code %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      {{ error(errors, "previous_crop") }}
+    </div>
+    <div class="field">
+      <label for="area_ha">Area</label>
+      <div class="suffixed"><input id="area_ha" name="area_ha" type="text" inputmode="decimal" value="{{ f.area_ha }}"{{ invalid(errors, "area_ha") }}><span class="suffix">ha</span></div>
+      <p class="hint">Entered by hand. Map drawing comes later.</p>
+      {{ error(errors, "area_ha") }}
+    </div>
+    <div class="field">
+      <label for="plan_date">Plan date</label>
+      <input id="plan_date" name="plan_date" type="date" value="{{ f.plan_date }}"{{ invalid(errors, "plan_date") }}>
+      {{ error(errors, "plan_date") }}
+    </div>
+  </fieldset>
+
+  <fieldset class="soil">
+    <legend>Soil test (optional)</legend>
+    <div class="field" role="radiogroup" aria-labelledby="has_soil-label" id="has_soil">
+      <p class="label" id="has_soil-label">Do you have a soil test for this field?</p>
+      <label class="choice"><input type="radio" name="has_soil" value="no"{% if f.has_soil != "yes" %} checked{% endif %}> No soil test</label>
+      <label class="choice"><input type="radio" name="has_soil" value="yes"{% if f.has_soil == "yes" %} checked{% endif %}> Yes, enter it</label>
+      {{ error(errors, "has_soil") }}
+    </div>
+    <div class="notice info soil-none">
+      <p>Without a soil test the plan gives nitrogen only, at medium confidence at most. Phosphorus and potassium need a test.</p>
+    </div>
+    <div class="soil-fields">
+      <div class="field">
+        <label for="sample_date">Sample date</label>
+        <input id="sample_date" name="sample_date" type="date" value="{{ f.sample_date }}"{{ invalid(errors, "sample_date") }}>
+        {{ error(errors, "sample_date") }}
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="depth_top">Top</label>
+          <div class="suffixed"><input id="depth_top" name="depth_top" type="text" inputmode="decimal" value="{{ f.depth_top }}"{{ invalid(errors, "depth_top") }}><span class="suffix">cm</span></div>
+          {{ error(errors, "depth_top") }}
+        </div>
+        <div class="field">
+          <label for="depth_bottom">Bottom</label>
+          <div class="suffixed"><input id="depth_bottom" name="depth_bottom" type="text" inputmode="decimal" value="{{ f.depth_bottom }}"{{ invalid(errors, "depth_bottom") }}><span class="suffix">cm</span></div>
+          {{ error(errors, "depth_bottom") }}
+        </div>
+      </div>
+      <div class="field" role="radiogroup" aria-labelledby="source-label" id="source">
+        <p class="label" id="source-label">Source</p>
+        <label class="choice"><input type="radio" name="source" value="lab"{% if f.source != "estimate" %} checked{% endif %}> Lab</label>
+        <label class="choice"><input type="radio" name="source" value="estimate"{% if f.source == "estimate" %} checked{% endif %}> Estimate</label>
+        <p class="hint">Estimates cap confidence at medium.</p>
+        {{ error(errors, "source") }}
+      </div>
+      <div class="field">
+        <label for="lab">Lab name</label>
+        <input id="lab" name="lab" type="text" maxlength="200" value="{{ f.lab }}"{{ invalid(errors, "lab") }}>
+        <p class="hint">Ignored when Source is Estimate.</p>
+        {{ error(errors, "lab") }}
+      </div>
+
+      <h3 class="legend-like">Values</h3>
+      <p class="hint">One row per nutrient. Empty rows are ignored.</p>
+      <table class="values stack">
+        <thead><tr><th scope="col">Nutrient form</th><th scope="col">Value</th><th scope="col">Unit</th><th scope="col">Extraction method</th><th scope="col">Method detail</th></tr></thead>
+        <tbody id="value-rows">
+          {% for row in f.values %}{% with i = loop.index0 %}{% include "_value_row.html" %}{% endwith %}{% endfor %}
+        </tbody>
+      </table>
+      <button id="add-value" class="button text" type="button"
+              hx-get="/plans/value-row?i={{ f.values | length }}" hx-target="#value-rows" hx-swap="beforeend">Add value</button>
+    </div>
+  </fieldset>
+
+  <div class="actions">
+    <button class="button" type="submit" data-loading="Running…">Run engine</button>
+    <a class="button text" href="/fields/{{ field.id }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

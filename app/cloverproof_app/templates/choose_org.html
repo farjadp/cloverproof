@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Choose organisation{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+<h1>Choose organisation</h1>
+<p class="muted">You belong to more than one organisation. Pick the one to work in.</p>
+<form method="post" action="/orgs/choose">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <ul class="org-list">
+    {% for org in organisations %}
+    <li><button class="button quiet" type="submit" name="org_id" value="{{ org.id }}">{{ org.name }}</button></li>
+    {% endfor %}
+  </ul>
+</form>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ member.display_name }} · Users{% endblock %}
+{% block content %}
+<p class="muted"><a href="/admin/users">Users</a> / {{ member.display_name }}</p>
+<div class="page-head">
+  <h1>{{ member.display_name }}</h1>
+  <span class="muted">{% if member.disabled_at %}Disabled{% elif member.password_change_required %}Must change password{% else %}Active{% endif %}</span>
+</div>
+{% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+{% if notice %}<p class="notice" role="status">{{ notice }}</p>{% endif %}
+{% if temp_password %}
+<div class="notice" role="status">
+  <p>New temporary password for {{ member.email }}, shown only now:</p>
+  <p><code>{{ temp_password }}</code></p>
+  <p>All of their sessions were signed out. They must choose their own password at next sign-in.</p>
+</div>
+{% endif %}
+
+<section class="panel" aria-label="Details">
+  <table>
+    <tbody>
+      <tr><th scope="row">Email</th><td>{{ member.email }}</td></tr>
+      <tr><th scope="row">Role</th><td>{{ role_label(member.roles) }}</td></tr>
+      {% if member.other_orgs %}<tr><th scope="row">Other organisations</th><td>{{ member.other_orgs }} (reset and disable only with the user-create command)</td></tr>{% endif %}
+    </tbody>
+  </table>
+</section>
+
+<section aria-labelledby="roles-heading">
+  <h2 id="roles-heading">Roles</h2>
+  <form method="post" action="/admin/users/{{ member.id }}/roles">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <fieldset>
+      <legend>Roles in this organisation</legend>
+      {% for value, label in roles %}
+      <div>
+        <input id="role-{{ value }}" type="checkbox" name="roles" value="{{ value }}"{% if value in member.roles %} checked{% endif %}>
+        <label for="role-{{ value }}">{{ label }}</label>
+      </div>
+      {% endfor %}
+      {% for value, label in cli_roles %}
+      <div>
+        <input id="role-{{ value }}" type="checkbox" disabled{% if value in member.roles %} checked{% endif %} aria-describedby="cli-roles-note">
+        <label for="role-{{ value }}">{{ label }} (change via CLI)</label>
+      </div>
+      {% endfor %}
+    </fieldset>
+    <p class="muted" id="cli-roles-note">Only Agronomist can approve plans. Agronomist and Owner are granted and removed only with the <code>user-create</code> command, never on this page.</p>
+    <button class="button" type="submit">Save roles</button>
+  </form>
+</section>
+
+{% if not is_self %}
+<section aria-labelledby="reset-heading">
+  <h2 id="reset-heading">Password</h2>
+  {% if member.cli_only_account %}
+  <p class="muted">Agronomist, Owner and platform account passwords are reset only with <code>user-create --reset-password</code> (change via CLI).</p>
+  {% else %}
+  <p class="muted">Creates a new temporary password, shown once, and signs this person out everywhere.</p>
+  <form method="post" action="/admin/users/{{ member.id }}/reset-password">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="button quiet" type="submit">Reset password</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+
+<section aria-labelledby="access-heading">
+  <h2 id="access-heading">Access</h2>
+  {% if member.cli_only_account and not is_self %}
+  <p class="muted">Agronomist, Owner and platform accounts are disabled or re-enabled only with the CLI.</p>
+  {% elif member.disabled_at %}
+  <p class="muted">Disabled on {{ member.disabled_at.strftime('%Y-%m-%d') }}. Their plans and reviews stay on record.</p>
+  <form method="post" action="/admin/users/{{ member.id }}/enable">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="button quiet" type="submit">Re-enable account</button>
+  </form>
+  {% else %}
+  <p class="muted">Disabling signs this person out and blocks sign-in. Their plans and reviews stay on record.</p>
+  <form method="post" action="/admin/users/{{ member.id }}/disable">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="button quiet" type="submit">Disable account</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

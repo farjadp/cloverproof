@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% from "_macros.html" import explained, share, num, placeholder, placeholder_pack_banner, n_limits_note, confidence, status, error, invalid, error_summary, breadcrumb %}
+{% set n = doc.nitrogen %}
+{% set snap = doc.input_snapshot %}
+{% block title %}Plan v{{ v.number }} · {{ v.field.name }}{% endblock %}
+{% block breadcrumb %}{{ breadcrumb([("Farmers", "/farmers"), (v.field.farmer_name, "/farmers/" ~ v.field.farmer_id), (v.field.name, "/fields/" ~ v.field.id), ("Plan v" ~ v.number, None)]) }}{% endblock %}
+{% block content %}
+{% set has_placeholder = n.rate.uses_placeholder or n.total.uses_placeholder
+     or (n.components | selectattr("uses_placeholder") | list)
+     or (n.constants_used | selectattr("status", "equalto", "PLACEHOLDER") | list) %}
+{% set placeholder_pack = doc.pack_status == "placeholder" %}
+{{ placeholder_pack_banner(doc) }}
+
+<div class="strip">
+  <div>
+    <h1>Nitrogen plan for {{ v.field.name }}</h1>
+    <p class="muted">{{ doc.crop | capitalize }} · target {{ snap.target_yield_t_ha }} t/ha · after {{ previous_crop_label }} · {{ snap.area_ha }} ha · plan date {{ snap.plan_date }}{% if v.number > 1 %} · v{{ v.number }} (agronomist edit){% endif %}</p>
+  </div>
+  <div class="strip-side">
+    {{ status(v.status, status_labels) }}
+    {% include "_timer.html" %}
+  </div>
+</div>
+
+{% if v.final_review %}
+  {% if v.final_review.decision == "approve" %}
+  <div class="notice success" role="status"><p class="notice-title">Approved by {{ v.final_review.reviewer_name }} ({{ reviewer_labels[v.final_review.review_kind] }}) on {{ v.final_review.created_at.strftime("%Y-%m-%d") }}. {{ v.final_review.minutes_spent }} minutes recorded.</p>{% if v.final_review.reason %}<p>{{ v.final_review.reason }}</p>{% endif %}</div>
+  {% else %}
+  <div class="notice error" role="alert"><p class="notice-title">Rejected by {{ v.final_review.reviewer_name }} ({{ reviewer_labels[v.final_review.review_kind] }}) on {{ v.final_review.created_at.strftime("%Y-%m-%d") }}. {{ v.final_review.minutes_spent }} minutes recorded.</p><p>{{ v.final_review.reason }}</p></div>
+  {% endif %}
+{% endif %}
+
+<section aria-labelledby="conf-h">
+  <h2 id="conf-h" class="sr-only">Confidence</h2>
+  {{ confidence(doc.confidence) }}
+  {% if doc.confidence_reasons %}
+  <p class="why-title">Why {{ doc.confidence }}:</p>
+  <ul class="reasons">
+    {% for r in doc.confidence_reasons %}<li>{{ r.reason }} <span class="rule-id">{{ r.rule_id }}</span></li>{% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No rule lowered confidence.</p>
+  {% endif %}
+</section>
+
+{% if has_placeholder %}
+<div class="notice warn">
+  <p class="notice-title">Placeholder constants</p>
+  <p>Some numbers use PLACEHOLDER constants that are not yet validated. They are marked below. Check or replace them before approving.</p>
+</div>
+{% endif %}
+
+{% if comparison %}
+<section aria-labelledby="cmp-h" class="compare">
+  <h2 id="cmp-h">Engine vs final</h2>
+  <table class="stack">
+    <thead><tr><th scope="col">Item</th><th scope="col">Engine</th><th scope="col">Final (v{{ v.number }})</th></tr></thead>
+    <tbody>
+    {% for row in comparison %}
+      <tr><th scope="row">{{ row.item }}</th><td data-label="Engine">{{ explained(row.engine) }}</td><td data-label="Final" class="changed">{{ explained(row.final) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% for e in v.edits %}<blockquote class="reason"><p>v{{ e.number }}, {{ e.rec.created_by_name }}: “{{ e.rec.reason }}”</p></blockquote>{% endfor %}
+</section>
+{% endif %}
+
+<section aria-labelledby="n-h">
+  <h2 id="n-h">Nitrogen</h2>
+  <div class="headline">{{ explained(n.rate, "large") }}</div>
+  {{ explained(n.total) }}
+  {{ n_limits_note(n_limits, n_outside_limits, n.rate.value) }}
+  {% if n.bound_applied %}<div class="notice info"><p>Rate limited to the pack {{ n.bound_applied }}.</p></div>{% endif %}
+
+  <h3>How {% if v.number > 1 %}the engine{% else %}it was{% endif %} calculated</h3>
+  <table class="stack">
+    <thead><tr><th scope="col">Step</th><th scope="col">Value and explanation</th></tr></thead>
+    <tbody>
+    {% for c in n.components %}
+      <tr><th scope="row">{{ c.name | replace("_", " ") | capitalize }}</th><td data-label="Value">{{ explained(c) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h3>Split applications</h3>
+  <table class="stack">
+    <thead><tr><th scope="col">Stage</th><th scope="col">Share</th><th scope="col">Rate</th><th scope="col">Total</th></tr></thead>
+    <tbody>
+    {% for s in n.splits %}
+      <tr>
+        <th scope="row">{{ s.stage_label }}</th>
+        <td data-label="Share">{{ share(s.fraction) }}</td>
+        <td data-label="Rate">{{ explained(s.rate) }}</td>
+        <td data-label="Total">{{ explained(s.total) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section aria-labelledby="pk-h">
+  <h2 id="pk-h">Phosphorus and potassium</h2>
+  {% if doc.phosphorus_potassium.code == "PK_SOIL_TEST_RECOMMENDED" %}
+  <div class="notice info">
+    <p class="notice-title">Get a soil test for P and K</p>
+    <p>This plan covers nitrogen only. Send a sample to a lab{% if snap.soil_test is not none %} (a lab test with P or K values){% endif %} to get phosphorus and potassium advice.</p>
+  </div>
+  {% endif %}
+  <p class="measure">{{ doc.phosphorus_potassium.text }}</p>
+  {% if v.soil %}
+  <p class="muted">Soil test: {{ v.soil.sample_date }}, {{ v.soil.depth_top_cm | float }}–{{ v.soil.depth_bottom_cm | float }} cm, {{ v.soil.source }}{% if v.soil.lab %} ({{ v.soil.lab }}){% endif %}.
+  {% for sv in snap.soil_test["values"] %}{{ planning.FORM_LABELS[sv.form] }} {{ "%g" | format(sv.value) }} {{ sv.unit }} ({{ planning.METHOD_LABELS[sv.extraction_method] }}{% if sv.extraction_method_detail %}: {{ sv.extraction_method_detail }}{% endif %}){% if not loop.last %}; {% endif %}{% endfor %}</p>
+  {% endif %}
+</section>
+
+{% if doc.notes %}
+<section aria-labelledby="notes-h">
+  <h2 id="notes-h">Notes</h2>
+  <ul>{% for note in doc.notes %}<li>{{ note.text }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+<section>
+  <details>
+    <summary>Constants used ({{ n.constants_used | length }})</summary>
+    <table class="stack">
+      <thead><tr><th scope="col">Path</th><th scope="col" class="num">Value</th><th scope="col">Unit</th><th scope="col">Status</th><th scope="col">Source</th></tr></thead>
+      <tbody>
+      {% for c in n.constants_used %}
+        <tr><td data-label="Path"><code>{{ c.path }}</code></td><td data-label="Value" class="num">{{ c.value }}</td><td data-label="Unit">{{ c.unit }}</td>
+            <td data-label="Status">{% if c.status == "PLACEHOLDER" %}{{ placeholder() }}{% else %}<span class="badge status-approved">Validated</span>{% endif %}</td>
+            <td data-label="Source">{{ c.source or "No source yet" }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </details>
+  <p class="provenance">Engine {{ doc.engine_version }} · Pack {{ doc.pack_id }} {{ doc.pack_version }} ({{ doc.pack_status }}) · Pack hash <code title="{{ doc.pack_sha256 }}">{{ doc.pack_sha256[:12] }}</code></p>
+</section>
+
+<section id="review" aria-labelledby="review-h" class="review">
+  <h2 id="review-h">Review</h2>
+  {% for r in v.ai_reviews %}
+  <div class="notice warn" role="note"><p class="notice-title">AI review by {{ r.reviewer_name }} ({{ ai_decision_labels.get(r.decision, r.decision) }}): not an approval.</p>{% if r.reason %}<p>{{ r.reason }}</p>{% endif %}{% if not v.read_only %}<p>Only the human reviewer's decision below counts.</p>{% endif %}</div>
+  {% endfor %}
+  {% if v.read_only %}
+  <p class="muted">This plan is reviewed and read-only.</p>
+  {% elif not can_review %}
+  <p class="muted">Waiting for agronomist review.</p>
+  {% else %}
+  {{ error_summary(errors, "saving the review") }}
+  <form class="form panel" method="post" action="/plans/{{ v.plan.id }}/review" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="recommendation_id" value="{{ v.latest.id }}">
+    <div class="field" role="radiogroup" aria-labelledby="decision-label" id="decision">
+      <p class="label" id="decision-label">Decision</p>
+      <label class="choice"><input type="radio" name="decision" value="approve"{% if values.decision != "reject" %} checked{% endif %}> {% if placeholder_pack %}Approve for testing only{% else %}Approve as shown{% endif %}</label>
+      {% if placeholder_pack %}<p class="notice error inline-warning" role="note"><strong>Placeholder pack: these numbers are not agronomic advice. Do not send to a farmer.</strong></p>{% endif %}
+      <p class="choice"><a href="/plans/{{ v.plan.id }}/edit">Edit numbers</a> <span class="hint">(saves v{{ v.number + 1 }}, then come back here to approve)</span></p>
+      <label class="choice"><input type="radio" name="decision" value="reject"{% if values.decision == "reject" %} checked{% endif %}> Reject</label>
+      {{ error(errors, "decision") }}
+    </div>
+    <div class="field">
+      <label for="reason">Reason (required for Reject)</label>
+      <textarea id="reason" name="reason" rows="3" maxlength="4000"{{ invalid(errors, "reason") }}>{{ values.reason }}</textarea>
+      {{ error(errors, "reason") }}
+    </div>
+    {% if placeholder_pack %}
+    <p class="confirm">This plan uses a placeholder pack, so approval is for testing only. It records your review and minutes; the numbers must not reach a farmer.</p>
+    {% else %}
+    <p class="confirm">Approving releases these numbers for the proof document. You are the reviewer of record.</p>
+    {% endif %}
+    <div class="actions">
+      <button class="button" type="submit" data-loading="Saving review…">Save review</button>
+      <a class="button secondary" href="/plans/{{ v.plan.id }}/edit">Edit numbers</a>
+    </div>
+  </form>
+  {% endif %}
+  {% if v.reviews %}
+  <h3>History</h3>
+  <ul class="history">
+    {% for r in v.reviews %}{% if r.review_kind == "ai_reviewed" %}<li class="ai-review">{{ r.created_at.strftime("%Y-%m-%d %H:%M") }} · {{ r.reviewer_name }} · <strong>AI review, {{ ai_decision_labels.get(r.decision, r.decision) }} (not an approval)</strong>{% if r.reason %} · “{{ r.reason }}”{% endif %}</li>{% else %}<li>{{ r.created_at.strftime("%Y-%m-%d %H:%M") }} · {{ r.reviewer_name }} ({{ reviewer_labels.get(r.review_kind, r.review_kind) }}) · {{ decision_labels.get(r.decision, r.decision) }} · {{ r.minutes_spent }} min{% if r.reason %} · “{{ r.reason }}”{% endif %}</li>{% endif %}{% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endblock %}

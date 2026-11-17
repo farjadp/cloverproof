@@ -1,0 +1,40 @@
+{% from "_macros.html" import error, invalid %}
+<tr class="value-row">
+  <td data-label="Nutrient form">
+    <label class="sr-only" for="v{{ i }}_form">Nutrient form, row {{ i + 1 }}</label>
+    <select id="v{{ i }}_form" name="v_form"{{ invalid(errors, "v" ~ i ~ "_form") }}>
+      <option value="">—</option>
+      {% for code in planning.VALUE_FORMS %}<option value="{{ code }}"{% if row.form == code %} selected{% endif %}>{{ planning.FORM_LABELS[code] }}</option>{% endfor %}
+    </select>
+    {{ error(errors, "v" ~ i ~ "_form") }}
+  </td>
+  <td data-label="Value">
+    <label class="sr-only" for="v{{ i }}_value">Value, row {{ i + 1 }}</label>
+    <input id="v{{ i }}_value" name="v_value" type="text" inputmode="decimal" value="{{ row.value }}"{{ invalid(errors, "v" ~ i ~ "_value") }}>
+    {{ error(errors, "v" ~ i ~ "_value") }}
+  </td>
+  <td data-label="Unit">
+    <label class="sr-only" for="v{{ i }}_unit">Unit, row {{ i + 1 }}</label>
+    <select id="v{{ i }}_unit" name="v_unit"{{ invalid(errors, "v" ~ i ~ "_unit") }}>
+      {% for u in planning.UNITS %}<option value="{{ u }}"{% if row.unit == u %} selected{% endif %}>{{ u }}</option>{% endfor %}
+    </select>
+    {{ error(errors, "v" ~ i ~ "_unit") }}
+  </td>
+  <td data-label="Extraction method">
+    <label class="sr-only" for="v{{ i }}_method">Extraction method, row {{ i + 1 }}</label>
+    <select id="v{{ i }}_method" name="v_method"{{ invalid(errors, "v" ~ i ~ "_method") }}>
+      <option value="">—</option>
+      {% for code, label in planning.METHOD_LABELS.items() %}<option value="{{ code }}"{% if row.method == code %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    {{ error(errors, "v" ~ i ~ "_method") }}
+  </td>
+  <td data-label="Method detail">
+    <label class="sr-only" for="v{{ i }}_detail">Method detail, row {{ i + 1 }}</label>
+    <input id="v{{ i }}_detail" name="v_detail" type="text" maxlength="200" value="{{ row.detail }}" placeholder="Required for Other"{{ invalid(errors, "v" ~ i ~ "_detail") }}>
+    {{ error(errors, "v" ~ i ~ "_detail") }}
+  </td>
+</tr>
+{% if oob %}
+<button id="add-value" class="button text" type="button" hx-swap-oob="true"
+        hx-get="/plans/value-row?i={{ i + 1 }}" hx-target="#value-rows" hx-swap="beforeend">Add value</button>
+{% endif %}

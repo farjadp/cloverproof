@@ -6,6 +6,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "cloverproof-engine",
     "cloverproof-app",
+    "cloverproof-data-sources",
 ]
 
 [dependency-groups]
@@ -20,11 +21,12 @@ dev = [
 package = false
 
 [tool.uv.workspace]
-members = ["engine", "app"]
+members = ["engine", "app", "data_sources"]
 
 [tool.uv.sources]
 cloverproof-engine = { workspace = true }
 cloverproof-app = { workspace = true }
+cloverproof-data-sources = { workspace = true }
 
 [tool.ruff]
 target-version = "py312"
@@ -35,11 +37,11 @@ extend-exclude = ["website"]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["cloverproof_engine", "cloverproof_app"]
+known-first-party = ["cloverproof_engine", "cloverproof_app", "data_sources"]
 
 [tool.ruff.format]
 quote-style = "double"
 
 [tool.pytest.ini_options]
-testpaths = ["engine/tests", "app/tests"]
+testpaths = ["engine/tests", "app/tests", "data_sources/data_sources_tests"]
 addopts = "-ra --strict-markers --import-mode=importlib"

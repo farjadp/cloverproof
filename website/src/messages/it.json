@@ -1,0 +1,403 @@
+{
+  "meta": {
+    "title": "CloverProof — Decisioni di concimazione per ogni appezzamento, con prova",
+    "description": "CloverProof trasforma i dati del tuo appezzamento e dell'analisi del suolo in un piano di concimazione — cosa, quanto, quando e perché — verificato da un agronomo e registrato in un documento di prova. Indipendente dai fornitori, solo software.",
+    "translationStatus": "machine — review pending"
+  },
+  "nav": {
+    "how": "Come funziona",
+    "proof": "Esempio di prova",
+    "principles": "Principi",
+    "faq": "FAQ",
+    "cta": "Richiedi un piano pilota",
+    "skip": "Vai al contenuto",
+    "menu": "Menu",
+    "check": "Verifica appezzamento",
+    "language": "Lingua"
+  },
+  "hero": {
+    "eyebrow": "Pilota frumento 2027 · Candidature aperte",
+    "title": "Un piano più chiaro per ogni appezzamento.",
+    "lead": "CloverProof unisce analisi del suolo, storico dell'appezzamento e obiettivi colturali in un unico piano di concimazione — cosa applicare, quanto, quando e perché — controllato da un agronomo prima che arrivi a te.",
+    "ctaPrimary": "Richiedi un piano pilota",
+    "ctaSecondary": "Prova la verifica in 2 minuti",
+    "note": "Prodotto in fase iniziale. La disponibilità del pilota dipende dalla zona e dall'idoneità.",
+    "figureCaption": "Ogni raccomandazione è legata a un appezzamento, una stagione e un insieme di dati.",
+    "imageAlt": "Giovane frumento autunnale in lunghi filari all'alba, con foglie di trifoglio in primo piano",
+    "chips": {
+      "confidence": "Affidabilità",
+      "confidenceValue": "Medio",
+      "reviewed": "Revisionato da un agronomo",
+      "version": "Versione 2 · motivo registrato",
+      "ctaCheck": "Prova la verifica"
+    }
+  },
+  "problem": {
+    "title": "Il problema concreto",
+    "intro": "Le decisioni di concimazione si basano spesso su dati sparsi e consigli generici, senza alcuna traccia del ragionamento.",
+    "items": [
+      {
+        "title": "I dati sono in posti diversi.",
+        "body": "Referti di laboratorio nelle email, registri di spandimento in un quaderno, storico colturale nella memoria di qualcuno. Niente è collegato per l'appezzamento che hai davanti."
+      },
+      {
+        "title": "I consigli sono generici — o legati a un prodotto.",
+        "body": "Le dosi standard ignorano l'appezzamento. Il consiglio di un fornitore dipende da ciò che vende. Nessuno dei due mostra il ragionamento."
+      },
+      {
+        "title": "Nessuna traccia del perché.",
+        "body": "Quando una stagione va bene o male, non c'è nulla da riguardare: quali dati sono stati usati, quali ipotesi sono state fatte, chi ha approvato."
+      }
+    ]
+  },
+  "how": {
+    "title": "Come funziona",
+    "intro": "Quattro passaggi, sempre gli stessi. Niente ti arriva senza il controllo di una persona.",
+    "steps": [
+      {
+        "title": "Dati aziendali",
+        "body": "Il tuo appezzamento, la coltura, la resa obiettivo e la coltura precedente. Un'analisi del suolo di laboratorio, se ce l'hai — con metodo, profondità e data."
+      },
+      {
+        "title": "Motore di calcolo",
+        "body": "Un calcolo trasparente viene eseguito su un set di regole regionale con versione. Ogni numero riceve una motivazione scritta e un livello di affidabilità."
+      },
+      {
+        "title": "Revisione dell'agronomo",
+        "body": "Un agronomo approva, modifica o respinge il piano. Ogni modifica viene salvata come nuova versione con il motivo — l'originale non viene mai sovrascritto."
+      },
+      {
+        "title": "Documento di prova",
+        "body": "Ricevi un documento del piano: cosa, quanto, quando e perché, con il revisore, le versioni utilizzate e un'impronta digitale."
+      }
+    ],
+    "active": "Sei qui"
+  },
+  "proof": {
+    "title": "Cosa mostra un documento di prova",
+    "intro": "Un layout di esempio. I valori sono lasciati vuoti di proposito — i valori reali compaiono solo dopo che un agronomo ha revisionato il tuo appezzamento.",
+    "docTitle": "Piano dell'appezzamento · Prova",
+    "docId": "ID documento",
+    "field": "Appezzamento",
+    "fieldValue": "Appezzamento nord",
+    "crop": "Coltura",
+    "cropValue": "Frumento autunnale",
+    "season": "Stagione",
+    "seasonValue": "—",
+    "soilTest": "Analisi del suolo",
+    "soilTestValue": "Metodo, profondità e data registrati",
+    "nutrient": "Nutriente",
+    "rate": "Dose",
+    "timing": "Epoca",
+    "confidence": "Affidabilità",
+    "rows": [
+      {
+        "nutrient": "Azoto (N)",
+        "rate": "— kg/ha",
+        "timing": "Frazionata · —",
+        "confidence": "Medio"
+      },
+      {
+        "nutrient": "Fosforo (P)",
+        "rate": "Serve l'analisi del suolo",
+        "timing": "—",
+        "confidence": "—"
+      },
+      {
+        "nutrient": "Potassio (K)",
+        "rate": "Serve l'analisi del suolo",
+        "timing": "—",
+        "confidence": "—"
+      }
+    ],
+    "whyTitle": "Perché questa dose",
+    "whyLines": [
+      "Fabbisogno della coltura per la resa obiettivo, dal set di regole regionale.",
+      "Apporto della coltura precedente.",
+      "Disponibilità già presente nel suolo, dall'analisi di laboratorio."
+    ],
+    "reviewer": "Revisionato da",
+    "reviewerValue": "Agronomo · data",
+    "versions": "Versione motore / set di regole",
+    "versionsValue": "— / —",
+    "fingerprint": "Impronta SHA-256",
+    "fingerprintValue": "9f2c41b7…e41a",
+    "disclaimer": "Un documento di prova registra cosa è stato raccomandato e perché. Non è una certificazione e non è emesso né approvato da terzi.",
+    "stamp": "Revisionato",
+    "sampleTag": "Esempio"
+  },
+  "principles": {
+    "title": "Principi su cui non transigiamo",
+    "items": [
+      {
+        "title": "Indipendente dai fornitori",
+        "body": "Non vendiamo fertilizzanti e non prendiamo commissioni su di essi."
+      },
+      {
+        "title": "Solo software",
+        "body": "Nessun sensore o hardware da acquistare. Lavoriamo con le informazioni sul tuo appezzamento e i risultati di laboratorio."
+      },
+      {
+        "title": "Affidabilità su ogni numero",
+        "body": "Ogni raccomandazione ha un livello di affidabilità alto, medio o basso, con la motivazione."
+      },
+      {
+        "title": "Senza analisi del suolo, solo azoto",
+        "body": "Senza un'analisi di laboratorio diamo indicazioni solo sull'azoto e raccomandiamo un'analisi per fosforo e potassio."
+      },
+      {
+        "title": "Ogni modifica ha la sua versione",
+        "body": "I piani non vengono mai sovrascritti. Le modifiche sono salvate come nuove versioni, con chi ha cambiato cosa e perché."
+      }
+    ]
+  },
+  "pilot": {
+    "title": "Partecipa al pilota 2027",
+    "intro": "Cerchiamo un numero ridotto di aziende che coltivano frumento per la stagione febbraio–aprile 2027. Raccontaci della tua azienda e ti ricontatteremo.",
+    "giveTitle": "Cosa ti chiederemo",
+    "give": [
+      "Il nome del tuo appezzamento e la sua superficie approssimativa",
+      "Cosa vi è stato coltivato la scorsa stagione",
+      "La tua resa obiettivo per questa stagione",
+      "Il referto della tua analisi del suolo di laboratorio, se ce l'hai — ne registriamo metodo, profondità e data",
+      "Una breve chiamata per esaminarlo insieme"
+    ],
+    "getTitle": "Cosa ottieni",
+    "get": [
+      "Un piano di concimazione per il tuo appezzamento di frumento: cosa, quanto, quando e perché",
+      "Approvato da un agronomo umano prima che ti arrivi",
+      "Un documento di prova che registra i dati di partenza, il ragionamento e chi lo ha revisionato",
+      "Senza analisi del suolo, il piano copre solo l'azoto e ti consiglieremo un'analisi per fosforo e potassio"
+    ],
+    "control": "Resti tu al comando: decidi tu cosa distribuire.",
+    "terms": "Ti spiegheremo le condizioni del pilota durante la chiamata.",
+    "name": "Nome e cognome",
+    "email": "Email",
+    "country": "Paese",
+    "farmSize": "Superficie aziendale",
+    "farmSizeHint": "Approssimativa, con unità (ha o acri)",
+    "crop": "Coltura principale",
+    "consent": "Accetto che CloverProof conservi questi dati e mi contatti in merito al pilota. Posso chiederne la cancellazione in qualsiasi momento.",
+    "privacyLink": "Informativa sulla privacy",
+    "submit": "Richiedi un piano pilota",
+    "submitting": "Invio…",
+    "required": "Obbligatorio",
+    "success": "Grazie. Ti risponderemo via email per fissare una breve chiamata. Se hai un referto di analisi del suolo, tienilo a portata di mano.",
+    "notConnected": "Le richieste per il pilota non sono ancora attive. Torna a trovarci presto.",
+    "error": "Si è verificato un errore e la tua richiesta non è stata salvata. Riprova tra un momento.",
+    "invalid": "Compila i campi obbligatori e accetta la dichiarazione di consenso.",
+    "steps": [
+      "Tu",
+      "La tua azienda",
+      "Conferma"
+    ],
+    "next": "Avanti",
+    "back": "Indietro",
+    "stepOf": "Passaggio {current} di {total}",
+    "successTitle": "Sei in lista.",
+    "successBody": "Grazie. Ti risponderemo via email per fissare una breve chiamata. Se hai un referto di analisi del suolo, tienilo a portata di mano.",
+    "imageAlt": "Una carota di suolo, un sacchetto di carta per campioni e un quaderno di campo su un tavolo di legno al margine di un campo di frumento"
+  },
+  "faq": {
+    "title": "Domande",
+    "items": [
+      {
+        "q": "Vendete fertilizzanti?",
+        "a": "No. CloverProof è indipendente da qualsiasi fornitore. Il piano indica nutrienti e dosi, non marchi."
+      },
+      {
+        "q": "Servono sensori o attrezzature speciali?",
+        "a": "No. CloverProof è solo software. Lavoriamo con i dati del tuo appezzamento e, se disponibile, un'analisi del suolo di laboratorio."
+      },
+      {
+        "q": "E se non ho un'analisi del suolo?",
+        "a": "Possiamo comunque darti indicazioni sull'azoto, con un livello di affidabilità al massimo medio. Per fosforo e potassio ti consiglieremo prima di fare un'analisi."
+      },
+      {
+        "q": "Chi controlla le raccomandazioni?",
+        "a": "Ogni piano viene approvato da un agronomo umano prima che tu lo veda. I controlli automatici non sostituiscono mai questa revisione. Se l'agronomo modifica un numero, il motivo viene registrato."
+      },
+      {
+        "q": "A cosa serve il documento di prova?",
+        "a": "È la tua registrazione di cosa è stato raccomandato, su quali dati e perché. Non è una certificazione e nessun soggetto terzo lo ha approvato."
+      },
+      {
+        "q": "Il pilota è solo per il frumento?",
+        "a": "Nel 2027 sì. Prevediamo di aggiungere altre colture in futuro."
+      },
+      {
+        "q": "Il pilota ha un costo?",
+        "a": "Ti spiegheremo le condizioni del pilota durante la chiamata, prima che tu condivida qualsiasi dato sui tuoi appezzamenti."
+      },
+      {
+        "q": "Cosa succede ai dati della mia azienda?",
+        "a": "Li usiamo solo per elaborare e revisionare il tuo piano. Non li vendiamo né li condividiamo per finalità di marketing. I dettagli sono nell'informativa sulla privacy."
+      },
+      {
+        "q": "Posso lasciare il pilota?",
+        "a": "Sì, in qualsiasi momento. Chiedicelo e cancelleremo i tuoi dati di contatto."
+      },
+      {
+        "q": "Dove è disponibile il pilota?",
+        "a": "Iniziamo con un numero ridotto di aziende che coltivano frumento. La disponibilità dipende da zona e idoneità — richiedi un piano e te lo diremo con franchezza."
+      }
+    ]
+  },
+  "footer": {
+    "tagline": "Decisioni di concimazione per ogni appezzamento, con prova.",
+    "privacy": "Privacy",
+    "languages": "Lingue",
+    "comingSoon": "in arrivo",
+    "rights": "© 2026 CloverProof"
+  },
+  "privacy": {
+    "title": "Informativa sulla privacy",
+    "description": "Come CloverProof raccoglie, utilizza e protegge i dati che condividi quando richiedi un piano pilota.",
+    "draft": "Bozza — in revisione prima del lancio.",
+    "updated": "Ultimo aggiornamento: novembre 2026",
+    "sections": [
+      {
+        "h": "Chi può partecipare al pilota",
+        "p": "Il pilota 2027 è aperto alle aziende agricole in Ontario, Canada. Puoi inviare una richiesta da qualsiasi luogo, ma possiamo includere solo aziende dell'Ontario."
+      },
+      {
+        "h": "Cosa raccogliamo",
+        "p": "Quando richiedi un piano pilota raccogliamo ciò che inserisci: nome, email, paese, superficie aziendale approssimativa, coltura principale, oltre alla lingua che hai usato e al testo esatto del consenso che hai accettato, con l'ora. Se partecipi al pilota raccogliamo anche informazioni sull'azienda, sugli appezzamenti e sulle analisi del suolo, nonché i piani che elaboriamo per te."
+      },
+      {
+        "h": "Perché li raccogliamo",
+        "p": "Per decidere se possiamo includere la tua azienda nel pilota, per contattarti in merito e, se partecipi, per elaborare e registrare i tuoi piani di concimazione. Non inviamo newsletter via email."
+      },
+      {
+        "h": "Misurazione del sito web",
+        "p": "Misuriamo noi stessi come viene utilizzato questo sito web, senza alcuna società di analytics e senza cookie né altre forme di archiviazione sul tuo dispositivo. Lo facciamo solo sulle versioni inglese, francese, spagnola, italiana e turca del sito; le versioni finlandese, bulgara e araba non registrano nulla. Per ogni caricamento di pagina registriamo la pagina, la lingua e l'ora, i pulsanti su cui fai clic, le tue risposte alla verifica dell'appezzamento e il relativo risultato, il passaggio del modulo che raggiungi e se l'invio è riuscito, il tag di campagna del link che hai seguito, il nome del sito web che ti ha indirizzato da noi (non l'indirizzo completo) e se il tuo schermo ha dimensioni da dispositivo mobile o da computer. Un numero casuale conservato solo nella memoria del tuo browser raggruppa i clic di una singola visualizzazione di pagina e scompare quando esci. Non registriamo il tuo nome, la tua email né nulla di ciò che digiti, non conserviamo il tuo indirizzo IP e non colleghiamo le visite tra loro né a te. I dati dettagliati sono conservati per 90 giorni, poi trasformati in totali giornalieri conservati fino a 25 mesi. Se il tuo browser invia Global Privacy Control o Do Not Track, non registriamo nulla. Se invii una richiesta per il pilota, il tag di campagna del link, il sito web di provenienza e il risultato della tua verifica dell'appezzamento vengono conservati insieme alla richiesta, così sappiamo come ci hai trovati."
+      },
+      {
+        "h": "Come vengono revisionati i piani",
+        "p": "Il nostro software propone ogni piano. Un sistema di IA può aiutare a controllarlo. Il sistema di IA non riceve mai il tuo nome, i tuoi recapiti, il tuo indirizzo né i confini esatti dei tuoi appezzamenti; vede solo dati del caso de-identificati. Una persona identificata per nome approva, modifica o respinge poi ogni numero prima che tu lo veda: il nostro agronomo umano oppure un amministratore di CloverProof che non è un agronomo. Il tuo piano e il relativo PDF di prova indicano quale dei due lo ha approvato e il suo nome; non chiamiamo mai revisione dell'agronomo l'approvazione di un amministratore. Un controllo dell'IA da solo non approva mai un piano. La decisione finale su cosa distribuire spetta a te."
+      },
+      {
+        "h": "Migliorare il motore di calcolo",
+        "p": "Se acconsenti, conserviamo una copia de-identificata dei risultati del pilota (la proposta del motore a confronto con i numeri finali dell'agronomo umano) per rendere il motore più accurato. Utilizziamo solo i piani approvati dal nostro agronomo umano, non quelli approvati da un amministratore. Nomi, recapiti, nomi di aziende e appezzamenti e posizioni esatte vengono rimossi. Puoi rifiutare e partecipare comunque."
+      },
+      {
+        "h": "Chi li vede",
+        "p": "Solo i membri del team di CloverProof che ne hanno bisogno, il nostro agronomo umano, il nostro fornitore di hosting canadese, che conserverà i dati del pilota in Canada, e Railway, una società statunitense che ospita il nostro sito web e, finché l'hosting canadese non sarà attivo, conserva negli Stati Uniti le richieste inviate tramite il sito e i dati di misurazione del sito, in qualità di nostri fornitori di servizi. Nessun fornitore di IA riceve informazioni che identificano te o la tua azienda. Non vendiamo i tuoi dati e non utilizziamo tracker pubblicitari né alcuna società di analytics."
+      },
+      {
+        "h": "Dove sono conservati",
+        "p": "I dati delle aziende del pilota (contatti, aziende, appezzamenti, analisi del suolo, piani, revisioni e PDF di prova) saranno conservati in Canada. Non raccogliamo dati reali del pilota nei nostri sistemi ospitati finché quell'hosting canadese non sarà attivo. Finché l'hosting canadese non sarà attivo, le richieste inviate tramite il sito e i dati di misurazione del sito sono conservati negli Stati Uniti dal fornitore di hosting del nostro sito, Railway, una società statunitense, e lì le autorità statunitensi potrebbero accedervi ai sensi della legge statunitense. Quando l'hosting canadese sarà attivo, questi dati verranno trasferiti in Canada e aggiorneremo questa informativa. Utilizziamo contratti per il trattamento dei dati per proteggere i tuoi dati."
+      },
+      {
+        "h": "Per quanto tempo li conserviamo",
+        "p": "Fino al completamento della selezione per il pilota, o più a lungo se partecipi al pilota. Puoi chiederci di cancellare i tuoi dati in qualsiasi momento."
+      },
+      {
+        "h": "I tuoi diritti",
+        "p": "Puoi chiedere di vedere, correggere o cancellare i tuoi dati, chiedere come è stato ottenuto un numero del tuo piano e chi lo ha approvato, e revocare il consenso in qualsiasi momento. Rispondiamo entro 30 giorni. Puoi presentare un reclamo all'Ufficio del Commissario per la privacy del Canada (priv.gc.ca) o, se ti trovi nell'UE, alla tua autorità locale per la protezione dei dati."
+      }
+    ]
+  },
+  "check": {
+    "eyebrow": "Verifica dell'appezzamento in due minuti",
+    "title": "Cosa potrebbe coprire il tuo piano?",
+    "intro": "Rispondi a quattro domande veloci. Ogni risposta riempie una foglia. Alla fine vedrai che tipo di piano potremmo costruire per questo appezzamento — prima di condividere qualsiasi dato.",
+    "progress": "Foglie riempite",
+    "back": "Indietro",
+    "restart": "Ricomincia",
+    "questions": [
+      {
+        "id": "soilTest",
+        "q": "Hai un'analisi del suolo di laboratorio per questo appezzamento?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Sì"
+          },
+          {
+            "v": "no",
+            "label": "No"
+          },
+          {
+            "v": "unsure",
+            "label": "Non so"
+          }
+        ]
+      },
+      {
+        "id": "method",
+        "q": "Il referto indica il metodo di estrazione e la profondità di campionamento?",
+        "hint": "Ad esempio Olsen, Bray-1 o Mehlich-3, e la profondità in cm o pollici.",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Sì, entrambi"
+          },
+          {
+            "v": "no",
+            "label": "No / non so"
+          },
+          {
+            "v": "skip",
+            "label": "Non ho un referto"
+          }
+        ]
+      },
+      {
+        "id": "previousCrop",
+        "q": "Sai cosa è stato coltivato su questo appezzamento la scorsa stagione?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Sì"
+          },
+          {
+            "v": "no",
+            "label": "No"
+          }
+        ]
+      },
+      {
+        "id": "target",
+        "q": "Hai una resa obiettivo realistica per questa stagione?",
+        "options": [
+          {
+            "v": "yes",
+            "label": "Sì"
+          },
+          {
+            "v": "no",
+            "label": "Non ancora"
+          }
+        ]
+      }
+    ],
+    "results": {
+      "full": {
+        "title": "Un piano completo per azoto, fosforo e potassio",
+        "body": "Con un referto di laboratorio completo possiamo pianificare tutti e tre i nutrienti, ciascuno con il proprio livello di affidabilità e le proprie motivazioni.",
+        "tag": "N · P · K"
+      },
+      "confirm": {
+        "title": "Un piano completo, dopo aver confermato il metodo di laboratorio",
+        "body": "Hai un'analisi del suolo. Ti chiederemo il referto per leggere il metodo di estrazione e la profondità — poi pianificheremo tutti e tre i nutrienti.",
+        "tag": "N · P · K dopo verifica"
+      },
+      "nOnly": {
+        "title": "Un piano per l'azoto — e un'analisi del suolo per il resto",
+        "body": "Senza un'analisi di laboratorio diamo indicazioni solo sull'azoto, con un livello di affidabilità al massimo medio. Per fosforo e potassio raccomanderemo prima un'analisi.",
+        "tag": "Solo N"
+      }
+    },
+    "gapsTitle": "Cosa lo renderebbe più solido",
+    "gaps": {
+      "previousCrop": "La coltura della scorsa stagione — cambia quanto azoto il suolo fornisce già.",
+      "target": "Una resa obiettivo — il piano è costruito attorno a essa.",
+      "method": "Il metodo di estrazione e la profondità di campionamento del laboratorio.",
+      "soilTest": "Un'analisi del suolo di laboratorio per fosforo e potassio."
+    },
+    "noGaps": "Non manca nulla. Questo appezzamento è pronto per un piano.",
+    "cta": "Richiedi un piano pilota per questo appezzamento",
+    "disclaimer": "Questa verifica mostra solo l'ambito di un piano. Non fornisce dosi — quelle arrivano dopo che un agronomo ha revisionato i tuoi dati."
+  }
+}
