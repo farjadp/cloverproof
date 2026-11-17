@@ -1263,6 +1263,26 @@ Capacity assumption (stated, not measured): about five parallel agent lanes with
 - **Dependencies / Blocked-by:** Blocked-by CPO decision on cro's proposal
 - **Out of scope:** anything not in the criteria above; later-sprint rows of the same matrix ID are separate stories.
 
+## S4 (items recorded early)
+
+### S4-PLT-01 Migrate production to the Canadian host
+
+- **Sprint:** S4 · **Workstream:** 1F · **Owner:** cp-platform + cp-database (devops-engineer, ciso review) · **Size:** L (3 pt)
+- **Story:** As Farjad Iranmehr, I want production running in a Canadian region before the first real farmer's data so that real farmer data is stored in Canada (CLAUDE.md, ADR 0009).
+- **Acceptance criteria:**
+  - Given the host chosen by 2027-01-04 (ADR 0009: D recommended, C runner-up), when staging and production are built there, then app, worker, website, Postgres + PostGIS and the proof bucket all run in a Canadian region, configured by env vars only, from the same Dockerfiles used on Railway.
+  - Given `make db-migrate` run with a non-superuser deploy role, then all migrations apply and the RLS and privilege tests pass on the new host.
+  - Given a restore drill, then a backup restores in Canada and the offsite Object Lock copy is in a Canadian region.
+  - Given the cutover window, then `pilot_request` row counts match on both sides and a test submission lands in the new DB.
+  - Given the date, then cutover is done by 2027-01-15 (S5 rehearsal enters real farms Jan 18); no real farmer data is ever written to Railway.
+- **Data-model impact:** none (same migrations); 0002 no-superuser path if the host needs it.
+- **Permission / RLS impact:** re-run all RLS and privilege tests on the new host.
+- **Agronomic rules:** none
+- **Matrix IDs:** AR-17, SC-08, OQ-06
+- **Tests:** DBT, RLS, restore drill
+- **Dependencies / Blocked-by:** Farjad Iranmehr's host choice + spend approval by 2027-01-04; DPA accepted after counsel review.
+- **Out of scope:** Railway-only features (none to be used before S4, ADR 0009 Decision §4); deleting Railway services (needs Farjad's OK).
+
 ## Coverage table
 
 Every ID in sections 1A–1H and the Standing line of `docs/plans/backend-distribution.md` maps to at least one story. IDs shared between sections appear once.
