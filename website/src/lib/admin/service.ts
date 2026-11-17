@@ -5,7 +5,7 @@
 import { randomBytes } from "node:crypto";
 import type { QueryResultRow } from "pg";
 import { hmac, randomToken, safeEqual, sha256 } from "./crypto.ts";
-import { open, seal, type Kek } from "./envelope.ts";
+import { open, rewrap, seal, sealedKekId, type Kek } from "./envelope.ts";
 import { cleanDetail } from "./log-detail.ts";
 import { hashPassword, needsRehash, passwordProblem, verifyPassword, burnPasswordTime } from "./password.ts";
 import { isWebsiteRole, type WebsiteRole } from "./permissions.ts";
@@ -379,6 +379,37 @@ export async function pendingMfaSecret(db: Db, config: AdminConfig, current: Cur
   }
   const user = await userWithSecrets(db, current.user.id);
   return open(user.mfa_secret_enc as Buffer, mfaAad(user.id), config.keks);
+}
+
+/**
+ * Master-key rotation, TOTP half (D-S1): re-seal every stored TOTP secret (enrolled or pending)
+ * under the current KEK, then check each opens with the current KEK alone. Throws otherwise, so
+ * the caller rolls back. Same transaction as the API keys: see rotateMasterKey() (rotation.ts).
+ */
+export async function rewrapMfaSecrets(db: Db, config: AdminConfig): Promise<number> {
+  const current = config.keks[0];
+  const { rows } = await db.query<{ id: string; mfa_secret_enc: Buffer }>(
+    "select id, mfa_secret_enc from website_user where mfa_secret_enc is not null for update",
+  );
+  let count = 0;
+  for (const row of rows) {
+    if (sealedKekId(row.mfa_secret_enc) === current.id) continue;
+    const resealed = rewrap(row.mfa_secret_enc, mfaAad(row.id), config.keks, current);
+    await db.query("update website_user set mfa_secret_enc = $2 where id = $1", [row.id, resealed]);
+    count++;
+  }
+  const { rows: check } = await db.query<{ id: string; mfa_secret_enc: Buffer }>(
+    "select id, mfa_secret_enc from website_user where mfa_secret_enc is not null",
+  );
+  for (const row of check) {
+    try {
+      if (sealedKekId(row.mfa_secret_enc) !== current.id) throw new Error("stale");
+      open(row.mfa_secret_enc, mfaAad(row.id), [current]);
+    } catch {
+      throw new Error("a two-step sign-in secret could not be opened with the current master key");
+    }
+  }
+  return count;
 }
 
 /** Marks a TOTP step as used for this user (replay protection, purged after 1 day). */

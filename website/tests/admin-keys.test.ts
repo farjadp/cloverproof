@@ -3,7 +3,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import pg from "pg";
-import { decryptKeyServerSide, keyProblem, listKeys, revokeKey, rewrapAll, saveKey, setBudget, testKey, testRequest } from "../src/lib/admin/keys.ts";
+import { decryptKeyServerSide, keyProblem, listKeys, revokeKey, saveKey, setBudget, testKey, testRequest } from "../src/lib/admin/keys.ts";
+import { rotateMasterKey } from "../src/lib/admin/rotation.ts";
 import { createFirstAdmin, loadSession, login, redeemLink, type AdminConfig, type Current } from "../src/lib/admin/service.ts";
 
 const url = process.env.WEBSITE_TEST_DATABASE_URL;
@@ -118,7 +119,7 @@ test("rotation refuses to commit if any active key is not openable with the new 
     // The forgotten-id mistake: a NEW key put in under the OLD id. Nothing looks "old", so a
     // naive rewrap re-seals 0 rows; deleting the real old key would then lose every API key.
     const sameIdNewKey = { ...config, keks: [{ id: "t1", key: randomBytes(32) }, { id: "t0", key: config.keks[0].key }] };
-    await assert.rejects(rewrapAll(db, sameIdNewKey), /not under the current master key|could not be opened/);
+    await assert.rejects(rotateMasterKey(db, sameIdNewKey), /not under the current master key|could not be opened/);
   }));
 
 test("rotation asserts no active key stays under the old KEK id (D-S2)", { skip }, () =>
@@ -127,7 +128,7 @@ test("rotation asserts no active key stays under the old KEK id (D-S2)", { skip 
     const rotated = { ...config, keks: [{ id: "t2", key: randomBytes(32) }, ...config.keks] };
     // A database wrapper that silently drops the re-seal writes.
     const lossy = { query: (sql: string, params?: unknown[]) => (/^update website_secret set sealed/.test(sql) ? Promise.resolve({ rows: [], rowCount: 0 }) : db.query(sql, params)) };
-    await assert.rejects(rewrapAll(lossy as unknown as pg.Client, rotated), /not under the current master key/);
+    await assert.rejects(rotateMasterKey(lossy as unknown as pg.Client, rotated), /not under the current master key/);
   }));
 
 test("master-key rotation re-seals active keys under the new KEK", { skip }, () =>
@@ -135,8 +136,8 @@ test("master-key rotation re-seals active keys under the new KEK", { skip }, () 
     await saveKey(db, config, admin, "anthropic", SECRET, meta, now);
     const next = { id: "t2", key: randomBytes(32) };
     const rotated = { ...config, keks: [next, ...config.keks] };
-    assert.equal(await rewrapAll(db, rotated), 1);
-    assert.equal(await rewrapAll(db, rotated), 0, "idempotent");
+    assert.deepEqual(await rotateMasterKey(db, rotated), { keys: 1, mfa: 0 });
+    assert.deepEqual(await rotateMasterKey(db, rotated), { keys: 0, mfa: 0 }, "idempotent");
     const { rows } = await db.query("select kek_id from website_secret where provider = 'anthropic' and revoked_at is null");
     assert.equal(rows[0].kek_id, "t2");
     assert.equal(await decryptKeyServerSide(db, { ...config, keks: [next] }, "anthropic"), SECRET, "old KEK no longer needed");
