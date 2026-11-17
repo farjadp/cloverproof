@@ -8,9 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "node scripts/migrate.mjs",
-    "test": "node --test \"tests/**/*.test.ts\"",
+    "test": "node --conditions=react-server --test \"tests/**/*.test.ts\"",
     "admin:create": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/admin-create.mts",
-    "admin:reset": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/admin-reset.mts"
+    "admin:reset": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/admin-reset.mts",
+    "secrets:rewrap": "node --conditions=react-server --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/secrets-rewrap.mts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",

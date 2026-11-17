@@ -34,6 +34,7 @@ ADMIN_TABLES = (
     "website_rate_limit",
     "website_log",
     "website_job_run",
+    "website_secret",
 )
 HASH = b"\x01" * 32
 ARGON = "$argon2id$v=19$m=19456,t=2,p=1$c2FsdHNhbHQ$aGFzaGhhc2hoYXNoaGFzaA"
@@ -334,3 +335,100 @@ def test_last_admin_guard_holds_under_concurrency(migrated_db: MigratedDb, isola
             # Superuser cleanup only: users are never deleted by any app role.
             cleanup.execute("set session_replication_role = replica")
             cleanup.execute("delete from website_user where id = any(%s)", (ids,))
+
+
+# --- website_secret (migration 0025, ADR 0013)
+
+SEALED = b'{"v":1,' + b"x" * 80 + b"}"
+
+
+def add_secret(
+    conn: psycopg.Connection, user: UUID, provider: str = "anthropic", version: int = 1
+) -> UUID:
+    row = conn.execute(
+        "insert into website_secret (provider, version, sealed, kek_id, last4, created_by)"
+        " values (%s, %s, %s, 'k1', 'AbC9', %s) returning id",
+        (provider, version, SEALED, user),
+    ).fetchone()
+    assert row is not None
+    return row[0]
+
+
+def test_one_active_key_per_provider(admin_db: psycopg.Connection) -> None:
+    user = add_user(admin_db, "k@example.com")
+    first = add_secret(admin_db, user)
+    with pytest.raises(errors.UniqueViolation), admin_db.transaction():
+        add_secret(admin_db, user, version=2)
+    admin_db.execute(
+        "update website_secret set revoked_at = now(), revoked_by = %s,"
+        " sealed = website_secret_tombstone() where id = %s",
+        (user, first),
+    )
+    add_secret(admin_db, user, version=2)
+    add_secret(admin_db, user, provider="openai")
+
+
+def test_secret_rows_are_immutable_and_never_deleted(admin_db: psycopg.Connection) -> None:
+    user = add_user(admin_db, "k@example.com")
+    key = add_secret(admin_db, user)
+    with pytest.raises(errors.InsufficientPrivilege), admin_db.transaction():
+        admin_db.execute(
+            "update website_secret set sealed = %s where id = %s", (SEALED + b" ", key)
+        )
+    with pytest.raises(errors.InsufficientPrivilege), admin_db.transaction():
+        admin_db.execute("delete from website_secret where id = %s", (key,))
+    with as_owner(admin_db), pytest.raises(errors.InsufficientPrivilege), admin_db.transaction():
+        admin_db.execute("update website_secret set last4 = 'zzzz' where id = %s", (key,))
+    admin_db.execute(
+        "update website_secret set monthly_budget_usd = 25, last_test_at = now(),"
+        " last_test_ok = true where id = %s",
+        (key,),
+    )
+    # Revoking without wiping the sealed key is refused; with the tombstone it works.
+    with pytest.raises(errors.InsufficientPrivilege), admin_db.transaction():
+        admin_db.execute(
+            "update website_secret set revoked_at = now(), revoked_by = %s where id = %s",
+            (user, key),
+        )
+    admin_db.execute(
+        "update website_secret set revoked_at = now(), revoked_by = %s,"
+        " sealed = website_secret_tombstone() where id = %s",
+        (user, key),
+    )
+    for query in (
+        "update website_secret set revoked_at = null, revoked_by = null where id = %s",
+        "update website_secret set monthly_budget_usd = 1 where id = %s",
+        "update website_secret set last_test_ok = false where id = %s",
+    ):
+        with pytest.raises(errors.InsufficientPrivilege), admin_db.transaction():
+            admin_db.execute(query, (key,))
+
+
+def test_secret_checks(admin_db: psycopg.Connection) -> None:
+    user = add_user(admin_db, "k@example.com")
+    bad = [
+        ("anthropic", b"short", "k1", "AbC9"),
+        ("anthropic", SEALED, "k1", "toolong"),
+        ("anthropic", SEALED, "bad kek id", "AbC9"),
+    ]
+    for provider, sealed, kek, last4 in bad:
+        with pytest.raises(errors.CheckViolation), admin_db.transaction():
+            admin_db.execute(
+                "insert into website_secret (provider, version, sealed, kek_id, last4, created_by)"
+                " values (%s, 1, %s, %s, %s, %s)",
+                (provider, sealed, kek, last4, user),
+            )
+    with pytest.raises(errors.InvalidTextRepresentation), admin_db.transaction():
+        add_secret(admin_db, user, provider="mistral")
+
+
+def test_secret_reseal_only_under_new_master_key(admin_db: psycopg.Connection) -> None:
+    user = add_user(admin_db, "k@example.com")
+    key = add_secret(admin_db, user)
+    with pytest.raises(errors.InsufficientPrivilege), admin_db.transaction():
+        admin_db.execute(
+            "update website_secret set sealed = %s where id = %s", (SEALED + b" ", key)
+        )
+    admin_db.execute(
+        "update website_secret set sealed = %s, kek_id = 'k2' where id = %s", (SEALED + b" ", key)
+    )

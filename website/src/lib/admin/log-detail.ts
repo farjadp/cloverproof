@@ -14,6 +14,7 @@ export const DETAIL_KEYS = [
   "path",
   "locale",
   "via",
+  "budget_usd",
 ] as const;
 
 const FORBIDDEN = /token|secret|password|passwd|code_value|otp|key_value|authorization|cookie/i;
