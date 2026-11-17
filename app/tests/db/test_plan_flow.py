@@ -136,7 +136,9 @@ def test_happy_path_engine_edit_approve(db: psycopg.Connection, org_a: Org) -> N
     assert diff[2] == "Local trial history" and diff[3] == org_a.agronomist
     decisions = db.execute(
         "select v.decision::text from review v join recommendation r on r.id = v.recommendation_id"
-        " where r.crop_plan_id = %s order by v.created_at",
+        # One test transaction gives both reviews the same now(): order by lineage too
+        # (the edit is on the engine root v1, the approval on the edited child v2).
+        " where r.crop_plan_id = %s order by v.created_at, r.parent_id is not null, v.id",
         (plan_id,),
     ).fetchall()
     assert [d[0] for d in decisions] == ["edit", "approve"]

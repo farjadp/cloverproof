@@ -120,11 +120,12 @@ jobs:
     #   - psycopg / psycopg-binary / psycopg-pool: LGPL-3.0-only (Python Postgres driver + pool, same project)
     #   - @img/sharp-libvips-*: LGPL-3.0-or-later (libvips binary pulled in by next -> sharp)
     #   - certifi: MPL-2.0 (Mozilla CA bundle, unmodified; arrives with data_sources deps)
+    #   - pyphen: used under MPL-1.1 (GPL/LGPL/MPL tri-licence; hard dependency of WeasyPrint), ADR 0011
     # Adding any other exception requires an ADR first.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      PY_ALLOW: "MIT;MIT-0;MIT License;BSD License;BSD-2-Clause;BSD-3-Clause;0BSD;Zlib;CC0-1.0;Apache-2.0;Apache Software License;ISC;ISC License (ISCL);PSF-2.0;Python Software Foundation License"
+      PY_ALLOW: "MIT;MIT-0;MIT-CMU;MIT License;BSD License;BSD-2-Clause;BSD-3-Clause;0BSD;Zlib;CC0-1.0;Apache-2.0;Apache Software License;ISC;ISC License (ISCL);PSF-2.0;Python Software Foundation License"
       NPM_ALLOW: "MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;CC-BY-4.0"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -154,6 +155,7 @@ jobs:
           python3 -I .github/scripts/check_licences.py --allow "$PY_ALLOW" \
             --ignore-prefix cloverproof- \
             --exception "certifi=Mozilla Public License 2.0 (MPL 2.0)" \
+            --exception "pyphen=GNU General Public License v2 or later (GPLv2+); GNU Lesser General Public License v2 or later (LGPLv2+); Mozilla Public License 1.1 (MPL 1.1)" \
             "$RUNNER_TEMP/pip-licenses.json"
 
       - name: Python licence exception (psycopg is LGPL-3.0-only, pending ADR + lawyer)
