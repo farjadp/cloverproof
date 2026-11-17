@@ -3,9 +3,10 @@
 `ProofStore`: `put(key, bytes) -> sha256`, `get(key) -> bytes`, `exists(key)`. Keys are
 write-once: `put` on an existing key raises `KeyExists` and leaves the stored bytes alone.
 
-Only the filesystem implementation works (local dev, tests, until the Railway Bucket is
-approved for use); `BucketProofStore` is a documented stub. Root: env `PROOF_STORE_DIR`
-(Settings.proof_store_dir), default `./var/proofs` (gitignored).
+Implementations: `FilesystemProofStore` (local dev, tests; root env `PROOF_STORE_DIR`,
+default `./var/proofs`, gitignored) and `S3ProofStore` in `storage.s3` (any S3-compatible
+private bucket: Railway Bucket now, a Canadian host later; ADR 0009 section 4). The app
+picks one with `PROOF_STORE=filesystem|s3` (config.Settings).
 """
 
 from __future__ import annotations
@@ -39,6 +40,10 @@ class KeyExists(StoreError):
 
 class ProofNotFound(StoreError):
     """No object stored under this key."""
+
+
+class ProofTampered(StoreError):
+    """The stored bytes do not hash to the SHA-256 in their key."""
 
 
 class ProofStore(Protocol):
@@ -110,29 +115,6 @@ class FilesystemProofStore:
 
     def exists(self, key: str) -> bool:
         return self._path(key).is_file()
-
-
-class BucketProofStore:
-    """Railway Bucket (S3 API) behind the same interface: DOCUMENTED STUB, not wired.
-
-    ADR 0005 B1 picks a private Railway Bucket through `boto3`. `boto3` is not a
-    dependency yet (adding it, and the Bucket's usage cost, needs a go first), so every
-    method raises. The real version must keep the same contract: `put` uses a conditional
-    write (`If-None-Match: *`) so an existing key is never overwritten (KeyExists), the
-    bucket is private, and objects are only served through the app's auth-checked route.
-    """
-
-    def __init__(self, bucket: str) -> None:
-        self.bucket = bucket
-
-    def put(self, key: str, data: bytes) -> str:
-        raise NotImplementedError("BucketProofStore is a stub (ADR 0005 B1); use the filesystem")
-
-    def get(self, key: str) -> bytes:
-        raise NotImplementedError("BucketProofStore is a stub (ADR 0005 B1); use the filesystem")
-
-    def exists(self, key: str) -> bool:
-        raise NotImplementedError("BucketProofStore is a stub (ADR 0005 B1); use the filesystem")
 
 
 def filesystem_store(root: str = "") -> FilesystemProofStore:

@@ -4,6 +4,7 @@ version = "0.0.0"
 description = "CloverProof internal concierge tool (FastAPI + Jinja2 + HTMX)."
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "boto3>=1.36",
     "cloverproof-engine",
     "fastapi>=0.115",
     "jinja2>=3.1",
