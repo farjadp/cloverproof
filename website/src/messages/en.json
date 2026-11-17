@@ -16,7 +16,7 @@
     "language": "Language"
   },
   "hero": {
-    "eyebrow": "Pilot season 2027 · Applications open",
+    "eyebrow": "2027 wheat pilot · Applications open",
     "title": "A clearer plan for every field.",
     "lead": "CloverProof connects your soil tests, field history and crop goals into one fertilizer plan — what to apply, how much, when, and why — checked by an agronomist before it reaches you.",
     "ctaPrimary": "Request a pilot plan",
@@ -153,20 +153,36 @@
   },
   "pilot": {
     "title": "Join the 2027 pilot",
-    "intro": "We're working with a small number of farms for the coming season. Tell us about your operation and we'll get back to you.",
+    "intro": "We're looking for a small number of wheat farms for the February–April 2027 season. Tell us about your operation and we'll get back to you.",
+    "giveTitle": "What we'll ask you for",
+    "give": [
+      "Your field's name and approximate area",
+      "What grew there last season",
+      "Your yield target for this season",
+      "Your lab soil-test report, if you have one — we record its method, depth and date",
+      "A short call to go through it"
+    ],
+    "getTitle": "What you get",
+    "get": [
+      "A fertilizer plan for your wheat field: what, how much, when and why",
+      "Approved by a human agronomist before it reaches you",
+      "A proof document recording the inputs, the reasoning and who reviewed it",
+      "Without a soil test, the plan covers nitrogen only, and we'll recommend a test for phosphorus and potassium"
+    ],
+    "control": "You stay in charge: you decide what to apply.",
+    "terms": "We'll explain the pilot terms on the call.",
     "name": "Full name",
     "email": "Email",
     "country": "Country",
     "farmSize": "Farm size",
     "farmSizeHint": "Approximate, with units (ha or acres)",
     "crop": "Main crop",
-    "notes": "Anything we should know (optional)",
     "consent": "I agree that CloverProof may store these details and contact me about the pilot. I can ask for them to be deleted at any time.",
     "privacyLink": "Privacy notice",
     "submit": "Request a pilot plan",
     "submitting": "Sending…",
     "required": "Required",
-    "success": "Thank you. We've received your request and will be in touch.",
+    "success": "Thank you. We'll reply by email to arrange a short call. If you have a soil-test report, keep it handy.",
     "notConnected": "Pilot requests aren't connected yet. Please check back soon.",
     "error": "Something went wrong and your request was not saved. Please try again in a moment.",
     "invalid": "Please fill in the required fields and accept the consent statement.",
@@ -179,7 +195,7 @@
     "back": "Back",
     "stepOf": "Step {current} of {total}",
     "successTitle": "You're on the list.",
-    "successBody": "Thank you. We've received your request and will be in touch.",
+    "successBody": "Thank you. We'll reply by email to arrange a short call. If you have a soil-test report, keep it handy.",
     "imageAlt": "A soil core, a paper sample bag and a field notebook on a wooden table at the edge of a wheat field"
   },
   "faq": {
@@ -199,15 +215,31 @@
       },
       {
         "q": "Who checks the recommendations?",
-        "a": "Every plan is reviewed by an agronomist before you see it. If they change a number, the reason is recorded."
+        "a": "Every plan is approved by a human agronomist before you see it. Automated checks never replace that review. If the agronomist changes a number, the reason is recorded."
       },
       {
         "q": "What is the proof document for?",
         "a": "It's your record of what was recommended, on what inputs, and why. It is not a certification and no third party has endorsed it."
       },
       {
+        "q": "Is the pilot only for wheat?",
+        "a": "In 2027, yes. We plan to add other crops later."
+      },
+      {
+        "q": "Does the pilot cost anything?",
+        "a": "We'll explain the pilot terms on the call, before you share any field data."
+      },
+      {
+        "q": "What happens to my farm data?",
+        "a": "We use it only to build and review your plan. We don't sell it or share it for marketing. The privacy notice has the details."
+      },
+      {
+        "q": "Can I leave the pilot?",
+        "a": "Yes, at any time. Ask us and we'll delete your contact details."
+      },
+      {
         "q": "Where is the pilot available?",
-        "a": "We're starting with a small number of farms. Availability depends on location, crop and fit — request a plan and we'll tell you honestly."
+        "a": "We're starting with a small number of wheat farms. Availability depends on location and fit — request a plan and we'll tell you honestly."
       }
     ]
   },
@@ -225,16 +257,36 @@
     "updated": "Last updated: November 2026",
     "sections": [
       {
+        "h": "Who can join the pilot",
+        "p": "The 2027 pilot is open to farms in Ontario, Canada. You can send a request from anywhere, but we can only include Ontario farms."
+      },
+      {
         "h": "What we collect",
-        "p": "When you request a pilot plan we collect the details you enter: name, email, country, approximate farm size, main crop and any notes."
+        "p": "When you request a pilot plan we collect what you enter: name, email, country, approximate farm size, main crop, plus the language you used and the exact consent wording you agreed to, with the time. If you join the pilot we also collect farm, field and soil-test information and the plans we make for you."
       },
       {
         "h": "Why we collect it",
-        "p": "Only to assess whether we can include your farm in the pilot and to contact you about it. We don't sell or share your details for marketing."
+        "p": "To decide whether we can include your farm in the pilot, to contact you about it and, if you join, to make and record your fertilizer plans. We don’t send news emails."
+      },
+      {
+        "h": "Website measurement",
+        "p": "We count how this website is used, ourselves, with no analytics company and no cookies or other storage on your device. We do this only on the English, French, Spanish, Italian and Turkish versions of the site; the Finnish, Bulgarian and Arabic versions record nothing. For each page load we record the page, language and time, the buttons you click, your field-check answers and result, the form step you reach and whether sending worked, the campaign tag of the link you followed, the name of the website that sent you (not the full address) and whether your screen is mobile or desktop size. A random number held only in your browser's memory groups the clicks of one page view and disappears when you leave. We do not record your name, email or anything you type, we do not store your IP address, and we do not link visits to each other or to you. Detailed records are kept 90 days, then turned into daily totals kept up to 25 months. If your browser sends Global Privacy Control or Do Not Track, we record nothing. If you send a pilot request, the link's campaign tag, the referring website and your field-check result are stored with your request, so we know how you found us."
+      },
+      {
+        "h": "How plans are reviewed",
+        "p": "Our software proposes each plan. An AI system may help check it. The AI system never receives your name, contact details, address or exact field boundaries; it sees only de-identified case data. A named person then approves, changes or rejects every number before you see it: either our human agronomist or a CloverProof administrator who is not an agronomist. Your plan and its proof PDF show which of the two approved it and their name; we never call an administrator approval an agronomist review. An AI check alone never approves a plan. You make the final decision about what you apply."
+      },
+      {
+        "h": "Improving the engine",
+        "p": "If you agree, we keep a de-identified copy of pilot results (the engine's proposal vs the human agronomist's final numbers) to make the engine more accurate. We use only plans approved by our human agronomist, not plans approved by an administrator. Names, contact details, farm and field names and exact locations are removed. You can say no and still take part."
+      },
+      {
+        "h": "Who sees it",
+        "p": "Only the CloverProof team members who need it, our human agronomist, our Canadian hosting provider, which will store pilot data in Canada, and Railway, a US company that hosts our website and, until Canadian hosting is live, stores website requests and website measurement data in the United States, as our service providers. No AI provider receives information that identifies you or your farm. We do not sell your information and we do not use advertising trackers or any analytics company."
       },
       {
         "h": "Where it is stored",
-        "p": "Your details are stored in our database provider with access limited to the CloverProof team."
+        "p": "Pilot farm data (contacts, farms, fields, soil tests, plans, reviews and proof PDFs) will be stored in Canada. We do not collect real pilot data into our hosted systems until that Canadian hosting is live. Until Canadian hosting is live, website requests and website measurement data are stored in the United States by our website host, Railway, a US company, where US authorities may be able to access them under US law. When Canadian hosting is live, this data moves to Canada and we will update this notice. We use data-processing contracts to protect your information."
       },
       {
         "h": "How long we keep it",
@@ -242,7 +294,7 @@
       },
       {
         "h": "Your rights",
-        "p": "You can ask to see, correct or delete your data, and withdraw consent at any time."
+        "p": "You can ask to see, correct or delete your information, ask how a number in your plan was produced and who approved it, and withdraw consent at any time. We reply within 30 days. You can complain to the Office of the Privacy Commissioner of Canada (priv.gc.ca) or, if you are in the EU, to your local data-protection authority."
       }
     ]
   },

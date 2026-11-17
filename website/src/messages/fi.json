@@ -16,7 +16,7 @@
     "language": "Kieli"
   },
   "hero": {
-    "eyebrow": "Pilottikausi 2027 · Haku auki",
+    "eyebrow": "Vehnäpilotti 2027 · Haku auki",
     "title": "Selkeämpi suunnitelma jokaiselle lohkolle.",
     "lead": "CloverProof yhdistää viljavuustutkimuksesi, lohkon historian ja satotavoitteesi yhdeksi lannoitussuunnitelmaksi — mitä levitetään, kuinka paljon, milloin ja miksi — ja agronomi tarkastaa sen ennen kuin se tulee sinulle.",
     "ctaPrimary": "Pyydä pilottisuunnitelma",
@@ -153,20 +153,36 @@
   },
   "pilot": {
     "title": "Liity pilottiin 2027",
-    "intro": "Teemme tulevalla kaudella yhteistyötä pienen tilajoukon kanssa. Kerro meille tilastasi, niin otamme yhteyttä.",
+    "intro": "Etsimme pientä joukkoa vehnätiloja kaudelle helmi–huhtikuu 2027. Kerro meille tilastasi, niin otamme yhteyttä.",
+    "giveTitle": "Mitä pyydämme sinulta",
+    "give": [
+      "Lohkosi nimi ja likimääräinen pinta-ala",
+      "Mitä lohkolla kasvoi viime kaudella",
+      "Tavoitesatosi tälle kaudelle",
+      "Laboratorion viljavuustutkimuksen raporttisi, jos sinulla on sellainen — kirjaamme sen menetelmän, syvyyden ja päivämäärän",
+      "Lyhyt puhelu, jossa käymme sen läpi"
+    ],
+    "getTitle": "Mitä saat",
+    "get": [
+      "Lannoitussuunnitelma vehnälohkollesi: mitä, kuinka paljon, milloin ja miksi",
+      "Ihmisagronomin hyväksymä ennen kuin se tulee sinulle",
+      "Todistusasiakirja, johon on kirjattu lähtötiedot, perustelut ja se, kuka sen tarkasti",
+      "Ilman viljavuustutkimusta suunnitelma kattaa vain typen, ja suosittelemme tutkimusta fosforia ja kaliumia varten"
+    ],
+    "control": "Päätösvalta säilyy sinulla: sinä päätät, mitä levität.",
+    "terms": "Kerromme pilotin ehdot puhelun aikana.",
     "name": "Koko nimi",
     "email": "Sähköposti",
     "country": "Maa",
     "farmSize": "Tilan koko",
     "farmSizeHint": "Arvio yksikön kanssa (ha tai eekkeriä)",
     "crop": "Pääkasvi",
-    "notes": "Muuta tiedettävää (valinnainen)",
     "consent": "Hyväksyn, että CloverProof saa tallentaa nämä tiedot ja ottaa minuun yhteyttä pilottiin liittyen. Voin milloin tahansa pyytää tietojen poistamista.",
     "privacyLink": "Tietosuojaseloste",
     "submit": "Pyydä pilottisuunnitelma",
     "submitting": "Lähetetään…",
     "required": "Pakollinen",
-    "success": "Kiitos. Olemme vastaanottaneet pyyntösi ja otamme yhteyttä.",
+    "success": "Kiitos. Vastaamme sähköpostitse ja sovimme lyhyen puhelun. Jos sinulla on viljavuustutkimuksen raportti, pidä se käden ulottuvilla.",
     "notConnected": "Pilottipyyntöjä ei ole vielä kytketty. Tarkista tilanne pian uudelleen.",
     "error": "Jokin meni vikaan, eikä pyyntöäsi tallennettu. Yritä hetken kuluttua uudelleen.",
     "invalid": "Täytä pakolliset kentät ja hyväksy suostumus.",
@@ -179,7 +195,7 @@
     "back": "Takaisin",
     "stepOf": "Vaihe {current}/{total}",
     "successTitle": "Olet listalla.",
-    "successBody": "Kiitos. Olemme vastaanottaneet pyyntösi ja otamme yhteyttä.",
+    "successBody": "Kiitos. Vastaamme sähköpostitse ja sovimme lyhyen puhelun. Jos sinulla on viljavuustutkimuksen raportti, pidä se käden ulottuvilla.",
     "imageAlt": "Maanäyte, paperinen näytepussi ja muistivihko puupöydällä vehnäpellon reunalla"
   },
   "faq": {
@@ -199,15 +215,31 @@
       },
       {
         "q": "Kuka tarkastaa suositukset?",
-        "a": "Agronomi tarkastaa jokaisen suunnitelman ennen kuin näet sen. Jos hän muuttaa lukua, syy kirjataan."
+        "a": "Ihmisagronomi hyväksyy jokaisen suunnitelman ennen kuin näet sen. Automaattiset tarkistukset eivät koskaan korvaa tätä tarkastusta. Jos agronomi muuttaa lukua, syy kirjataan."
       },
       {
         "q": "Mihin todistusasiakirjaa käytetään?",
         "a": "Se on oma tallenteesi siitä, mitä suositeltiin, millä lähtötiedoilla ja miksi. Se ei ole sertifikaatti, eikä mikään kolmas osapuoli ole hyväksynyt sitä."
       },
       {
+        "q": "Onko pilotti vain vehnälle?",
+        "a": "Vuonna 2027 kyllä. Aiomme lisätä muita kasveja myöhemmin."
+      },
+      {
+        "q": "Maksaako pilotti jotain?",
+        "a": "Kerromme pilotin ehdot puhelun aikana, ennen kuin jaat mitään lohkotietoja."
+      },
+      {
+        "q": "Mitä tilani tiedoille tapahtuu?",
+        "a": "Käytämme niitä vain suunnitelmasi laatimiseen ja tarkastamiseen. Emme myy niitä emmekä jaa niitä markkinointiin. Tarkemmat tiedot ovat tietosuojaselosteessa."
+      },
+      {
+        "q": "Voinko jättää pilotin kesken?",
+        "a": "Kyllä, milloin tahansa. Pyydä meitä, niin poistamme yhteystietosi."
+      },
+      {
         "q": "Missä pilotti on saatavilla?",
-        "a": "Aloitamme pienellä määrällä tiloja. Saatavuus riippuu sijainnista, kasvista ja soveltuvuudesta — pyydä suunnitelma, niin kerromme rehellisesti."
+        "a": "Aloitamme pienellä määrällä vehnätiloja. Saatavuus riippuu sijainnista ja soveltuvuudesta — pyydä suunnitelma, niin kerromme rehellisesti."
       }
     ]
   },
@@ -225,16 +257,36 @@
     "updated": "Päivitetty viimeksi: marraskuu 2026",
     "sections": [
       {
+        "h": "Kuka voi osallistua pilottiin",
+        "p": "Vuoden 2027 pilotti on avoin tiloille Ontariossa, Kanadassa. Voit lähettää pyynnön mistä tahansa, mutta voimme ottaa mukaan vain Ontarion tiloja."
+      },
+      {
         "h": "Mitä keräämme",
-        "p": "Kun pyydät pilottisuunnitelmaa, keräämme antamasi tiedot: nimen, sähköpostin, maan, tilan arvioidun koon, pääkasvin ja mahdolliset lisätiedot."
+        "p": "Kun pyydät pilottisuunnitelmaa, keräämme antamasi tiedot: nimen, sähköpostiosoitteen, maan, tilan arvioidun koon, pääkasvin sekä käyttämäsi kielen ja hyväksymäsi suostumustekstin tarkan sanamuodon hyväksymisajankohtineen. Jos liityt pilottiin, keräämme myös tila-, lohko- ja viljavuustutkimustietoja sekä suunnitelmat, jotka teemme sinulle."
       },
       {
         "h": "Miksi keräämme tietoja",
-        "p": "Ainoastaan arvioidaksemme, voimmeko ottaa tilasi mukaan pilottiin, ja ottaaksemme sinuun yhteyttä siihen liittyen. Emme myy tietojasi emmekä luovuta niitä markkinointiin."
+        "p": "Päättääksemme, voimmeko ottaa tilasi mukaan pilottiin, ottaaksemme sinuun yhteyttä siihen liittyen ja, jos liityt, laatiaksemme ja kirjataksemme lannoitussuunnitelmasi. Emme lähetä uutiskirjeitä sähköpostitse."
+      },
+      {
+        "h": "Verkkosivuston käytön mittaus",
+        "p": "Mittaamme itse, miten tätä verkkosivustoa käytetään, ilman analytiikkayritystä ja ilman evästeitä tai muuta tallennusta laitteellesi. Teemme tämän vain sivuston englannin-, ranskan-, espanjan-, italian- ja turkinkielisissä versioissa; suomen-, bulgarian- ja arabiankieliset versiot eivät tallenna mitään. Jokaisesta sivun latauksesta tallennamme sivun, kielen ja ajankohdan, painikkeet, joita napsautat, lohkotestin vastauksesi ja tuloksen, lomakkeen vaiheen, johon pääset, ja sen, onnistuiko lähetys, seuraamasi linkin kampanjatunnisteen, sinut ohjanneen verkkosivuston nimen (ei koko osoitetta) sekä sen, onko näyttösi mobiili- vai tietokonekokoinen. Satunnainen numero, jota säilytetään vain selaimesi muistissa, ryhmittelee yhden sivunäkymän napsautukset ja katoaa, kun poistut. Emme tallenna nimeäsi, sähköpostiosoitettasi tai mitään kirjoittamaasi, emme tallenna IP-osoitettasi emmekä yhdistä käyntejä toisiinsa tai sinuun. Yksityiskohtaisia tietueita säilytetään 90 päivää, minkä jälkeen ne muutetaan päiväkohtaisiksi kokonaismääriksi, joita säilytetään enintään 25 kuukautta. Jos selaimesi lähettää Global Privacy Controlin tai Do Not Trackin, emme tallenna mitään. Jos lähetät pilottipyynnön, linkin kampanjatunniste, sinut ohjannut verkkosivusto ja lohkotestisi tulos tallennetaan pyyntösi yhteyteen, jotta tiedämme, miten löysit meidät."
+      },
+      {
+        "h": "Miten suunnitelmat tarkastetaan",
+        "p": "Ohjelmistomme laatii ehdotuksen jokaisesta suunnitelmasta. Tekoälyjärjestelmä voi auttaa sen tarkistamisessa. Tekoälyjärjestelmä ei koskaan saa nimeäsi, yhteystietojasi, osoitettasi eikä lohkojesi tarkkoja rajoja; se näkee vain tapaustietoja, joista tunnistetiedot on poistettu. Sen jälkeen nimetty henkilö hyväksyy, muuttaa tai hylkää jokaisen luvun ennen kuin näet sen: joko ihmisagronomimme tai CloverProofin ylläpitäjä, joka ei ole agronomi. Suunnitelmassasi ja sen todistus-PDF:ssä näkyy, kumpi heistä sen hyväksyi, ja hänen nimensä; emme koskaan kutsu ylläpitäjän hyväksyntää agronomin tarkastukseksi. Pelkkä tekoälyn tekemä tarkistus ei koskaan hyväksy suunnitelmaa. Sinä teet lopullisen päätöksen siitä, mitä levität."
+      },
+      {
+        "h": "Laskentamoottorin parantaminen",
+        "p": "Jos annat suostumuksesi, säilytämme pilotin tuloksista kopion, josta tunnistetiedot on poistettu (laskentamoottorin ehdotus verrattuna ihmisagronomin lopullisiin lukuihin), jotta laskentamoottorista tulisi tarkempi. Käytämme vain ihmisagronomimme hyväksymiä suunnitelmia, emme ylläpitäjän hyväksymiä suunnitelmia. Nimet, yhteystiedot, tilojen ja lohkojen nimet sekä tarkat sijainnit poistetaan. Voit kieltäytyä ja silti osallistua."
+      },
+      {
+        "h": "Kuka tiedot näkee",
+        "p": "Vain ne CloverProof-tiimin jäsenet, jotka tarvitsevat niitä, ihmisagronomimme, kanadalainen hosting-palveluntarjoajamme, joka säilyttää pilottitiedot Kanadassa, sekä Railway, yhdysvaltalainen yritys, joka ylläpitää verkkosivustoamme ja säilyttää verkkosivuston kautta lähetetyt pyynnöt ja verkkosivuston käytön mittaustiedot Yhdysvalloissa siihen asti, kunnes kanadalainen palvelinympäristö on käytössä, palveluntarjoajinamme. Mikään tekoälypalvelun tarjoaja ei saa tietoja, joista sinut tai tilasi voidaan tunnistaa. Emme myy tietojasi emmekä käytä mainosseurantatyökaluja tai mitään analytiikkayritystä."
       },
       {
         "h": "Missä tiedot säilytetään",
-        "p": "Tietosi säilytetään tietokantapalvelumme tarjoajalla, ja pääsy niihin on rajattu CloverProof-tiimiin."
+        "p": "Pilottitilojen tiedot (yhteystiedot, tilat, lohkot, viljavuustutkimukset, suunnitelmat, tarkastukset ja todistus-PDF:t) säilytetään Kanadassa. Emme kerää todellisia pilottitietoja hostattuihin järjestelmiimme ennen kuin tämä kanadalainen palvelinympäristö on käytössä. Siihen asti, kunnes kanadalainen palvelinympäristö on käytössä, verkkosivuston kautta lähetetyt pyynnöt ja verkkosivuston käytön mittaustiedot säilyttää Yhdysvalloissa verkkosivustomme hosting-palveluntarjoaja Railway, yhdysvaltalainen yritys, ja siellä Yhdysvaltain viranomaiset voivat mahdollisesti saada ne käyttöönsä Yhdysvaltain lainsäädännön nojalla. Kun kanadalainen palvelinympäristö on käytössä, nämä tiedot siirretään Kanadaan ja päivitämme tämän selosteen. Käytämme tietojenkäsittelysopimuksia tietojesi suojaamiseksi."
       },
       {
         "h": "Kuinka kauan säilytämme tietoja",
@@ -242,7 +294,7 @@
       },
       {
         "h": "Oikeutesi",
-        "p": "Voit pyytää saada nähdä, korjata tai poistaa tietosi sekä peruuttaa suostumuksesi milloin tahansa."
+        "p": "Voit pyytää saada nähdä, korjata tai poistaa tietosi, kysyä, miten suunnitelmasi luku on saatu ja kuka sen hyväksyi, sekä peruuttaa suostumuksesi milloin tahansa. Vastaamme 30 päivän kuluessa. Voit tehdä valituksen Kanadan tietosuojavaltuutetun toimistolle (priv.gc.ca) tai, jos olet EU:ssa, paikalliselle tietosuojaviranomaiselle."
       }
     ]
   },

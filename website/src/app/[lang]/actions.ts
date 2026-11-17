@@ -3,13 +3,10 @@
 import { isEnabledLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getDb } from "@/lib/db";
+import { readPilotRequest } from "@/lib/pilot-request";
 import { safeError } from "@/lib/safe-error";
 
 export type PilotState = { status: "idle" | "success" | "invalid" | "notConnected" | "error" };
-
-const REQUIRED = ["name", "email", "country", "farmSize", "crop"] as const;
-const MAX = { name: 200, email: 320, country: 100, farmSize: 100, crop: 100, notes: 2000 } as const;
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const read = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
 
@@ -18,20 +15,13 @@ export async function requestPilot(_prev: PilotState, formData: FormData): Promi
   if (read(formData, "website") !== "") return { status: "success" };
 
   const locale = read(formData, "locale");
-  const v = {
-    name: read(formData, "name"),
-    email: read(formData, "email"),
-    country: read(formData, "country"),
-    farmSize: read(formData, "farmSize"),
-    crop: read(formData, "crop"),
-    notes: read(formData, "notes"),
-  };
   const consent = formData.get("consent") === "on";
-
-  const tooLong = (Object.keys(MAX) as (keyof typeof MAX)[]).some((k) => v[k].length > MAX[k]);
-  if (!isEnabledLocale(locale) || !consent || tooLong || REQUIRED.some((k) => !v[k]) || !EMAIL.test(v.email)) {
+  // Only whitelisted fields are read; free-text notes are no longer collected or stored.
+  const parsed = readPilotRequest(formData);
+  if (!isEnabledLocale(locale) || !consent || !parsed.ok) {
     return { status: "invalid" };
   }
+  const v = parsed.value;
 
   const db = getDb();
   if (!db) return { status: "notConnected" };
@@ -40,9 +30,9 @@ export async function requestPilot(_prev: PilotState, formData: FormData): Promi
     const t = await getDictionary(locale);
     await db.query(
       `insert into pilot_request
-         (locale, full_name, email, country, farm_size_text, main_crop, notes, consent_at, consent_text)
-       values ($1, $2, $3, $4, $5, $6, $7, now(), $8)`,
-      [locale, v.name, v.email, v.country, v.farmSize, v.crop, v.notes || null, t.pilot.consent],
+         (locale, full_name, email, country, farm_size_text, main_crop, consent_at, consent_text)
+       values ($1, $2, $3, $4, $5, $6, now(), $7)`,
+      [locale, v.name, v.email, v.country, v.farmSize, v.crop, t.pilot.consent],
     );
     return { status: "success" };
   } catch (error) {

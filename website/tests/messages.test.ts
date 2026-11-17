@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-const locales = ["en", "fr", "it", "es", "bg", "fi", "tr", "ar"];
+const locales = ["en", "fr", "it", "es", "bg", "fi", "tr", "ar", "he"];
 const load = (l: string) => JSON.parse(readFileSync(new URL(`../src/messages/${l}.json`, import.meta.url), "utf8"));
 const en = load("en");
 

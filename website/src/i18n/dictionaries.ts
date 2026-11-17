@@ -15,6 +15,7 @@ const dictionaries: Record<Locale, () => Promise<Dictionary>> = {
   fi: () => import("@/messages/fi.json").then((m) => m.default as Dictionary),
   tr: () => import("@/messages/tr.json").then((m) => m.default as Dictionary),
   ar: () => import("@/messages/ar.json").then((m) => m.default as Dictionary),
+  he: () => import("@/messages/he.json").then((m) => m.default as Dictionary),
 };
 
 export async function getDictionary(locale: Locale): Promise<Dictionary> {
