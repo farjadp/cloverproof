@@ -34,7 +34,13 @@ from cloverproof_engine.pack import Pack, PackConstant
 FORM_LABELS = {"P": "P", "P2O5": "P₂O₅", "K": "K", "K2O": "K₂O", "NO3-N": "NO₃-N", "N": "N"}
 VALUE_FORMS = ("P", "P2O5", "K", "K2O", "NO3-N")
 UNITS = tuple(u.value for u in ConcentrationUnit)
-METHOD_LABELS = {"olsen": "Olsen", "bray-1": "Bray-1", "mehlich-3": "Mehlich-3", "other": "Other"}
+METHOD_LABELS = {
+    "olsen": "Olsen",
+    "bray-1": "Bray-1",
+    "mehlich-3": "Mehlich-3",
+    "ammonium-acetate": "Ammonium acetate",
+    "other": "Other",
+}
 CROP_LABELS = {"wheat": "Wheat"}
 VALUE_ROWS = 3  # empty value rows on a fresh form; blank rows are ignored
 
