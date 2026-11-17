@@ -101,10 +101,7 @@ export async function guardAction(action: Action, form: FormData, opts: { stepUp
   if (!current || !current.session.mfa_verified_at) return { ok: false, error: "Your session has ended. Sign in again." };
   if (!csrfValid(cfg, token, form.get("csrf"))) return { ok: false, error: "This form has expired. Reload the page." };
   if (!can(current.user.role, action)) return { ok: false, error: "You don't have permission for this." };
-  if (opts.stepUp) {
-    const at = current.session.step_up_at ? new Date(current.session.step_up_at).getTime() : 0;
-    if (Date.now() - at > STEP_UP_SECONDS * 1000) return { ok: false, error: "STEP_UP" };
-  }
+  if (opts.stepUp && !stepUpFresh(current)) return { ok: false, error: "STEP_UP" };
   return { ok: true, current, db, config: cfg, meta: await requestMeta() };
 }
 
@@ -140,4 +137,10 @@ export async function inTransaction<T>(db: Pool, fn: (client: import("pg").PoolC
   } finally {
     client.release();
   }
+}
+
+/** True when the session confirmed a fresh code within STEP_UP_SECONDS. */
+export function stepUpFresh(current: Current, now: Date = new Date()): boolean {
+  const at = current.session.step_up_at ? new Date(current.session.step_up_at).getTime() : 0;
+  return now.getTime() - at < STEP_UP_SECONDS * 1000;
 }
