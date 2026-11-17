@@ -1,7 +1,7 @@
 # ADR 0009 — Production hosting in Canada (data residency)
 
-- Status: **Proposed** (2026-11-16). No paid service, account or contract is approved by this ADR; it lists options only.
-- Decision on residency taken by Farjad Iranmehr (2026-11-16): real farmer data must be stored in Canada. This ADR chooses the provider (still Proposed).
+- Status: **Accepted — interim Railway; Canadian host decision due 2027-01-04; migration S4** (Farjad Iranmehr, 2026-11-16: "Railway now, Canada later"). No paid service, account or contract is approved by this ADR; the host choice (D recommended, C runner-up) and its spend need his go by Jan 4.
+- Decision on residency taken by Farjad Iranmehr (2026-11-16): real farmer data must be stored in Canada. The provider choice is deferred to 2027-01-04 (see Decision).
 - Decider: Farjad Iranmehr. Authors: `system-architect` for `cto` + `devops-engineer`; review: `ciso`, `coo`.
 - Related: ADR 0004 (Railway), ADR 0005 (auth + Railway Bucket), ADR 0006 (SoilGrids cache), ADR 0007 (DB privileges), ADR 0008 (RLS, reserved); `docs/operations/legal/data-residency-input.md` (OQ-06); `docs/security/backup-restore-test-plan.md`; `docs/runbook-db-switch.md`; `docs/plans/backend-plan.md` §4, §12, §14.
 
@@ -13,6 +13,12 @@
 - Deadline: the S5 rehearsal (Jan 18–29, 2027) enters **3 real farms** → production must be in Canada **before Jan 18**, not just before the Jan 29 gate.
 - Repo facts to carry: local dev and CI run `postgis/postgis:18-3.7`, matching the Railway service `PostGIS-cXKk`, so **Postgres 18 is already the baseline** (no upgrade decision needed). All managed options below offer 18 except E (Fly.io); their listed PostGIS is 3.6.x (3.7 not confirmed on any), a minor-version gap to check in the staging build. Migration `0002_roles_and_extensions.sql` assumes a **superuser** deploy user (creates `cp_migrator`/`cp_app`, `create extension postgis`, `set role cp_migrator`); no managed service gives a true superuser (RDS `rds_superuser`, Cloud SQL `cloudsqlsuperuser`, Azure `azure_pg_admin`, DO `doadmin`). Expect small changes to 0002-style grants and to the backup role's `pg_read_all_data` grant.
 - Law (from `data-residency-input.md`, not legal advice): PIPEDA does not require residency; storage in Canada with a US-owned provider is still reachable under the US CLOUD Act. Only a non-US-owned provider changes that.
+
+## Decision (Farjad Iranmehr, 2026-11-16): "Railway now, Canada later"
+1. **Now through S3 (to Jan 1, 2027):** staging and the concierge build stay on Railway, using the approved Railway Bucket, worker and `staging` environment. Hosted environments hold **synthetic or de-identified data only**, plus the website pilot form with its disclosed interim US storage.
+2. **Canadian host chosen by 2027-01-04 (S4 start).** Option D (DigitalOcean TOR1) stays the recommendation, C (Google Cloud Toronto/Montréal) the runner-up; the choice itself is deferred to that date.
+3. **Production migrates to the Canadian host in S4** (planned work; backlog `S4-PLT-01`, traceability AR-17 / SC-08), finished before the first real farmer's data. The S5 rehearsal enters real farms from Jan 18, so the cutover must be done by **Jan 15**, ahead of the Jan 29 gate.
+4. **Build portable now** so S4 is a redeploy, not a rewrite: plain Postgres + PostGIS (no Railway-specific extensions or DB features), S3-compatible bucket API behind `ProofStore`, a Dockerfile for every service, configuration through env vars only, migrations through `make db-migrate`. **No Railway-only features** (e.g. Railway-specific variable references in app code, Railway-only cron or volumes as data stores).
 
 ## Options compared
 Prices: USD list, before tax, accessed 2026-11-16; monthly = hourly × 730. "Est." = my estimate from listed unit prices, not a quote. "Unverified" = not confirmed on an official page. RDS PITR (35 days), S3 Object Lock and Azure Blob immutability are standard documented features, not re-fetched today.
@@ -37,19 +43,19 @@ Prices: USD list, before tax, accessed 2026-11-16; monthly = hourly × 730. "Est
 
 Not compared further: **Canadian-owned providers** (ThinkOn, Canadian Web Hosting) — no self-serve managed Postgres with PostGIS found; enterprise IaaS only (not verified, quota ran out). **Hybrid** (app on Railway US, DB in Canada): meets "stored in Canada" literally, but needs a public DB endpoint for Railway, adds ~15–30 ms per query across the border and keeps processing + logs in the US. Rejected.
 
-## Recommendation
+## Recommendation (for the 2027-01-04 choice)
 **Option D — DigitalOcean TOR1** (App Platform for `app`, `worker` and `website`; Managed PostgreSQL 18 Standard edition with PostGIS; Spaces TOR1 for proof PDFs), **plus the offsite backup copy (backup plan L3/L4, D1) in AWS S3 ca-central-1 with Object Lock (compliance mode).**
 1. Lowest ops burden for 1–2 people: App Platform is the closest match to Railway (GitHub build from Dockerfile, env vars, pre-deploy job for `make db-migrate`, worker components). Cutover fits in one sprint.
 2. All three needed services are listed for TOR1 [S14]; Postgres 18 + PostGIS available [S13]; cost ≈ $35–50/month.
 3. The S3 Object Lock copy closes D's two gaps: no confirmed object lock on Spaces, and PITR only 7 days. It also protects against a compromise of the DO account (a second vendor, `backup-restore-test-plan.md` D1). Cost: cents.
 4. Runner-up: **C (Google Cloud Toronto + Montréal)** if Farjad prefers one large vendor with native WORM storage and longer backups; it costs a little more and needs IAM work, and its backup location **must** be set to a Canadian region.
 
-**Main risk:** DigitalOcean has not confirmed in writing that managed-DB backups, PITR WAL and App Platform logs stay in Canada (not on the pages I could fetch). If DO can't confirm before Dec 11, switch to C. Second risk for every option here: all are US-owned (CLOUD Act). "Stored in Canada" ≠ "out of reach of US law". Say so in the privacy notice (§7).
+**Main risk:** DigitalOcean has not confirmed in writing that managed-DB backups, PITR WAL and App Platform logs stay in Canada (not on the pages I could fetch). If DO cannot confirm in writing before the Jan 4 choice, choose C. Second risk for every option here: all are US-owned (CLOUD Act). "Stored in Canada" ≠ "out of reach of US law". Say so in the privacy notice (§7).
 
 ## What stays on Railway
 - **Website: moves too** (to App Platform TOR1, same app spec). Keeping it on Railway would need a public, IP-allow-listed DB endpoint for `pilot_request` PII and would keep processing + logs of that PII in the US. Moving costs ~$5–12/month and keeps the DB private.
 - **Nothing with real data.** Railway may keep a **sandbox/preview environment with synthetic data only** until Farjad decides to close the account. The **staging** environment moves to TOR1 too (S5 requires "staging = production config").
-- Old Railway `Postgres` service: kept until Farjad approves deletion (≥ 1 week after cutover, final `pg_dump` saved in Canada; `runbook-db-switch.md` §5). The planned Railway `postgis` service and the Railway Bucket (ADR 0005 B1) are **not** created for production.
+- Old Railway `Postgres` service: kept until Farjad approves deletion (≥ 1 week after cutover, final `pg_dump` saved in Canada; `runbook-db-switch.md` §5). Until the S4 cutover, the Railway `PostGIS-cXKk` service and the Railway Bucket (ADR 0005 B1) serve staging and the build with synthetic data only; they are not used for real farmer data.
 - Out-of-Canada processors that remain, to minimise not move: Sentry free tier (US/EU, scrub PII), GitHub Actions (synthetic data only), AI reviewer (de-identified only, D-7), future email provider.
 
 ## Consequences
@@ -64,18 +70,17 @@ Not compared further: **Canadian-owned providers** (ThinkOn, Canadian Web Hostin
 Hosted environments hold no real farmer data yet, so this is mostly a **fresh build + copy of `pilot_request`**, not a data migration.
 | When | Step | Owner |
 |---|---|---|
-| By Dec 4 (S2) | Farjad decides D or C; creates accounts; signs/accepts DPAs after counsel review | Farjad Iranmehr |
-| By Dec 11 (S2) | DO written answers on backup/log location (else switch to C). `cp-database`: no-superuser migration path, tested on PG 18 + PostGIS locally (`postgis/postgis:18-3.7`) | `devops-engineer`, `cp-database` |
-| S3 (Dec 14 – Jan 1) | Build **staging** in TOR1 (app, worker, website, DB, Spaces), migrations 0001–0009+, RLS tests, synthetic seed; drill A on staging | `cp-platform` |
-| Jan 4–8 (S4) | Build production; DB has no public ingress (trusted sources only); S3 Object Lock backup job live; first restore drill | `cp-platform`, `cp-database` |
-| Jan 8 (window) | Pause website writes → copy `pilot_request` from Railway (`pg_dump --data-only`) → verify counts → switch DNS → test submission | `cp-website`, `cp-platform` |
-| Jan 11–15 | Fill `[RAILWAY REGION]`/residency text in notice; security review of new setup (release-gate checklist) | `ciso`, `coo` |
+| Now – Jan 1 (S1–S3) | Stay on Railway (staging, Bucket, worker); synthetic/de-identified data only; keep every service portable (Decision §4). DO written answers on backup/log location requested. `cp-database`: no-superuser migration path, tested on PG 18 + PostGIS locally (`postgis/postgis:18-3.7`) | `cp-platform`, `devops-engineer`, `cp-database` |
+| By Jan 4 (S4 start) | Farjad chooses D or C and approves spend; creates accounts; signs/accepts DPAs after counsel review | Farjad Iranmehr |
+| Jan 4–8 (S4) | Build staging + production in the chosen Canadian region (app, worker, website, DB, bucket); migrations; RLS tests; synthetic seed; DB has no public ingress; offsite Object Lock backup job live; restore drill | `cp-platform`, `cp-database` |
+| Jan 11–15 (S4, window) | Pause website writes → copy `pilot_request` from Railway (`pg_dump --data-only`) → verify counts → switch DNS → test submission | `cp-website`, `cp-platform` |
+| By Jan 15 | Fill `[RAILWAY REGION]`/residency text in notice; security review of new setup (release-gate checklist) | `ciso`, `coo` |
 | From Jan 18 (S5) | First real farm data, Canada only | Farjad Iranmehr |
 
 **Rollback:** until real farm data exists, roll back = point DNS back at the Railway website + old Railway `Postgres` (kept untouched, read-only). After real farm data exists, there is **no rollback to Railway** (it would break residency): roll forward on DO, or restore the latest `age` dump into option C.
 
 ## Needs Farjad Iranmehr's go (none done)
-1. Choose D (recommended) or C; approve the ~$35–50/month spend (paid service rule).
+1. **By 2027-01-04:** choose D (recommended) or C; approve the ~$35–50/month spend (paid service rule).
 2. Create the DigitalOcean account/team (and the AWS account for the Object Lock backup bucket); billing card; MFA on both.
 3. Accept/sign each provider's DPA after counsel review; save a dated copy.
 4. Approve moving the website off Railway and, later, deleting the Railway `Postgres` service.

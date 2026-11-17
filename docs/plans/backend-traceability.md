@@ -168,7 +168,7 @@ Enforcement for every cell: service-layer check **and** Postgres RLS (D1, DM-R1.
 | AR-14 | 4.2 | Internal UI: Jinja2 + HTMX by FastAPI, one deploy | done | #7 (templates, vendored htmx 2.0.11) | cto/cp-concierge-app | S1 | API, E2E | — |
 | AR-15 | 4.2 | Hosting: Railway app + worker (+ Supabase cloud) | partial | Website on Railway (ADR 0004). App + worker services not deployed; Supabase part superseded by D1 | cto/devops-engineer | S3–S4 | LIVE | AR-03 |
 | AR-16 | 4.2 | Errors: Sentry free tier | missing | R7: free allowed, paid needs FI | cto/cp-platform | S5 | LIVE | — |
-| AR-17 | 4.2 | Region: EU launch → EU regions (ADR) | superseded | R4: launch = Canada (Ontario). Railway has no Canadian region; residency decision open (OQ-06) | FI + ciso + coo/legal | S2 | DEC | OQ-06 |
+| AR-17 | 4.2 | Region: EU launch → EU regions (ADR) | superseded | R4: launch = Canada (Ontario). Railway has no Canadian region; decided 2026-11-16 (ADR 0009): Railway interim (synthetic data only), Canadian host chosen by 2027-01-04, production migration in S4 (`S4-PLT-01`) | FI + ciso + coo/legal | S4 | DEC | OQ-06 |
 | AR-18 | 4.3 | `engine/` | done | `main` | cto/cp-engine | S1 | UT | — |
 | AR-19 | 4.3 | `data_sources/` (SoilGrids cache, weather clients, WoSIS/FTW) | missing | | cto/cp-engine (cache) + head-of-data/data-engineer | S3 | UT | XD-01 |
 | AR-20 | 4.3 | `app/main.py` | partial | Actual path `app/cloverproof_app/main.py` (uv package layout) — accept as equivalent (DEC) | cto/cp-platform | S1 | DEC | — |
@@ -472,7 +472,7 @@ For every row: owner `cto/cp-concierge-app` (DB parts `cp-database`), test `API`
 | SC-05 | 12 | Private buckets; signed URLs ≤ 15 min | missing | | cto/cp-pdf + devops-engineer | S3 | API, SR | AR-05 |
 | SC-06 | 12 | Audit all admin actions, grants, approvals, exports, deletions, support sessions | missing | Reviews are rows (approvals traceable); no `audit_event` | cto/cp-database | S2→ | DBT | DM-27 |
 | SC-07 | 12 | Privacy law: PIPEDA (+ Ontario/Quebec); GDPR if EU — DPA template, records of processing, export/delete ≤ 30 days | partial | COO drafts on unpushed branch (privacy notice, terms, consent). Not lawyer-reviewed | coo/legal-compliance-specialist | S2–S4 | LR | OQ-07 |
-| SC-08 | 12 | Data residency decided with launch country (ADR) | missing | R4: Canada; Railway has no Canadian region (ADR 0004). Decision before real farmer data (S5) | FI + ciso + coo/legal | S3 | DEC | OQ-06 |
+| SC-08 | 12 | Data residency decided with launch country (ADR) | missing | R4: Canada; Railway has no Canadian region (ADR 0004). Decided 2026-11-16 (ADR 0009): Railway now, Canada later; host choice due 2027-01-04; migration S4 (`S4-PLT-01`), done before real farm data (Jan 18) | FI + ciso + coo/legal | S4 | DEC | OQ-06 |
 | SC-09 | 12 | Backups: daily + weekly logical dump to separate storage; quarterly restore test | missing | D1: Railway volume backups instead of Supabase; dump destination undecided (ciso note) | cto/devops-engineer + ciso | S5 | RST | AR-03 |
 | SC-10 | 12 | Rate limit `/public/*` per IP | partial | Login rate limiter exists (#7 `ratelimit.py`, in-process); public endpoints S11 | cto/cp-concierge-app | S11 | API | UA-40 |
 | SC-11 | 12 | Dependabot + `pip-audit` in CI | partial | Done on unpushed ciso branch (`security.yml`, `dependabot.yml`); not on `main` | ciso/security-engineer + release-manager | S2 | CI | — |
