@@ -97,6 +97,7 @@ def test_kind_values() -> None:
         "sample",
         "agronomist_approved",
         "external_reference",
+        "ai_reviewed",
     }
 
 
@@ -380,7 +381,9 @@ def test_report_empty_sections_say_none(tmp_path: Path) -> None:
     report = run_report(tmp_path, PACKS_DIR)
     assert "## agronomist_approved (0)" in report
     assert "## external_reference (0)" in report
-    assert report.count("(none)") == 2
+    assert "## ai_reviewed (0)" in report
+    assert report.count("(none)") == 3
+    assert "## errors" not in report
 
 
 def test_agreement_counts_only_approved_cases(tmp_path: Path) -> None:
@@ -455,3 +458,143 @@ def test_report_errors_have_their_own_section(tmp_path: Path) -> None:
     report = run_report(tmp_path, PACKS_DIR)
     errors = report[report.index("## errors (1)") :]
     assert "== broken.yaml  ERROR" in errors
+
+
+# --- ai_reviewed cases, document citations, template ------------------------------
+
+
+def _document_source(**change: object) -> dict[str, Any]:
+    """A citation of a published document. TEST FIXTURE ONLY, not a real document."""
+    src: dict[str, Any] = {
+        "title": "Test Guide",
+        "publisher": "Test Publisher",
+        "year": 2025,
+        "locator": "Table 1, p. 2",
+        "url": "https://example.invalid/test-guide",
+    }
+    src.update(change)
+    return src
+
+
+def _ai_data(**top: object) -> dict[str, Any]:
+    data = _external_data(
+        id="t_ai", kind="ai_reviewed", entered_by="cp-agronomist", source=_document_source()
+    )
+    data.update(top)
+    return data
+
+
+def test_ai_reviewed_case_loads_with_reference_shape() -> None:
+    case = parse_golden_case(_ai_data())
+    assert isinstance(case, ExternalReferenceCase)
+    assert case.kind == GoldenKind.AI_REVIEWED
+    assert case.entered_by == "cp-agronomist"
+
+
+def test_ai_reviewed_case_has_no_expected_block() -> None:
+    with pytest.raises(ValidationError):
+        parse_golden_case(_ai_data(expected=_case_data()["expected"]))
+
+
+def test_ai_reviewed_must_be_entered_by_the_ai_agronomist() -> None:
+    with pytest.raises(ValidationError, match="cp-agronomist"):
+        parse_golden_case(_ai_data(entered_by="Test Person"))
+
+
+def test_external_reference_cannot_be_entered_by_the_ai_agronomist() -> None:
+    # A case the AI drafts is ai_reviewed (rule 11), never external_reference.
+    with pytest.raises(ValidationError, match="ai_reviewed"):
+        parse_golden_case(_external_data(entered_by="cp-agronomist"))
+
+
+def test_document_citation_loads() -> None:
+    case = parse_golden_case(_external_data(source=_document_source()))
+    assert isinstance(case, ExternalReferenceCase)
+    assert case.source.title == "Test Guide"
+    assert case.source.year == 2025
+    assert case.source.locator == "Table 1, p. 2"
+
+
+@pytest.mark.parametrize("missing", ["publisher", "year", "locator", "url"])
+def test_document_citation_needs_every_field(missing: str) -> None:
+    src = _document_source()
+    del src[missing]
+    with pytest.raises(ValidationError):
+        parse_golden_case(_external_data(source=src))
+
+
+def test_source_needs_a_tool_or_a_title() -> None:
+    with pytest.raises(ValidationError):
+        parse_golden_case(_external_data(source={"url": "https://example.invalid"}))
+
+
+@pytest.mark.parametrize(
+    "settings",
+    [
+        {"yield_display_unit": "bu/ac"},
+        {"yield_display_unit": "t/ha", "price_ratio": "0.1"},
+        {"include_fungicide": True},
+    ],
+)
+def test_tool_settings_display_only_allowed(settings: dict[str, object]) -> None:
+    case = parse_golden_case(_external_data(tool_settings=settings))
+    assert isinstance(case, ExternalReferenceCase)
+
+
+@pytest.mark.parametrize(
+    "settings",
+    [
+        {"target_yield_bu_ac": 90},
+        {"yield": "90 bu/ac"},
+        {"yield_display_unit": "bushels"},
+        {"n_rate": 120},
+    ],
+)
+def test_tool_settings_never_store_yield_or_numbers(settings: dict[str, object]) -> None:
+    # Yield is stored only as input.target_yield_t_ha; bu/ac is a display setting.
+    with pytest.raises(ValidationError):
+        parse_golden_case(_external_data(tool_settings=settings))
+
+
+def test_report_ai_reviewed_section_is_information_only(tmp_path: Path) -> None:
+    _mixed_dir(tmp_path)
+    _write(tmp_path, _ai_data(id="ai1"))
+    report = run_report(tmp_path, PACKS_DIR)
+    ext_head = report.index("## external_reference (1)")
+    ai_head = report.index("## ai_reviewed (1)")
+    assert ext_head < ai_head < report.index("== ai1")
+    ai = report[ai_head:]
+    assert "drafted by cp-agronomist (AI), not agronomist validation" in ai
+    assert "Test Guide" in ai and "Table 1, p. 2" in ai
+    # Diff only: the table has no pass/fail column; never counted toward agreement.
+    block = ai[ai.index("== ai1") :].splitlines()
+    header = next(line for line in block if "engine kg/ha" in line)
+    assert not header.rstrip().endswith("ok")
+    assert "1/2 = 50.0%" in report
+
+
+TEMPLATE = GOLDEN_DIR / "_template.yaml"
+
+
+def test_template_exists_and_is_skipped() -> None:
+    assert TEMPLATE.is_file()
+    assert TEMPLATE not in golden_paths(GOLDEN_DIR)
+
+
+def test_template_covers_the_reference_case_fields() -> None:
+    data = yaml.safe_load(TEMPLATE.read_text(encoding="utf-8"))
+    assert data["kind"] == "external_reference"
+    fields = set(ExternalReferenceCase.model_fields)
+    assert set(data) <= fields
+    required = {n for n, f in ExternalReferenceCase.model_fields.items() if f.is_required()}
+    assert required <= set(data)
+    assert set(data["source"]) >= {"title", "publisher", "year", "locator", "url"}
+    assert "target_yield_t_ha" in data["input"]
+    assert not any("bu" in key for key in data["input"])
+
+
+def test_template_fails_validation_until_filled_in() -> None:
+    # Copying the template without entering a real reference must not load silently.
+    data = yaml.safe_load(TEMPLATE.read_text(encoding="utf-8"))
+    with pytest.raises(ValueError):
+        parse_golden_case(data)

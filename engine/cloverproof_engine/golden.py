@@ -7,10 +7,20 @@ Golden YAML lives in engine/tests/golden/. Every case declares a `kind`:
 - `agronomist_approved`: the agronomist's decision. Must carry `reviewer` and
   `reviewed_on` (top level) and a non-empty `expected.reason`. The only kind that
   counts toward the agreement gate.
-- `external_reference`: the output of a public tool, entered by hand. Must carry
-  `source` (tool + URL and/or version), `accessed_on`, `entered_by`, `region`
-  (metadata, not an engine input) and `reference_output`. Information only: the
-  reference is not ground truth and never counts toward the gate.
+- `external_reference`: the output of a public tool or the numbers of an official
+  document, entered by hand by a human. Must carry `source` (a tool + URL and/or
+  version, or a document: title, publisher, year, page/table locator, URL),
+  `accessed_on`, `entered_by`, `region` (metadata, not an engine input) and
+  `reference_output`. Information only: the reference is not ground truth and never
+  counts toward the gate.
+- `ai_reviewed`: same shape as `external_reference`, drafted by the AI agronomist
+  `cp-agronomist` from a cited source (CLAUDE.md rule 11). Never agronomist
+  validation; information only; never counts toward the gate or calibration.
+
+Only `sample` and `agronomist_approved` cases assert (expected vs actual, ok column).
+Reference kinds show the engine-vs-reference difference only, without pass/fail.
+Yield is stored only as `input.target_yield_t_ha` (t/ha); a tool's bu/ac display is
+recorded as `tool_settings.yield_display_unit`, never as a stored number.
 
 A missing `kind` or a missing required field fails loading; the report shows an
 ERROR line. The report is informational: it never fails the build (yet).
@@ -24,8 +34,11 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    StrictBool,
+    StrictStr,
     StringConstraints,
     TypeAdapter,
+    field_validator,
     model_validator,
 )
 
@@ -50,6 +63,12 @@ class GoldenKind(StrEnum):
     SAMPLE = "sample"
     AGRONOMIST_APPROVED = "agronomist_approved"
     EXTERNAL_REFERENCE = "external_reference"
+    AI_REVIEWED = "ai_reviewed"
+
+
+# The only AI agent allowed to draft golden cases (CLAUDE.md rule 11).
+AI_AGRONOMIST = "cp-agronomist"
+REFERENCE_KINDS = (GoldenKind.EXTERNAL_REFERENCE, GoldenKind.AI_REVIEWED)
 
 
 class PackRef(_Frozen):
@@ -155,33 +174,99 @@ class ReferenceOutput(_Frozen):
 
 
 class ReferenceSource(_Frozen):
-    tool: NonBlankStr
+    """Where the reference numbers come from: a public tool, or an official document.
+
+    Tool: `tool` + a `url` and/or `version`. Document: `title`, `publisher`, `year`,
+    `locator` (page / table) and `url`, all required. The access date is the case's
+    top-level `accessed_on`.
+    """
+
+    tool: NonBlankStr | None = None
     url: str | None = None
     version: str | None = None
+    title: NonBlankStr | None = None
+    publisher: NonBlankStr | None = None
+    year: int | None = Field(default=None, gt=0)
+    locator: NonBlankStr | None = None
 
     @model_validator(mode="after")
     def _check_locator(self) -> Self:
-        if not (self.url or "").strip() and not (self.version or "").strip():
+        if self.tool is None and self.title is None:
+            raise ValueError("source needs a tool or a document title")
+        url = (self.url or "").strip()
+        if self.title is not None:
+            missing = [
+                name
+                for name, value in (
+                    ("publisher", self.publisher),
+                    ("year", self.year),
+                    ("locator", self.locator),
+                    ("url", url or None),
+                )
+                if value is None
+            ]
+            if missing:
+                raise ValueError(f"document source needs: {', '.join(missing)}")
+        elif not url and not (self.version or "").strip():
             raise ValueError("source needs a url or a version")
         return self
 
+    def describe(self) -> str:
+        if self.title is not None:
+            return f"{self.title}, {self.publisher}, {self.year}, {self.locator}, {self.url}"
+        locator = ", ".join(
+            x for x in ((self.version or "").strip(), (self.url or "").strip()) if x
+        )
+        return f"{self.tool} ({locator})"
+
+
+YIELD_DISPLAY_KEY = "yield_display_unit"
+YIELD_DISPLAY_UNITS = ("t/ha", "bu/ac")
+
 
 class ExternalReferenceCase(_Frozen):
-    """An `external_reference` case: input -> a public tool's output. Not ground truth."""
+    """An `external_reference` or `ai_reviewed` case: input -> a reference output.
+
+    Not ground truth; information only.
+    """
 
     id: str
-    kind: Literal["external_reference"]
+    kind: Literal["external_reference", "ai_reviewed"]
     description: str = ""
     pack: PackRef
     source: ReferenceSource
     accessed_on: date
     entered_by: NonBlankStr
-    # Metadata only (where the reference tool applies); not an engine input.
+    # Metadata only (where the reference applies); not an engine input.
     region: NonBlankStr
-    tool_settings: dict[str, Any] | None = None
+    # Settings as shown in the tool (text or on/off), never data: no numbers, no yield.
+    tool_settings: dict[str, StrictStr | StrictBool] | None = None
     notes: str | None = None
     input: RecommendationInput
     reference_output: ReferenceOutput
+
+    @field_validator("tool_settings")
+    @classmethod
+    def _check_settings(cls, value: dict[str, str | bool] | None) -> dict[str, str | bool] | None:
+        for key, setting in (value or {}).items():
+            if key == YIELD_DISPLAY_KEY:
+                if setting not in YIELD_DISPLAY_UNITS:
+                    raise ValueError(f"{key} must be one of {', '.join(YIELD_DISPLAY_UNITS)}")
+            elif "yield" in key.lower():
+                raise ValueError(
+                    f"tool_settings.{key}: yield is stored only as input.target_yield_t_ha; "
+                    f"use {YIELD_DISPLAY_KEY} for the display unit"
+                )
+        return value
+
+    @model_validator(mode="after")
+    def _check_author(self) -> Self:
+        is_ai = self.entered_by.strip().lower() == AI_AGRONOMIST
+        if self.kind == GoldenKind.AI_REVIEWED and not is_ai:
+            raise ValueError(f"an ai_reviewed case is entered by {AI_AGRONOMIST}")
+        if self.kind == GoldenKind.EXTERNAL_REFERENCE and is_ai:
+            raise ValueError(f"a case entered by {AI_AGRONOMIST} must be kind ai_reviewed")
+        return self
 
 
 GoldenCase = Annotated[ExpectedCase | ExternalReferenceCase, Field(discriminator="kind")]
@@ -327,14 +412,14 @@ def _table(rows: list[tuple[str, ...]]) -> list[str]:
 def format_external(
     case: ExternalReferenceCase, rows: list[ExternalRow], rec: Recommendation
 ) -> str:
-    src = case.source
-    locator = ", ".join(x for x in ((src.version or "").strip(), (src.url or "").strip()) if x)
     lines = [
         f"== {case.id}  [{case.kind}]  pack {rec.pack_id} {rec.pack_version}  "
         f"engine {rec.engine_version}",
-        f"  source: {src.tool} ({locator}); accessed {case.accessed_on.isoformat()} "
+        f"  source: {case.source.describe()}; accessed {case.accessed_on.isoformat()} "
         f"by {case.entered_by}; region {case.region}",
     ]
+    if case.kind == GoldenKind.AI_REVIEWED:
+        lines.append(f"  drafted by {AI_AGRONOMIST} (AI), not agronomist validation")
     table = [("field", "engine kg/ha", "reference", "reference kg/ha", "diff kg/ha")]
     for r in rows:
         diff = "-" if r.diff_kg_ha is None else f"{r.diff_kg_ha:+.1f}"
