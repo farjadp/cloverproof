@@ -75,6 +75,17 @@ test("disable signs the user out everywhere; can't disable yourself; enable work
     assert.equal((await login(db, config, { email: "ed@example.com", password: PASSWORD }, meta, now)).ok, true);
   }));
 
+test("disable kills pending links; another admin's sign-in can't be reset here", { skip }, () =>
+  withDb(async (db, admin) => {
+    const { id, link } = await invite(db, admin, "ed@example.com");
+    await setDisabled(db, admin, id, true, meta, now);
+    await setDisabled(db, admin, id, false, meta, now);
+    assert.equal((await redeemLink(db, link.split("#")[1], PASSWORD, meta, now)).ok, false, "link stays dead after re-enable");
+    const { id: other } = await invite(db, admin, "admin2@example.com", "admin");
+    assert.equal((await resetPassword(db, config, admin, other, meta, now)).ok, false);
+    assert.equal((await resetMfa(db, admin, other, meta, now)).ok, false);
+  }));
+
 test("password reset link and MFA reset", { skip }, () =>
   withDb(async (db, admin) => {
     const { id, link } = await invite(db, admin, "ed@example.com");

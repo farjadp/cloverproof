@@ -14,6 +14,7 @@ test("CSV: header, quoting and formula-injection guard", () => {
   assert.equal(lines[0], "occurred_at,actor,kind,action,target_type,target_id,outcome,ip_prefix,browser,detail");
   assert.match(lines[1], /^2026-11-17T12:00:00.000Z,"'=HYPERLINK\(""x""\)",auth,login,,,ok,203\.0\.113\.0\/24,Firefox,"\{""reason"":""a,b""\}"$/);
   assert.match(lines[2], /,'-2\+3,auth,'@sum,/);
+  assert.match(toCsv([row({ actor: "|cmd" })]), /,'\|cmd,/);
 });
 
 const url = process.env.WEBSITE_TEST_DATABASE_URL;
