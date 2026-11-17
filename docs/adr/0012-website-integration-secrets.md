@@ -26,7 +26,7 @@ The admin must hold API keys for Anthropic (Claude), Google (Gemini), OpenAI and
 + Simplest. − Not manageable from the admin, no history/audit, needs redeploy to change; doesn't meet the brief.
 
 ## Decision (proposed)
-Option A. P2 timing: recommended just before P4 (keys aren't stored months before any use).
+Option A. P2 timing decided (Farjad Iranmehr, 2026-11-17): built after P3, just before P4.
 
 ## Consequences
 - Table `website_secret` (one active row per provider), grants: `cp_website_admin` only; `cp_website` no access.

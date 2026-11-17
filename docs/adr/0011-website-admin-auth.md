@@ -1,6 +1,6 @@
 # ADR 0011 — Website admin authentication and roles (DRAFT)
 
-- Status: **Proposed** (2026-11-17) — needs `ciso` review and Farjad Iranmehr's decision
+- Status: **Proposed** (2026-11-17) — Farjad Iranmehr chose option A (same service, `/admin`, 2026-11-17); `ciso` review pending
 - Decider: Farjad Iranmehr · Author: `cp-website`
 - Related: ADR 0003 (website stack), ADR 0005 (web-app auth, separate), ADR 0007 (DB privileges), `docs/plans/website-admin.md`
 - Number provisional.
@@ -18,7 +18,7 @@ The website needs a private admin for staff (users, system log, API keys, blog).
 - Rate limit / lockout: Postgres counters keyed by HMAC(email) and HMAC(ip /24): 5 failures/15 min per account → lock 15 min (doubling, max 24 h); 20/15 min per IP prefix. Same generic error for unknown user / wrong password / locked (no enumeration); constant-time compares.
 - Every server action and route handler calls `requireRole()` from a `server-only` data-access layer (Next docs: actions are reachable by direct POST). `proxy.ts` does only an optimistic cookie-presence redirect.
 - Invites/resets: admin creates a one-time link (32-byte token, hash stored; invite 72 h, password reset 1 h, MFA reset 1 h), shown once to the admin, handed over out of band. No email sending.
-- CLI: `npm run admin:create -- --email … --name …` run in the Railway service shell; prints a one-time setup link; refuses if an admin already exists unless `--additional` and logs to `website_log`.
+- CLI: `npm run admin:create -- --email … --name …` run in the Railway service shell; prints a one-time setup link; refuses if an admin already exists unless `--additional` and logs to `website_log`. First admin: Farjad Iranmehr only (decided 2026-11-17); no editors/authors yet.
 - + No vendor, no cost, data in our DB, matches the brief. − We own security; duplicates the web-app auth design in a second language/framework.
 
 ### B — Reuse the FastAPI web-app auth (ADR 0005) for website staff

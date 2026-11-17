@@ -31,4 +31,4 @@ A now, B when the worker lands.
 Purge deletes rows at 60 d + 1 s, keeps 59 d 23 h; idempotent; lock prevents concurrent runs; health row updated on success and failure; `cp_website_admin` cannot DELETE/UPDATE directly; `detail` whitelist drops unknown keys; no secret/token appears in any log row in the e2e suite.
 
 ## Privacy
-Holds staff personal data (user id, truncated IP, browser family) and, for failed `/admin` logins, a truncated IP of whoever tried. `coo` decides whether the public privacy notice needs a sentence ("security logs of the private admin area, kept 60 days") and drafts an internal staff notice. Not shipped until worded.
+Holds staff personal data (user id, truncated IP, browser family) and, for failed `/admin` logins, a truncated IP of whoever tried. Truncated IP kept as designed (Farjad Iranmehr, 2026-11-17). `coo` decides whether the public privacy notice needs a sentence ("security logs of the private admin area, kept 60 days") and drafts an internal staff notice. Not shipped until worded.

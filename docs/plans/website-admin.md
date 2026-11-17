@@ -1,7 +1,7 @@
 # Website admin — plan (DRAFT, not approved)
 
 - Owner: `cp-website` (via `cto`) · Requested by Farjad Iranmehr through the CPO, 2026-11-17
-- Status: **plan only — no code until Farjad Iranmehr approves this plan and each phase**
+- Status: **plan approved with decisions (Farjad Iranmehr, 2026-11-17, §10)** — each phase still starts only on his go; `ciso` reviews ADR 0011–0013 before P1 code
 - ADR drafts: [0011 admin auth](../adr/0011-website-admin-auth.md) · [0012 secrets encryption](../adr/0012-website-integration-secrets.md) · [0013 system log + 60-day retention](../adr/0013-website-system-log-retention.md) · [0014 blog editor + content model](../adr/0014-website-blog-content-model.md). ADR numbers are provisional (0008 is unused; renumber on merge if another branch claims 0011–0014). `ciso` reviews 0011–0013 before P1 starts.
 - Related: ADR 0003 (website stack, i18n), ADR 0005 (web-app auth — **separate** system), ADR 0007 (DB privileges), ADR 0010 (site_event), `docs/runbook-db-switch.md`, `docs/plans/website-v1.md`.
 
@@ -26,12 +26,12 @@ Give the CloverProof team a private admin inside the public website to manage **
 | Website content rules (ADR 0003 / glossary) | No third-party-approval claims; "no soil test = nitrogen only, max medium" stays exact; machine-translated posts carry `translation_status`. |
 | "Human approval before anything is published" (CPO) | Only `editor`/`admin` can publish; `author` and (P4) agents can only create drafts / submit for review. Publishing is always a signed-in human action, logged. |
 | Licences | No GPL/AGPL/EUPL. All proposed deps MIT/Apache/BSD (list per ADR). TipTap **open-source** extensions only (MIT); no TipTap Pro / Cloud. |
-| Paid services | Railway Bucket (images) adds usage cost → needs Farjad Iranmehr's go before P3. A separate admin service or cron service would be a new Railway service → not proposed. |
+| Paid services | Railway Bucket already approved (usage cost); blog images reuse it under the separate prefix `website/blog/`. No new Railway service: admin stays in the website service (decided). |
 
 ## 4. Architecture (summary — details in the ADRs)
 - **Where:** same Next.js service, under `/admin` (English only, not localised; excluded from `proxy.ts` locale redirect, sitemap and robots; `noindex`; strict CSP; `Cache-Control: no-store`).
 - **Two DB pools, two roles:** public pages keep `cp_website_login` (INSERT pilot_request/site_event + SELECT on a `blog_published` view only). Admin code uses a new `cp_website_admin_login` with grants on the admin/blog tables only. Admin modules import `server-only` and the admin pool; a lint rule (no-restricted-imports) keeps public routes from importing it.
-- **Auth (ADR 0011):** argon2id, DB sessions (`__Host-` cookie, SameSite=Strict, idle 30 min / absolute 12 h), TOTP MFA required for every admin-area role at first login, recovery codes, explicit CSRF token on every POST in addition to Next's Origin check, Postgres-backed rate limit + lockout, step-up MFA for sensitive actions (keys, roles, delete). First admin via CLI (`npm run admin:create`) run in the Railway shell.
+- **Auth (ADR 0011):** argon2id, DB sessions (`__Host-` cookie, SameSite=Strict, idle 30 min / absolute 12 h), TOTP MFA required for every admin-area role at first login, recovery codes, explicit CSRF token on every POST in addition to Next's Origin check, Postgres-backed rate limit + lockout, step-up MFA for sensitive actions (keys, roles, delete). First and only admin for now: Farjad Iranmehr, via CLI (`npm run admin:create`) in the Railway shell. No editors/authors yet.
 - **Roles:** `admin` (users, keys, log, everything), `editor` (all posts, review, publish, authors, media), `author` (own drafts, submit for review, media upload).
 - **System log (ADR 0013):** one append-only table; purge after 60 days by a daily in-process job (Next `instrumentation.ts` + Postgres advisory lock), with a "last purge" health row the admin dashboard checks; moves to the S4 Procrastinate worker when it exists.
 - **Secrets (ADR 0012):** AES-256-GCM envelope encryption (per-secret data key wrapped by a master key from `WEBSITE_SECRETS_KEK`), write-only UI (mask + last 4 + test connection), admin-only, server-only decrypt module, every change logged, per-provider monthly budget field.
@@ -90,9 +90,9 @@ Effort = focused dev days for `cp-website` (+ reviewers), excluding waiting time
 | **P3** blog | Editor, posts × locales, revisions + diff, review → publish, schedule, authors, sources, FAQ/HowTo blocks, internal-link picker, media upload to Bucket, public `/[lang]/blog` + post pages, JSON-LD, hreflang, sitemap, RSS, `llms.txt`, pre-publish content checks | SEO/AIO/GEO checklist (§7) ticked on a sample post in en + 1 locale; Lighthouse mobile ≥ 90 on post page; axe 0; 375/1280 no horizontal scroll; content-rule checks block a test post with an agronomic rate | 10–14 | P1; Railway Bucket go (paid usage); `content-seo-strategist` checklist |
 | **P4** content agents (later) | Plan only now: research/draft/translate jobs → drafts with `origin=agent`; human publish; budget cap; D-7 data boundary | Separate plan + ADR when Farjad Iranmehr opens it | — | P2, P3 |
 
-P2 has no real consumer until P4. **Recommendation:** build P2 right before P4, not after P3, so keys aren't stored months before use (less to protect). Kept as P2 if Farjad Iranmehr prefers having it ready.
+**Order (decided 2026-11-17): P1 → P3 → P2 → P4.** P2 is built just before P4, so keys aren't stored months before any use.
 
-Schedule: P1 starts only after the DB switch and the S2 website items (funnel events, privacy) are done, so this epic doesn't slow them.
+Schedule (decided): Hebrew locale (done 2026-11-17) → S2 items (funnel events once `site_event` is reachable, DB switch) → P1. The P1 schema goes to `cloverproof-lead` via the CPO for `db/migrations/`.
 
 ## 7. Blog SEO / AIO / GEO requirements
 Full checklist from `content-seo-strategist`: [website-admin-seo-checklist.md](website-admin-seo-checklist.md). Must-haves built into P3:
@@ -101,7 +101,7 @@ Full checklist from `content-seo-strategist`: [website-admin-seo-checklist.md](w
 - Google says AI Overviews/AI Mode need no special markup or "AI text file" — only an indexed, snippet-eligible page. So `llms.txt` is optional and low priority, never treated as a lever.
 - `reviewer_id` / JSON-LD `reviewedBy` only for a human author profile (DB check); agronomic posts without a human agronomist review stay `noindex` with "Agronomist review pending".
 - `published_at` set by the server, not editable (no backdating); `updated_at` changes only on a substantive edit with a change note; sitemap `lastmod` from those fields.
-- hreflang only between published, indexable translations (+ `x-default`); **recommended:** machine-translated posts stay `noindex` and out of hreflang/sitemap until a human reviews them (Google's scaled-content policy names translation) — decision §10 Q4.
+- hreflang between all published translations (+ `x-default`). **Decided (Farjad Iranmehr, 2026-11-17): machine-translated posts are indexable** (in hreflang and sitemap) with a visible "machine translation" label in the post template, JSON-LD `inLanguage` + `translationOfWork` (source post) and a translation note, and the native-review status kept per translation (`translation_status`). The SEO checklist's noindex recommendation is overridden; risk (Google's scaled-content policy names translation) accepted and revisited if Search Console shows problems.
 - Sitemap per locale, RSS per locale. Hard CSP (`default-src 'self'`) on public pages; Search Console/Bing verification via DNS or meta tag.
 - Existing-code fixes found (separate small `website-v1` change, not this epic): `sitemap.ts` sets `lastModified: new Date()` on every build and sends ignored `priority`/`changeFrequency`; posts need a `languageAlternates()` variant listing only existing translations.
 - Answer-first summary, sources block, clean headings (one h1, no skipped levels), tables as real `<table>`, images with width/height/alt.
@@ -125,11 +125,12 @@ Full checklist from `content-seo-strategist`: [website-admin-seo-checklist.md](w
 | Scope creep into a CMS product | P4 stays plan-only; no generic page builder; blog only. |
 | Blocks S2 / DB switch | P1 sequenced after both. |
 
-## 10. Decisions needed from Farjad Iranmehr
-1. Approve phases P1–P3 order, or move P2 to just before P4 (recommended).
-2. Railway Bucket for blog images (usage cost; cents/month at our volume) — go/no-go before P3.
-3. Admin in the same Next service under `/admin` (recommended) vs a separate Railway service (new service, extra cost).
-4. Machine-translated blog posts: publish indexable with a label, or `noindex` until a native reviewer approves (recommended)?
-5. System log personal data: we keep a truncated IP (/24 IPv4, /48 IPv6) + browser family for 60 days. `coo` to decide whether the public privacy notice needs a line (login attempts on `/admin` can come from anyone) and to add an internal staff notice.
-6. Who is the first admin (CLI) and who are the first editors/authors.
-</content>
+## 10. Decisions (Farjad Iranmehr, 2026-11-17, via the CPO)
+| # | Question | Decision |
+|---|---|---|
+| 1 | Phase order | P1 (users + log + 60-day retention) → P3 (blog) → P2 (API keys) just before P4 (agents) |
+| 2 | Where the admin runs | Same Next.js service under `/admin`; no new service |
+| 3 | Bucket for blog images | Existing approved Railway Bucket, separate prefix `website/blog/` |
+| 4 | Machine-translated posts | Indexable, visible "machine translation" label, JSON-LD `inLanguage` + translation note, native-review status per translation |
+| 5 | IP in the system log | Truncated IP as designed; `coo` decides the privacy-notice line (pending) |
+| 6 | First admin | Farjad Iranmehr only, via CLI; no editors yet |
