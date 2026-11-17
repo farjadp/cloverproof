@@ -26,3 +26,10 @@ Proof PDF v0 (PR #40, merged) renders with WeasyPrint (BSD-3-Clause). WeasyPrint
 
 ## Needs
 1. Farjad Iranmehr: accept or reject. 2. `ciso`: review and add the exception. 3. Lawyer: confirm the MPL-1.1 election for unmodified use and the pango/harfbuzz runtime use.
+
+## CISO review (2026-11-17): ACCEPT
+- **Election:** MPL-1.1 is the right pick of the three. It is file-level copyleft and we use pyphen unmodified as an installed dependency. Its obligations (keep notices, offer source for modified MPL files) are met by the third-party notice in Decision §4. Do not vendor, patch or copy pyphen files.
+- **CI:** the named exception is in `.github/workflows/security.yml`, pinned to pyphen's exact tri-licence string. The checker (`.github/scripts/check_licences.py`) matches a named exception only on that exact string and never evaluates its GPL/LGPL parts, so this does not open the allowlist. A licence-string change on upgrade fails the job, which is intended.
+- **Dictionaries:** this is the real residual risk. Some bundled dictionaries are GPL/LGPL. Keep `hyphens: auto` out of proof CSS and keep PDFs English-only. Any PR that enables hyphenation or another PDF language must name the dictionary and its licence. `cp-pdf` checks this when reviewing proof templates.
+- **Not covered by CI:** system libraries are installed by the OS/Docker image, not pip or npm, so the licence job does not see them. They are tracked by name in `docs/security/licence-exceptions.md`, and pango is on the lawyer list there.
+- **Correction to Consequences:** HarfBuzz is "Old MIT" (permissive), not LGPL, per its COPYING. Pango is LGPL. It is listed for the lawyer anyway for completeness.
