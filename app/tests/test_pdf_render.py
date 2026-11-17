@@ -200,6 +200,25 @@ def test_soil_test_method_depth_date_form_units() -> None:
         assert value in text, value
 
 
+def test_ammonium_acetate_method_has_its_label() -> None:
+    """S1-exit D2: the PDF used to print the raw key "ammonium-acetate"."""
+    doc = engine_doc()
+    values = doc["input_snapshot"]["soil_test"]["values"]
+    values[1]["extraction_method"] = "ammonium-acetate"
+    values[1]["extraction_method_detail"] = None
+    text = visible_text(render_html(proof(doc)))
+    assert "Ammonium acetate" in text
+    assert "ammonium-acetate" not in text
+
+
+def test_pdf_and_app_method_labels_are_one_table() -> None:
+    from cloverproof_app import planning
+    from cloverproof_app.pdf import render as pdf_render
+
+    assert pdf_render.METHOD_LABELS is planning.METHOD_LABELS
+    assert {m.value for m in ExtractionMethod} <= set(pdf_render.METHOD_LABELS)
+
+
 def test_no_soil_test_says_so_and_asks_for_p_k_test() -> None:
     text = visible_text(render_html(proof(engine_doc(with_soil=False))))
     assert NO_SOIL_TEST == "No soil test: N only; P/K soil test recommended"
