@@ -3,8 +3,9 @@
 `ProofStore`: `put(key, bytes) -> sha256`, `get(key) -> bytes`, `exists(key)`. Keys are
 write-once: `put` on an existing key raises `KeyExists` and leaves the stored bytes alone.
 
-Only the filesystem implementation exists (local dev, tests, until the Railway Bucket is
-approved for use). Root: env `PROOF_STORE_DIR`, default `./var/proofs` (gitignored).
+Only the filesystem implementation works (local dev, tests, until the Railway Bucket is
+approved for use); `BucketProofStore` is a documented stub. Root: env `PROOF_STORE_DIR`
+(Settings.proof_store_dir), default `./var/proofs` (gitignored).
 """
 
 from __future__ import annotations
@@ -111,6 +112,34 @@ class FilesystemProofStore:
         return self._path(key).is_file()
 
 
+class BucketProofStore:
+    """Railway Bucket (S3 API) behind the same interface: DOCUMENTED STUB, not wired.
+
+    ADR 0005 B1 picks a private Railway Bucket through `boto3`. `boto3` is not a
+    dependency yet (adding it, and the Bucket's usage cost, needs a go first), so every
+    method raises. The real version must keep the same contract: `put` uses a conditional
+    write (`If-None-Match: *`) so an existing key is never overwritten (KeyExists), the
+    bucket is private, and objects are only served through the app's auth-checked route.
+    """
+
+    def __init__(self, bucket: str) -> None:
+        self.bucket = bucket
+
+    def put(self, key: str, data: bytes) -> str:
+        raise NotImplementedError("BucketProofStore is a stub (ADR 0005 B1); use the filesystem")
+
+    def get(self, key: str) -> bytes:
+        raise NotImplementedError("BucketProofStore is a stub (ADR 0005 B1); use the filesystem")
+
+    def exists(self, key: str) -> bool:
+        raise NotImplementedError("BucketProofStore is a stub (ADR 0005 B1); use the filesystem")
+
+
+def filesystem_store(root: str = "") -> FilesystemProofStore:
+    """The filesystem store at `root` (Settings.proof_store_dir), default ./var/proofs."""
+    return FilesystemProofStore(root.strip() or DEFAULT_PROOF_STORE_DIR)
+
+
 def store_from_env(environ: Mapping[str, str] | None = None) -> ProofStore:
     env = os.environ if environ is None else environ
-    return FilesystemProofStore(env.get("PROOF_STORE_DIR", "").strip() or DEFAULT_PROOF_STORE_DIR)
+    return filesystem_store(env.get("PROOF_STORE_DIR", ""))

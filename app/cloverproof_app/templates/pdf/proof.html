@@ -1,5 +1,5 @@
 {#- Proof PDF v0 (WeasyPrint). Every number renders through `explained`, so it always has
-    its explanation line. Wording rules: cloverproof_app/pdf/model.py. -#}
+    its explanation line. Wording rules: cloverproof_app/pdf/model.py. English only. -#}
 {% macro placeholder_mark(flag) %}{% if flag %}<span class="ph">{{ not_validated }}</span>{% endif %}{% endmacro %}
 {% macro explained(x, digits=1, cls="") %}
 <div class="explained {{ cls }}">
@@ -7,7 +7,7 @@
   <span class="value">{{ x.value | num(digits) }} {{ x.unit }}</span>{{ placeholder_mark(x.uses_placeholder) }}
   <p class="why">{{ x.explanation }}</p>
 {% else %}
-  <span class="value">—</span>
+  <span class="value">{{ x.value | num(digits) }} {{ x.unit }}</span>
   <p class="why">No explanation recorded</p>
 {% endif %}
 </div>
@@ -18,7 +18,7 @@
   <span class="value">{{ (x.value * 100) | num(0) }}%</span>{{ placeholder_mark(x.uses_placeholder) }}
   <p class="why">{{ x.explanation }}</p>
 {% else %}
-  <span class="value">—</span>
+  <span class="value">{{ (x.value * 100) | num(0) }}%</span>
   <p class="why">No explanation recorded</p>
 {% endif %}
 </div>
@@ -37,36 +37,37 @@
 <body>
 {% if not p.is_final %}
 <div class="watermark" aria-hidden="true">DRAFT</div>
-{% elif p.placeholder_pack %}
-<div class="watermark" aria-hidden="true">TEST DOCUMENT</div>
+{% elif p.uses_placeholder %}
+<div class="watermark" aria-hidden="true">PLACEHOLDER</div>
 {% endif %}
 
 <header class="masthead">
   <img src="logo.svg" alt="">
   <div>
     <div class="brand">CloverProof</div>
-    <div class="kind">Field fertilizer plan · nitrogen</div>
+    <div class="kind">Field fertilizer plan</div>
   </div>
 </header>
-<h1>Nitrogen plan for {{ p.field_name }}</h1>
-<p class="muted">Document {{ p.document_id }} · plan version v{{ p.version_number }} · plan date {{ snap.plan_date }}</p>
+<h1>Fertilizer plan for {{ p.field_name }}</h1>
+<p class="muted">Document {{ p.document_id }} · plan version v{{ p.version_number }} · season {{ p.season_label }} · plan date {{ snap.plan_date }}</p>
 
-{% if p.placeholder_pack %}
+{% if p.uses_placeholder %}
 <div class="banner" role="note">
   <p>{{ banner }}</p>
-  <p class="sub">Pack {{ doc.pack_id }} {{ doc.pack_version }} ({{ doc.pack_status }}) is not validated. The numbers below exist to test the workflow. Do not apply them to a field.</p>
+  <p class="sub">Pack {{ doc.pack_id }} {{ doc.pack_version }} ({{ doc.pack_status }}) or some of its constants are not yet validated by a human agronomist. Numbers marked “{{ not_validated }}” depend on them. Do not apply them to a field.</p>
 </div>
 {% endif %}
 
 {% if p.is_final %}
 <div class="status">
   <p class="line">{{ approval_line }}</p>
-  <p>This plan version and its numbers are exactly as approved; later edits create a new version and a new document.</p>
+  <p>Approved on {{ p.approval.approved_at_utc }} · review kind {{ p.approval.kind_label }}.</p>
+  <p>This plan version and its numbers are exactly as approved; a later edit creates a new version and a new document.</p>
 </div>
 {% else %}
 <div class="status draft">
   <p class="line">DRAFT. Not approved.</p>
-  {% if approval_line %}<p>{{ approval_line }}.</p>{% else %}<p>No human agronomist has approved this plan version. Do not use these numbers.</p>{% endif %}
+  <p>No human has approved this plan version. Do not use these numbers.</p>
 </div>
 {% endif %}
 
@@ -84,13 +85,14 @@
   <h2>Inputs</h2>
   <dl class="facts">
     <dt>Crop</dt><dd>{{ doc.crop | capitalize }}</dd>
+    <dt>Season</dt><dd>{{ p.season_label }}</dd>
     <dt>Target yield</dt><dd>{{ snap.target_yield_t_ha | plain }} t/ha</dd>
     <dt>Previous crop</dt><dd>{{ p.previous_crop_label }}</dd>
     <dt>Plan date</dt><dd>{{ snap.plan_date }}</dd>
   </dl>
   <h3>Soil test</h3>
   {% if soil is none %}
-  <p>No soil test on file. This plan covers nitrogen only.</p>
+  <p><strong>{{ no_soil_test }}.</strong></p>
   {% else %}
   <dl class="facts">
     <dt>Sample date</dt><dd>{{ soil.sample_date }}</dd>
@@ -115,16 +117,28 @@
 </section>
 
 <section>
-  <h2>Nitrogen recommendation</h2>
+  <h2>Recommendation</h2>
+  <table class="lines">
+    <thead><tr><th>Nutrient</th><th>Form</th><th>Rate</th><th>Confidence</th></tr></thead>
+    <tbody>
+      <tr><th>Nitrogen</th><td>{{ form_labels.get(n.nutrient, n.nutrient) }} (elemental)</td>
+          <td>{{ n.rate.value | num(1) }} kg/ha{{ placeholder_mark(n.rate.uses_placeholder) }}</td>
+          <td><span class="badge conf-{{ doc.confidence }}">{{ doc.confidence | capitalize }}</span></td></tr>
+      <tr><th>Phosphorus</th><td>P / P2O5</td><td colspan="2">Not recommended in this plan (see “Phosphorus and potassium”).</td></tr>
+      <tr><th>Potassium</th><td>K / K2O</td><td colspan="2">Not recommended in this plan (see “Phosphorus and potassium”).</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Nitrogen (N, elemental)</h3>
   <p class="muted">N rate</p>
   {{ explained(n.rate, 1, "headline") }}
   <p class="muted">Total for the field</p>
   {{ explained(n.total) }}
   {% if n.bound_applied %}<div class="notice"><p>Rate limited to the pack {{ n.bound_applied }}.</p></div>{% endif %}
 
-  <h3>How the rate was calculated</h3>
+  <h3>How the engine calculated the rate</h3>
   <table>
-    <thead><tr><th style="width: 30%">Step</th><th>Value and explanation</th></tr></thead>
+    <thead><tr><th class="w30">Step</th><th>Value and explanation</th></tr></thead>
     <tbody>
     {% for c in n.components %}
       <tr><th>{{ c.name | replace("_", " ") | capitalize }}</th><td>{{ explained(c) }}</td></tr>
@@ -132,10 +146,10 @@
     </tbody>
   </table>
 
-  <h3>Split applications</h3>
-  <p class="muted">Timing is the stage text from the country pack.</p>
+  <h3>Split applications and timing</h3>
+  <p class="muted">Timing is the growth-stage text from the country pack (no weather-based window in this version).</p>
   <table>
-    <thead><tr><th style="width: 28%">Timing</th><th>Share</th><th>Rate</th><th>Total</th></tr></thead>
+    <thead><tr><th class="w28">Timing</th><th>Share</th><th>Rate</th><th>Total</th></tr></thead>
     <tbody>
     {% for s in n.splits %}
       <tr><th>{{ s.stage_label }}</th><td>{{ share(s.fraction) }}</td><td>{{ explained(s.rate) }}</td><td>{{ explained(s.total) }}</td></tr>
@@ -144,9 +158,24 @@
   </table>
 </section>
 
+{% if p.comparison %}
+<section>
+  <h2>Engine vs final</h2>
+  <p class="muted">The reviewer changed these numbers. Engine = the calculated value (v1); final = this version (v{{ p.version_number }}).</p>
+  <table>
+    <thead><tr><th class="w28">Item</th><th>Engine</th><th>Final</th></tr></thead>
+    <tbody>
+    {% for row in p.comparison %}
+      <tr><th>{{ row.item }}</th><td>{{ explained(row.engine) }}</td><td>{{ explained(row.final) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
 <section>
   <h2>Confidence</h2>
-  <p><span class="badge conf-{{ doc.confidence }}">{{ doc.confidence | capitalize }} confidence</span></p>
+  <p><span class="badge conf-{{ doc.confidence }}">{{ doc.confidence | capitalize }} confidence</span> for the nitrogen line.</p>
   {% if doc.confidence_reasons %}
   <p>Why {{ doc.confidence }}:</p>
   <ul>
@@ -159,9 +188,9 @@
 
 <section>
   <h2>Phosphorus and potassium</h2>
-  {% if doc.phosphorus_potassium.code == "PK_SOIL_TEST_RECOMMENDED" %}
+  {% if soil is none or doc.phosphorus_potassium.code == "PK_SOIL_TEST_RECOMMENDED" %}
   <div class="notice">
-    <p class="title">Get a soil test for P and K</p>
+    <p class="title">{{ no_soil_test }}</p>
     <p>This plan covers nitrogen only. Send a sample to a lab to get phosphorus and potassium advice.</p>
   </div>
   {% endif %}
@@ -179,7 +208,7 @@
   <h2>Constants used</h2>
   {% set placeholders = n.constants_used | selectattr("status", "equalto", "PLACEHOLDER") | list %}
   {% if placeholders %}
-  <div class="notice warn"><p>{{ placeholders | length }} of {{ n.constants_used | length }} constants are PLACEHOLDER values that are not yet validated by an agronomist. Numbers that depend on them are marked “{{ not_validated }}”.</p></div>
+  <div class="notice warn"><p>{{ placeholders | length }} of {{ n.constants_used | length }} constants are PLACEHOLDER values, not yet validated by a human agronomist. Numbers that depend on them are marked “{{ not_validated }}”.</p></div>
   {% endif %}
   <table>
     <thead><tr><th>Constant</th><th>Value</th><th>Unit</th><th>Status</th><th>Source</th></tr></thead>
@@ -201,15 +230,35 @@
     <dt>Engine version</dt><dd>{{ doc.engine_version }}</dd>
     <dt>Country pack</dt><dd>{{ doc.pack_id }} {{ doc.pack_version }} ({{ doc.pack_status }})</dd>
     <dt>Pack SHA-256</dt><dd class="mono">{{ doc.pack_sha256 }}</dd>
+    <dt>Input snapshot SHA-256</dt><dd class="mono">{{ p.input_snapshot_sha256 }} (canonical JSON of the inputs)</dd>
     <dt>Template</dt><dd>{{ template_version }}</dd>
+    {% if p.is_final %}
+    <dt>Approval kind</dt><dd>{{ p.approval.kind_label }}</dd>
+    <dt>Approver</dt><dd>{{ p.approval.reviewer_name }}</dd>
+    <dt>Approved at</dt><dd>{{ p.approval.approved_at_utc }}</dd>
+    {% endif %}
   </dl>
+  {% if p.lineage %}
+  <h3>Version lineage</h3>
+  <table>
+    <thead><tr><th>Version</th><th>Recommendation ID</th><th>Made by</th><th>Created</th></tr></thead>
+    <tbody>
+    {% for ver in p.lineage %}
+      <tr><td>v{{ ver.number }}{% if ver.number == p.version_number %} (this document){% endif %}</td>
+          <td class="mono">{{ ver.recommendation_id }}</td>
+          <td>{% if ver.kind == "engine" %}Engine{% else %}Edit by {{ ver.created_by_name }}{% endif %}{% if ver.reason %}: “{{ ver.reason }}”{% endif %}</td>
+          <td>{{ ver.created_at | utc }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
 </section>
 
 <section class="integrity">
   <h2>This file</h2>
   <p><strong>{{ hash_statement }}</strong>, together with document ID {{ p.document_id }}.</p>
   <p>A PDF cannot contain its own SHA-256, so the value is kept outside the file. To check a copy, compute its SHA-256 (for example <code>shasum -a 256 file.pdf</code>) and compare it with the value CloverProof holds for this document ID. Any change to the file gives a different value.</p>
-  <p class="muted">This plan was prepared with CloverProof. It states the inputs, the numbers and how each number was calculated. It is not issued on behalf of any government, lender, buyer or other third party.</p>
+  <p class="muted">This plan was prepared with CloverProof. It states the inputs, the numbers and how each number was calculated. It is not issued on behalf of any government, lender, buyer, certifier or other third party, and no such party has reviewed it.</p>
 </section>
 </body>
 </html>

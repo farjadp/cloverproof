@@ -9,6 +9,7 @@ other URL (network, other files) stops the render.
 from __future__ import annotations
 
 import mimetypes
+from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -18,8 +19,9 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoes
 
 from cloverproof_app.pdf.model import (
     HASH_STATEMENT,
+    NO_SOIL_TEST,
     NOT_YET_VALIDATED,
-    PLACEHOLDER_PACK_BANNER,
+    PLACEHOLDER_BANNER,
     TEMPLATE_VERSION,
     ProofInput,
     approval_line,
@@ -52,6 +54,10 @@ def _num(value: Any, digits: int = 1) -> str:
     return f"{float(value):,.{digits}f}"
 
 
+def _utc(value: datetime) -> str:
+    return value.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
+
+
 def _plain(value: Any) -> str:
     """Inputs as entered: 6.0 -> "6", 12.5 -> "12.5"."""
     return f"{float(value):g}"
@@ -66,6 +72,7 @@ _env = Environment(
 )
 _env.filters["num"] = _num
 _env.filters["plain"] = _plain
+_env.filters["utc"] = _utc
 
 
 def render_html(proof: ProofInput) -> str:
@@ -76,7 +83,8 @@ def render_html(proof: ProofInput) -> str:
         n=doc["nitrogen"],
         snap=doc["input_snapshot"],
         approval_line=approval_line(proof.approval) if proof.approval else None,
-        banner=PLACEHOLDER_PACK_BANNER,
+        banner=PLACEHOLDER_BANNER,
+        no_soil_test=NO_SOIL_TEST,
         not_validated=NOT_YET_VALIDATED,
         hash_statement=HASH_STATEMENT,
         template_version=TEMPLATE_VERSION,
