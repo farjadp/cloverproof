@@ -1,9 +1,8 @@
-# ADR 0014 — Website blog: editor, content model, publishing (DRAFT)
+# ADR 0015 — Website blog: editor, content model, publishing (DRAFT)
 
 - Status: **Proposed** (2026-11-17) — Farjad Iranmehr's decision
 - Decider: Farjad Iranmehr · Author: `cp-website`
-- Related: ADR 0003 (i18n, machine translation), ADR 0011, `docs/plans/website-admin.md` (P3, data model §5), SEO checklist `docs/plans/website-admin-seo-checklist.md`
-- Number provisional.
+- Related: ADR 0003 (i18n, machine translation), ADR 0012, `docs/plans/website-admin.md` (P3, data model §5), SEO checklist `docs/plans/website-admin-seo-checklist.md`
 
 ## Context
 A multi-locale (8 locales) blog for SEO, Google AI Overviews and generative engines, with a strong editor: headings, images, tables, FAQ blocks, internal links, drafts, scheduled publish, revisions. Human approval before publishing. Future agents (P4) will create drafts.

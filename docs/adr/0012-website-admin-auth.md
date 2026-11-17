@@ -1,9 +1,8 @@
-# ADR 0011 — Website admin authentication and roles (DRAFT)
+# ADR 0012 — Website admin authentication and roles (DRAFT)
 
 - Status: **Proposed** (2026-11-17) — Farjad Iranmehr chose option A (same service, `/admin`, 2026-11-17); `ciso` review pending
 - Decider: Farjad Iranmehr · Author: `cp-website`
 - Related: ADR 0003 (website stack), ADR 0005 (web-app auth, separate), ADR 0007 (DB privileges), `docs/plans/website-admin.md`
-- Number provisional.
 
 ## Context
 The website needs a private admin for staff (users, system log, API keys, blog). These accounts are **website** accounts, separate from the web app's farmers/agronomists (ADR 0005). Requirements from the CPO: app-owned auth, argon2id, server-side sessions, CSRF, rate limit, MFA required for admins, no self sign-up, first admin via CLI, Next.js 16 route handlers/server actions. ≤ 5 users for the foreseeable future. No email provider exists.
@@ -12,7 +11,7 @@ The website needs a private admin for staff (users, system log, API keys, blog).
 ### A — App-owned auth inside the Next.js website (recommended; matches the brief)
 - argon2id via `@node-rs/argon2` (MIT; prebuilt binaries) — m=19 MiB, t=2, p=1 (OWASP 2024 baseline), rehash on login when parameters change.
 - DB sessions: 32-byte random token in cookie `__Host-cp_admin` (HttpOnly, Secure, SameSite=Strict, Path=/); only `sha256(token)` stored. Idle 30 min, absolute 12 h, rotate token on login and privilege change, revoke all on password/MFA reset or disable.
-- MFA: TOTP (RFC 6238, SHA-1, 6 digits, 30 s, ±1 step) implemented on `node:crypto` and tested against RFC vectors (no dependency) or `otplib` (MIT); QR via `qrcode` (MIT). Enrolment forced at first login for **every** admin-area role (admin, editor, author) — simpler than per-role and the brief says admins must have it. 10 single-use recovery codes (hashed). Secret stored encrypted (ADR 0012 envelope).
+- MFA: TOTP (RFC 6238, SHA-1, 6 digits, 30 s, ±1 step) implemented on `node:crypto` and tested against RFC vectors (no dependency) or `otplib` (MIT); QR via `qrcode` (MIT). Enrolment forced at first login for **every** admin-area role (admin, editor, author) — simpler than per-role and the brief says admins must have it. 10 single-use recovery codes (hashed). Secret stored encrypted (ADR 0013 envelope).
 - Step-up: actions on keys, roles, user delete and MFA reset need a fresh TOTP within 5 min (`step_up_at`).
 - CSRF: per-session token (hash stored) in a hidden field on every form and checked in every server action/route handler, **plus** Next's built-in Origin/Host check and SameSite=Strict.
 - Rate limit / lockout: Postgres counters keyed by HMAC(email) and HMAC(ip /24): 5 failures/15 min per account → lock 15 min (doubling, max 24 h); 20/15 min per IP prefix. Same generic error for unknown user / wrong password / locked (no enumeration); constant-time compares.

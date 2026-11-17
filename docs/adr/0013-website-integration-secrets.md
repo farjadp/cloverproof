@@ -1,9 +1,8 @@
-# ADR 0012 — Website integration secrets (AI provider API keys) (DRAFT)
+# ADR 0013 — Website integration secrets (AI provider API keys) (DRAFT)
 
 - Status: **Proposed** (2026-11-17) — needs `ciso` review and Farjad Iranmehr's decision
 - Decider: Farjad Iranmehr · Author: `cp-website`
-- Related: ADR 0011, `docs/plans/website-admin.md` (P2), CLAUDE.md rules 10 and 12
-- Number provisional.
+- Related: ADR 0012, `docs/plans/website-admin.md` (P2), CLAUDE.md rules 10 and 12
 
 ## Context
 The admin must hold API keys for Anthropic (Claude), Google (Gemini), OpenAI and fal for future content agents (P4). Brief: encrypted at rest in Postgres with envelope encryption, master key in an env var (never git/DB), write-only UI (mask + last 4 + test connection), admin-only, every change logged, server-side use only, per-provider monthly budget cap.
@@ -16,7 +15,7 @@ The admin must hold API keys for Anthropic (Claude), Google (Gemini), OpenAI and
 - Write-only: no route, action, RSC prop or log ever returns plaintext. The UI shows `provider · ••••last4 · added by/at · last test result`. Replace = insert new version and revoke the old (history kept, no plaintext). Decrypt only in `src/lib/integrations/secret-store.ts` (`server-only`), used by "test connection" and later the agent worker.
 - Test connection: one cheap authenticated read per provider (list models for Anthropic/OpenAI/Gemini; fal's lightest authenticated endpoint, confirmed in P2), 10 s timeout, result + HTTP status logged, never the key or response body.
 - Budget: `monthly_budget_usd` per provider (nullable). Enforcement is P4 (`website_ai_usage` ledger; jobs refuse to start when the month's cost ≥ cap).
-- Same envelope used for TOTP secrets (ADR 0011).
+- Same envelope used for TOTP secrets (ADR 0012).
 - + No new service, no cost, testable. − Key is in the app process memory when used; KEK in env is readable by anyone with Railway project access.
 
 ### B — External KMS / secret manager (AWS KMS, GCP KMS, Vault, Doppler)

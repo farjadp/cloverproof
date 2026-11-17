@@ -1,8 +1,8 @@
 # Website admin — plan (DRAFT, not approved)
 
 - Owner: `cp-website` (via `cto`) · Requested by Farjad Iranmehr through the CPO, 2026-11-17
-- Status: **plan approved with decisions (Farjad Iranmehr, 2026-11-17, §10)** — each phase still starts only on his go; `ciso` reviews ADR 0011–0013 before P1 code
-- ADR drafts: [0011 admin auth](../adr/0011-website-admin-auth.md) · [0012 secrets encryption](../adr/0012-website-integration-secrets.md) · [0013 system log + 60-day retention](../adr/0013-website-system-log-retention.md) · [0014 blog editor + content model](../adr/0014-website-blog-content-model.md). ADR numbers are provisional (0008 is unused; renumber on merge if another branch claims 0011–0014). `ciso` reviews 0011–0013 before P1 starts.
+- Status: **plan approved with decisions (Farjad Iranmehr, 2026-11-17, §10)** — each phase still starts only on his go; `ciso` reviews ADR 0012–0014 before P1 code
+- ADR drafts: [0012 admin auth](../adr/0012-website-admin-auth.md) · [0013 secrets encryption](../adr/0013-website-integration-secrets.md) · [0014 system log + 60-day retention](../adr/0014-website-system-log-retention.md) · [0015 blog editor + content model](../adr/0015-website-blog-content-model.md). Renumbered 0012–0015 → 0013–0015 on 2026-11-17 (0012 is the pyphen licence exception on `main`). `ciso` reviews 0012–0014 before P1 starts.
 - Related: ADR 0003 (website stack, i18n), ADR 0005 (web-app auth — **separate** system), ADR 0007 (DB privileges), ADR 0010 (site_event), `docs/runbook-db-switch.md`, `docs/plans/website-v1.md`.
 
 ## 1. Goal
@@ -11,7 +11,7 @@ Give the CloverProof team a private admin inside the public website to manage **
 ## 2. Non-goals (this epic)
 - No farmer, advisor or agronomist accounts here — those live in the web app (`app/`, ADR 0005). A person who needs both has two accounts.
 - No self sign-up, no social login, no managed identity provider.
-- No outbound email service (invites and resets are one-time links the admin hands over; see ADR 0011). An email provider would be a new paid service → Farjad Iranmehr's go.
+- No outbound email service (invites and resets are one-time links the admin hands over; see ADR 0012). An email provider would be a new paid service → Farjad Iranmehr's go.
 - No AI calls in P1–P3 except the "test connection" button in P2. No agents, no generation, no auto-publish.
 - No access from the admin to `pilot_request` or `site_event` (ops/data own them; least privilege). Can be added later with its own decision.
 - No third-party scripts on public pages (unchanged).
@@ -31,18 +31,18 @@ Give the CloverProof team a private admin inside the public website to manage **
 ## 4. Architecture (summary — details in the ADRs)
 - **Where:** same Next.js service, under `/admin` (English only, not localised; excluded from `proxy.ts` locale redirect, sitemap and robots; `noindex`; strict CSP; `Cache-Control: no-store`).
 - **Two DB pools, two roles:** public pages keep `cp_website_login` (INSERT pilot_request/site_event + SELECT on a `blog_published` view only). Admin code uses a new `cp_website_admin_login` with grants on the admin/blog tables only. Admin modules import `server-only` and the admin pool; a lint rule (no-restricted-imports) keeps public routes from importing it.
-- **Auth (ADR 0011):** argon2id, DB sessions (`__Host-` cookie, SameSite=Strict, idle 30 min / absolute 12 h), TOTP MFA required for every admin-area role at first login, recovery codes, explicit CSRF token on every POST in addition to Next's Origin check, Postgres-backed rate limit + lockout, step-up MFA for sensitive actions (keys, roles, delete). First and only admin for now: Farjad Iranmehr, via CLI (`npm run admin:create`) in the Railway shell. No editors/authors yet.
+- **Auth (ADR 0012):** argon2id, DB sessions (`__Host-` cookie, SameSite=Strict, idle 30 min / absolute 12 h), TOTP MFA required for every admin-area role at first login, recovery codes, explicit CSRF token on every POST in addition to Next's Origin check, Postgres-backed rate limit + lockout, step-up MFA for sensitive actions (keys, roles, delete). First and only admin for now: Farjad Iranmehr, via CLI (`npm run admin:create`) in the Railway shell. No editors/authors yet.
 - **Roles:** `admin` (users, keys, log, everything), `editor` (all posts, review, publish, authors, media), `author` (own drafts, submit for review, media upload).
-- **System log (ADR 0013):** one append-only table; purge after 60 days by a daily in-process job (Next `instrumentation.ts` + Postgres advisory lock), with a "last purge" health row the admin dashboard checks; moves to the S4 Procrastinate worker when it exists.
-- **Secrets (ADR 0012):** AES-256-GCM envelope encryption (per-secret data key wrapped by a master key from `WEBSITE_SECRETS_KEK`), write-only UI (mask + last 4 + test connection), admin-only, server-only decrypt module, every change logged, per-provider monthly budget field.
-- **Blog (ADR 0014):** TipTap (ProseMirror JSON) editor with custom nodes (FAQ, HowTo, sources, callout); JSON is the source of truth; sanitised HTML rendered at publish; posts × 8 locales with per-translation status; revisions append-only; scheduled publish needs **no job** (`publish_at <= now()` filter + ISR revalidation); images in a private Railway Bucket served through `/media/…`; JSON-LD, hreflang, sitemap, RSS, `llms.txt`.
+- **System log (ADR 0014):** one append-only table; purge after 60 days by a daily in-process job (Next `instrumentation.ts` + Postgres advisory lock), with a "last purge" health row the admin dashboard checks; moves to the S4 Procrastinate worker when it exists.
+- **Secrets (ADR 0013):** AES-256-GCM envelope encryption (per-secret data key wrapped by a master key from `WEBSITE_SECRETS_KEK`), write-only UI (mask + last 4 + test connection), admin-only, server-only decrypt module, every change logged, per-provider monthly budget field.
+- **Blog (ADR 0015):** TipTap (ProseMirror JSON) editor with custom nodes (FAQ, HowTo, sources, callout); JSON is the source of truth; sanitised HTML rendered at publish; posts × 8 locales with per-translation status; revisions append-only; scheduled publish needs **no job** (`publish_at <= now()` filter + ISR revalidation); images in a private Railway Bucket served through `/media/…`; JSON-LD, hreflang, sitemap, RSS, `llms.txt`.
 
 ## 5. Data model (proposed schema — to `cloverproof-lead` / `cp-database` for `db/migrations/`)
 I don't write migrations. Below is the schema I'm sending them. Names are prefixed `website_` to keep them apart from web-app tables.
 
 ```text
 website_user            id uuid pk, email citext unique (null after delete), display_name, role enum(admin|editor|author),
-                        password_hash text null (null until invite accepted), mfa_secret_enc bytea null (ADR 0012 envelope),
+                        password_hash text null (null until invite accepted), mfa_secret_enc bytea null (ADR 0013 envelope),
                         mfa_enabled_at, disabled_at, deleted_at, failed_logins int, locked_until, created_at, created_by,
                         password_changed_at
 website_user_recovery_code   user_id fk, code_hash, used_at
@@ -84,7 +84,7 @@ Effort = focused dev days for `cp-website` (+ reviewers), excluding waiting time
 
 | Phase | Scope | Exit criteria | Effort | Depends on |
 |---|---|---|---|---|
-| **P0** plan | This doc + ADR drafts, `ciso` review of 0011–0013, design spec from `product-designer`/`cp-design` (Stitch) for the admin shell, users, log, keys, post list, editor | Farjad Iranmehr approves plan + ADRs | 1 | — |
+| **P0** plan | This doc + ADR drafts, `ciso` review of 0012–0014, design spec from `product-designer`/`cp-design` (Stitch) for the admin shell, users, log, keys, post list, editor | Farjad Iranmehr approves plan + ADRs | 1 | — |
 | **P1** users + log + retention | CLI first admin; login, MFA enrol/verify, recovery codes, sessions, CSRF, rate limit, step-up; users list, invite link, role change, disable/enable, password/MFA reset link, delete (pseudonymise); system log viewer (filter by kind/actor/date, CSV export logged); 60-day purge job + health; security headers/CSP for `/admin` | All P1 tests green (§8); `ciso` go; pen-style checklist (§8) passed on staging; log purge demonstrated with back-dated rows | 7–9 | DB switch to `PostGIS-cXKk` done; `cp-database` migration for P1 tables |
 | **P2** API integrations | Providers page (Anthropic, Gemini, OpenAI, fal): add/replace/revoke key, mask + last 4, test connection, monthly budget field, history (no plaintext) | Key never in any response/log/HTML (tested); rotation of master key documented + tested; `ciso` go | 3 | P1; `WEBSITE_SECRETS_KEK` set in Railway by Farjad Iranmehr |
 | **P3** blog | Editor, posts × locales, revisions + diff, review → publish, schedule, authors, sources, FAQ/HowTo blocks, internal-link picker, media upload to Bucket, public `/[lang]/blog` + post pages, JSON-LD, hreflang, sitemap, RSS, `llms.txt`, pre-publish content checks | SEO/AIO/GEO checklist (§7) ticked on a sample post in en + 1 locale; Lighthouse mobile ≥ 90 on post page; axe 0; 375/1280 no horizontal scroll; content-rule checks block a test post with an agronomic rate | 10–14 | P1; Railway Bucket go (paid usage); `content-seo-strategist` checklist |

@@ -1,9 +1,8 @@
-# ADR 0013 — Website system log and 60-day retention (DRAFT)
+# ADR 0014 — Website system log and 60-day retention (DRAFT)
 
 - Status: **Proposed** (2026-11-17) — needs `ciso` review and Farjad Iranmehr's decision; `coo` for privacy wording
 - Decider: Farjad Iranmehr · Author: `cp-website`
-- Related: ADR 0010 (site_event, separate), ADR 0011, ADR 0012, `docs/plans/website-admin.md` (P1)
-- Number provisional.
+- Related: ADR 0010 (site_event, separate), ADR 0012, ADR 0013, `docs/plans/website-admin.md` (P1)
 
 ## Context
 The admin needs a system log of logins, admin actions, content changes, API-key changes and errors, kept **60 days then deleted automatically** by a tested, scheduled job. No new Railway service (cost) without Farjad Iranmehr's go; the S4 Procrastinate worker doesn't exist yet.
