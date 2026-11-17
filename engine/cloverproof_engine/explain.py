@@ -19,6 +19,8 @@ def pct(x: float) -> str:
 
 def tag(c: PackConstant) -> str:
     if c.is_placeholder:
+        if c.citation is not None:
+            return f"(PLACEHOLDER, not agronomist-validated; read from {c.citation.short()})"
         return "(PLACEHOLDER, not agronomist-validated)"
     return f"(source: {c.source})"
 
@@ -65,8 +67,9 @@ def n_rate(
     bound: Literal["min", "max"] | None,
     min_rate: PackConstant,
     max_rate: PackConstant,
+    method_label: str = "nitrogen mass balance",
 ) -> str:
-    base = f"Recommended N rate = {num(rate)} kg N/ha (wheat, nitrogen mass balance)."
+    base = f"Recommended N rate = {num(rate)} kg N/ha (wheat, {method_label})."
     if bound == "max":
         return (
             f"{base} The calculated {num(raw)} kg N/ha was cut to the pack upper limit "
@@ -106,6 +109,40 @@ def split_total(index: int, split: float, area_ha: float, total: float) -> str:
     )
 
 
+# --- nitrogen yield x price-ratio table ---------------------------------------
+
+
+def table_n_rate(
+    target_yield: float,
+    ratio: float,
+    rate: float,
+    cell: PackConstant,
+    bracket_yield: tuple[float, float],
+    bracket_ratio: tuple[float, float],
+    corners: list[float],
+) -> str:
+    where = (
+        f"expected yield {num(target_yield)} t/ha and N:grain price ratio {num(ratio)} "
+        "(kg grain per kg N)"
+    )
+    if len(corners) == 1:
+        return f"Table N rate = {num(rate)} kg N/ha: the pack table cell at {where} {tag(cell)}."
+    return (
+        f"Table N rate = {num(rate)} kg N/ha at {where}, interpolated linearly between "
+        f"yields {num(bracket_yield[0])}-{num(bracket_yield[1])} t/ha and price ratios "
+        f"{num(bracket_ratio[0])}-{num(bracket_ratio[1])} (cells "
+        f"{', '.join(num(c) for c in corners)} kg N/ha) {tag(cell)}. "
+        "Linear interpolation is an engine choice, not stated by the table."
+    )
+
+
+def table_rate_after_credit(table_rate: float, credit: float, net: float) -> str:
+    return (
+        f"Table rate {num(table_rate)} - previous-crop credit {num(credit)} "
+        f"= {num(net)} kg N/ha before the pack limits."
+    )
+
+
 # --- notes ---------------------------------------------------------------------
 
 
@@ -140,7 +177,12 @@ def pack_has_placeholders(pack_id: str, version: str) -> str:
     )
 
 
-def soil_nitrate_not_used() -> str:
+def soil_nitrate_not_used(method_id: str = "n_mass_balance") -> str:
+    if method_id == "n_yield_price_table":
+        return (
+            "The soil test includes nitrate-N, but the engine does not use measured soil N; "
+            "the N rate comes from the pack's yield x price-ratio table only."
+        )
     return (
         "The soil test includes nitrate-N, but engine v0 does not use measured soil N; "
         "the pack default soil N supply was used instead."

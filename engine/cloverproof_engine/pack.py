@@ -9,22 +9,54 @@ serialised with sorted keys, no whitespace (separators "," and ":"), UTF-8,
 ensure_ascii off. Consequences: comments, YAML layout, mapping key order and
 int-vs-float spelling (30 vs 30.0) do not change the hash; any value, unit,
 status, source, label, description, method id or list order (e.g. splits) does.
+Optional fields added after engine 0.2.0 (`citation`, `soil_test_methods`) are left
+out of the canonical form when absent, so packs that do not use them keep their
+fingerprint.
+
+Labels (CLAUDE.md rule 9): every constant is `PLACEHOLDER` (`source: null`) until a
+human agronomist validates it (`VALIDATED` + `source`). A constant taken from a
+published document carries a `citation` and stays `PLACEHOLDER`: a citation says
+where a number was read, not that it was validated.
 """
 
 import hashlib
 import json
 import math
 from collections.abc import Iterator
+from datetime import date
 from enum import StrEnum
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Any, ClassVar, Literal, Self
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    StringConstraints,
+    model_serializer,
+    model_validator,
+)
 
-from cloverproof_engine.models import Crop
+from cloverproof_engine.models import ConcentrationUnit, Crop, ExtractionMethod, NutrientForm
+
+NonBlankStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 class _Frozen(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
+
+    # Optional fields dropped from dumps when None (keeps older pack fingerprints).
+    _OMIT_IF_NONE: ClassVar[tuple[str, ...]] = ()
+
+    @model_serializer(mode="wrap")
+    def _omit_none(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if isinstance(data, dict):
+            for name in self._OMIT_IF_NONE:
+                if name in data and data[name] is None:
+                    del data[name]
+        return data
 
 
 class ConstantStatus(StrEnum):
@@ -32,18 +64,45 @@ class ConstantStatus(StrEnum):
     VALIDATED = "VALIDATED"
 
 
+class Citation(_Frozen):
+    """Where a number was read: a published document, entered by hand.
+
+    Not a validation: a cited constant stays PLACEHOLDER (rule 9).
+    """
+
+    _OMIT_IF_NONE = ("note",)
+
+    title: NonBlankStr
+    publisher: NonBlankStr
+    year: int = Field(gt=0)
+    locator: NonBlankStr  # page / table / figure
+    url: NonBlankStr
+    accessed_on: date
+    note: str | None = None
+
+    def short(self) -> str:
+        return f"{self.title}, {self.locator}"
+
+
+def _check_label(status: ConstantStatus, source: str | None) -> None:
+    if status is ConstantStatus.PLACEHOLDER and source is not None:
+        raise ValueError("a PLACEHOLDER constant must have source: null")
+    if status is ConstantStatus.VALIDATED and not (source or "").strip():
+        raise ValueError("a VALIDATED constant needs a source")
+
+
 class PackConstant(_Frozen):
+    _OMIT_IF_NONE = ("citation",)
+
     value: float = Field(allow_inf_nan=False)
     unit: str
     status: ConstantStatus
     source: str | None
+    citation: Citation | None = None
 
     @model_validator(mode="after")
     def _check_label(self) -> Self:
-        if self.status is ConstantStatus.PLACEHOLDER and self.source is not None:
-            raise ValueError("a PLACEHOLDER constant must have source: null")
-        if self.status is ConstantStatus.VALIDATED and not (self.source or "").strip():
-            raise ValueError("a VALIDATED constant needs a source")
+        _check_label(self.status, self.source)
         return self
 
     @property
@@ -51,8 +110,37 @@ class PackConstant(_Frozen):
         return self.status is ConstantStatus.PLACEHOLDER
 
 
+class UnsetConstant(_Frozen):
+    """A constant whose value is not known yet (`value: null`). Always PLACEHOLDER.
+
+    Allowed only where the engine can refuse cleanly (previous-crop credits): a
+    method that needs it raises instead of guessing.
+    """
+
+    _OMIT_IF_NONE = ("citation",)
+
+    value: None
+    unit: str
+    status: Literal[ConstantStatus.PLACEHOLDER]
+    source: None
+    citation: Citation | None = None
+
+    @property
+    def is_placeholder(self) -> bool:
+        return True
+
+
 def _unit(expected: str) -> AfterValidator:
     def check(c: PackConstant) -> PackConstant:
+        if c.unit != expected:
+            raise ValueError(f"unit must be {expected!r}, got {c.unit!r}")
+        return c
+
+    return AfterValidator(check)
+
+
+def _unset_unit(expected: str) -> AfterValidator:
+    def check(c: UnsetConstant) -> UnsetConstant:
         if c.unit != expected:
             raise ValueError(f"unit must be {expected!r}, got {c.unit!r}")
         return c
@@ -80,6 +168,7 @@ def _fraction_open_closed(c: PackConstant) -> PackConstant:
 
 KgNPerT = Annotated[PackConstant, _unit("kg N/t"), AfterValidator(_non_negative)]
 KgNPerHa = Annotated[PackConstant, _unit("kg N/ha"), AfterValidator(_non_negative)]
+UnsetKgNPerHa = Annotated[UnsetConstant, _unset_unit("kg N/ha")]
 Fraction = Annotated[PackConstant, _unit("fraction"), AfterValidator(_fraction_open_closed)]
 TPerHa = Annotated[PackConstant, _unit("t/ha"), AfterValidator(_positive)]
 Years = Annotated[PackConstant, _unit("years"), AfterValidator(_positive)]
@@ -87,7 +176,8 @@ Years = Annotated[PackConstant, _unit("years"), AfterValidator(_positive)]
 
 class PreviousCrop(_Frozen):
     label: str = Field(min_length=1)
-    credit: KgNPerHa
+    # `value: null` (UnsetConstant) = credit not known yet; the method refuses.
+    credit: KgNPerHa | UnsetKgNPerHa
 
 
 class SplitSpec(_Frozen):
@@ -95,11 +185,9 @@ class SplitSpec(_Frozen):
     fraction: Fraction
 
 
-class NitrogenConfig(_Frozen):
-    method: str = Field(min_length=1)
-    n_uptake_per_t_grain: KgNPerT
-    soil_n_supply: KgNPerHa
-    fertilizer_n_efficiency: Fraction
+class _NitrogenBase(_Frozen):
+    """Fields every nitrogen method shares (the concierge tool reads these)."""
+
     min_rate: KgNPerHa
     max_rate: KgNPerHa
     previous_crop_credits: dict[str, PreviousCrop] = Field(min_length=1)
@@ -117,6 +205,103 @@ class NitrogenConfig(_Frozen):
         return self
 
 
+class MassBalanceNitrogen(_NitrogenBase):
+    method: Literal["n_mass_balance"]
+    n_uptake_per_t_grain: KgNPerT
+    soil_n_supply: KgNPerHa
+    fertilizer_n_efficiency: Fraction
+
+
+def _strictly_increasing_positive(values: list[float]) -> list[float]:
+    if any(v <= 0 for v in values):
+        raise ValueError("axis values must be > 0")
+    if any(b <= a for a, b in zip(values, values[1:], strict=False)):
+        raise ValueError("axis values must be strictly increasing")
+    return values
+
+
+Axis = Annotated[
+    list[Annotated[float, Field(allow_inf_nan=False)]],
+    Field(min_length=1),
+    AfterValidator(_strictly_increasing_positive),
+]
+
+
+class NRateTable(_Frozen):
+    """N rate by expected yield (columns) and N:grain price ratio (rows).
+
+    One label for the whole table (status / source / citation), as the table is
+    read from one source. `rates[i][j]` is the rate at `price_ratio[i]`,
+    `yield_t_ha[j]`. Price ratio = cost of N ($/kg N) / grain price ($/kg grain),
+    i.e. kg of grain that pay for 1 kg N.
+    """
+
+    _OMIT_IF_NONE = ("citation",)
+
+    unit: Literal["kg N/ha"]
+    status: ConstantStatus
+    source: str | None
+    citation: Citation | None = None
+    yield_t_ha: Axis
+    price_ratio: Axis
+    rates: list[list[Annotated[float, Field(ge=0, allow_inf_nan=False)]]]
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        _check_label(self.status, self.source)
+        if len(self.rates) != len(self.price_ratio):
+            raise ValueError("rates needs one row per price ratio")
+        if any(len(row) != len(self.yield_t_ha) for row in self.rates):
+            raise ValueError("each rates row needs one value per yield")
+        return self
+
+    def cell(self, i: int, j: int) -> PackConstant:
+        """The rate at price_ratio[i], yield_t_ha[j], with the table's label."""
+        return PackConstant(
+            value=self.rates[i][j],
+            unit=self.unit,
+            status=self.status,
+            source=self.source,
+            citation=self.citation,
+        )
+
+    def cells(self) -> Iterator[PackConstant]:
+        for i in range(len(self.price_ratio)):
+            for j in range(len(self.yield_t_ha)):
+                yield self.cell(i, j)
+
+
+class YieldPriceTableNitrogen(_NitrogenBase):
+    method: Literal["n_yield_price_table"]
+    rate_table: NRateTable
+
+
+NitrogenConfig = Annotated[
+    MassBalanceNitrogen | YieldPriceTableNitrogen, Field(discriminator="method")
+]
+
+
+class SoilTestMethodSpec(_Frozen):
+    """The soil test a pack's P or K guidance is calibrated for."""
+
+    _OMIT_IF_NONE = ("extraction_method_detail", "citation")
+
+    form: NutrientForm
+    unit: ConcentrationUnit
+    extraction_method: ExtractionMethod
+    extraction_method_detail: str | None = None
+    citation: Citation | None = None
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        if self.form not in (NutrientForm.P, NutrientForm.K):
+            raise ValueError("soil-test P and K are given as the element (P or K)")
+        detail = (self.extraction_method_detail or "").strip()
+        if self.extraction_method is ExtractionMethod.OTHER and not detail:
+            raise ValueError("extraction_method_detail is required when extraction_method is other")
+        return self
+
+
 class ConfidenceConfig(_Frozen):
     target_yield_min: TPerHa
     target_yield_max: TPerHa
@@ -130,8 +315,20 @@ class ConfidenceConfig(_Frozen):
 
 
 class CropConfig(_Frozen):
+    _OMIT_IF_NONE = ("soil_test_methods",)
+
     nitrogen: NitrogenConfig
     confidence: ConfidenceConfig
+    # Declarative in engine 0.3.0: which test the pack's P/K guidance assumes.
+    # P/K rates arrive in S3 (still only with a lab soil test, rule 3).
+    soil_test_methods: dict[Literal["P", "K"], SoilTestMethodSpec] | None = None
+
+    @model_validator(mode="after")
+    def _check_methods(self) -> Self:
+        for nutrient, spec in (self.soil_test_methods or {}).items():
+            if spec.form.value != nutrient:
+                raise ValueError(f"soil_test_methods.{nutrient} must have form {nutrient}")
+        return self
 
 
 class Pack(_Frozen):
@@ -147,17 +344,25 @@ class Pack(_Frozen):
             raise ValueError("a validated pack must not contain PLACEHOLDER constants")
         return self
 
-    def iter_constants(self) -> Iterator[PackConstant]:
+    def iter_constants(self) -> Iterator[PackConstant | UnsetConstant]:
+        """Every constant, including each table cell and every not-set value."""
         yield from _walk(self)
 
     @property
     def has_placeholders(self) -> bool:
         return any(c.is_placeholder for c in self.iter_constants())
 
+    @property
+    def unset_constants(self) -> int:
+        """How many constants have no value yet (`value: null`)."""
+        return sum(isinstance(c, UnsetConstant) for c in self.iter_constants())
 
-def _walk(node: Any) -> Iterator[PackConstant]:
-    if isinstance(node, PackConstant):
+
+def _walk(node: Any) -> Iterator[PackConstant | UnsetConstant]:
+    if isinstance(node, PackConstant | UnsetConstant):
         yield node
+    elif isinstance(node, NRateTable):
+        yield from node.cells()
     elif isinstance(node, BaseModel):
         for name in type(node).model_fields:
             yield from _walk(getattr(node, name))

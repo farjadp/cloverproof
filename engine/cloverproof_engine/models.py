@@ -5,9 +5,17 @@ Output models live in `results.py`; pack config models in `pack.py`.
 
 from datetime import date
 from enum import StrEnum
-from typing import Annotated, Self
+from typing import Annotated, Any, Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 
 class _Frozen(BaseModel):
@@ -121,6 +129,18 @@ class RecommendationInput(_Frozen):
     area_ha: PositiveFloat
     plan_date: date
     soil_test: SoilTest | None = None
+    # N:grain price ratio = cost of N ($/kg N) / grain price ($/kg grain), i.e. kg of
+    # grain that pay for 1 kg N. An economic input, not a pack constant. Needed only by
+    # N methods that look the rate up by price ratio (e.g. pack ca-on v1).
+    n_price_ratio: PositiveFloat | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_absent_ratio(self, handler: SerializerFunctionWrapHandler) -> Any:
+        # Leave the key out when absent, so snapshots from engine 0.2.0 inputs match.
+        data = handler(self)
+        if isinstance(data, dict) and data.get("n_price_ratio", 0) is None:
+            del data["n_price_ratio"]
+        return data
 
     @field_validator("previous_crop")
     @classmethod

@@ -188,3 +188,26 @@ def test_input_snapshot_round_trips() -> None:
     inp = _input(soil_test=_soil_test())
     snap = inp.model_dump(mode="json")
     assert RecommendationInput.model_validate(snap) == inp
+
+
+# --- n_price_ratio (needed by table-based N methods, e.g. pack ca-on v1) ----------
+
+
+def test_price_ratio_is_optional_and_left_out_of_the_snapshot_when_absent() -> None:
+    inp = _input()
+    assert inp.n_price_ratio is None
+    # Snapshots of inputs without a ratio are unchanged from engine 0.2.0.
+    assert "n_price_ratio" not in inp.model_dump(mode="json")
+
+
+def test_price_ratio_round_trips() -> None:
+    inp = _input(n_price_ratio=6.5)
+    snap = inp.model_dump(mode="json")
+    assert snap["n_price_ratio"] == 6.5
+    assert RecommendationInput.model_validate(snap) == inp
+
+
+@pytest.mark.parametrize("ratio", [0, -1.0, float("inf"), float("nan")])
+def test_price_ratio_must_be_positive_and_finite(ratio: float) -> None:
+    with pytest.raises(ValidationError):
+        _input(n_price_ratio=ratio)
