@@ -1,6 +1,6 @@
 # ADR 0013 — Website integration secrets (AI provider API keys) (DRAFT)
 
-- Status: **Accepted** by Farjad Iranmehr (2026-11-17). `ciso` review: PASS with findings, fixes merged (#69, #70). No `WEBSITE_SECRETS_KEK` and no provider keys in production until P4 opens (CPO decision 2026-11-17, build order P1 → P3 → P2 → P4).
+- Status: **Accepted** by Farjad Iranmehr (2026-11-17). `ciso` review: PASS with findings, fixes merged (#69, #70). `WEBSITE_SECRETS_KEK` (+ `WEBSITE_SECRETS_KEK_ID`) is set when the first admin is created, because admin MFA secrets are sealed with it (ciso go 2026-11-17). No provider API keys are entered until P4 opens (CPO decision 2026-11-17, build order P1 → P3 → P2 → P4).
 - Decider: Farjad Iranmehr · Author: `cp-website`
 - Related: ADR 0012, `docs/plans/website-admin.md` (P2), CLAUDE.md rules 10 and 12
 
