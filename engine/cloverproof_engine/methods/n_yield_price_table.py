@@ -3,13 +3,13 @@
 For guidance published as a table of N rate by expected yield and N:grain price
 ratio (e.g. Ontario Publication 811, Table 4-14, pastry winter wheat; pack ca-on).
 
-    table rate = pack table at (target yield, input n_price_ratio); bilinear
+    table rate = pack table at (target yield, input n_price ratio); bilinear
                  interpolation between the bracketing cells; no extrapolation
     rate       = (table rate - previous-crop credit) limited to [min_rate, max_rate]
     total      = rate x area
     split i    = rate x fraction_i (fractions from the pack)
 
-The table values, credits, limits and fractions all come from the pack. Linear
+The table values, credits, limits and fractions all come from the pack. Bilinear
 interpolation and refusing to extrapolate are engine choices.
 TODO(agronomist): confirm interpolation is acceptable between table cells, and how
 to treat yields / price ratios outside the table (today: refuse, no number).
@@ -54,7 +54,7 @@ def _bracket(axis: list[float], x: float, name: str, unit: str) -> tuple[int, in
     if not low <= x <= high:
         raise OutsideTableError(
             f"{name} {x:g} {unit} is outside the pack table ({low:g}-{high:g} {unit}); "
-            "no extrapolation"
+            "no extrapolation (engine choice, not from the source; TODO(agronomist))"
         )
     for k in range(len(axis)):
         if x == axis[k]:
@@ -77,12 +77,12 @@ class NitrogenYieldPriceTable(NutrientMethod):
                 f"not {self.method_id!r}"
             )
         check_scope(inputs, pack)
-        ratio = inputs.n_price_ratio
-        if ratio is None:
+        if inputs.n_price is None:
             raise MissingInputError(
-                f"pack {pack.id} {pack.version} looks N up by price ratio: input "
-                "n_price_ratio (cost of N $/kg N / grain price $/kg) is required"
+                f"pack {pack.id} {pack.version} looks N up by price ratio: input n_price"
+                " (N price per kg N, grain price per kg, currency, source, date) is required"
             )
+        ratio = inputs.n_price.ratio
         previous, credit_const, credit_path = previous_crop(inputs, pack, cfg.previous_crop_credits)
 
         table = cfg.rate_table

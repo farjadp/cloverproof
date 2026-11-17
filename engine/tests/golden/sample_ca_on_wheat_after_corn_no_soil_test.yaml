@@ -23,7 +23,13 @@ input:
   previous_crop: corn
   area_ha: 20.0
   plan_date: "2027-03-15"
-  n_price_ratio: 5.5
+  # SAMPLE prices, not real: ratio 1.375 / 0.25 = 5.5.
+  n_price:
+    n_price_per_kg_n: 1.375
+    grain_price_per_kg: 0.25
+    currency: CAD
+    source: SAMPLE (not a real price list)
+    price_date: "2027-01-20"
   wheat_class: pastry
   manure_applied: false
 expected:

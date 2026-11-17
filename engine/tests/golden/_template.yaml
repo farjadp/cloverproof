@@ -50,7 +50,12 @@ input:
   previous_crop: TODO_key_from_the_pack_previous_crop_list
   area_ha: TODO_ha
   plan_date: TODO_YYYY-MM-DD
-  # n_price_ratio: TODO  # only for packs whose N method needs it (ca-on v1)
+  # n_price:  # only for packs whose N method needs it (ca-on v1); ratio is computed
+  #   n_price_per_kg_n: TODO
+  #   grain_price_per_kg: TODO
+  #   currency: CAD
+  #   source: TODO (price list / quote, as in the document)
+  #   price_date: TODO
   # wheat_class: pastry  # pastry | hard; required by packs with scope.wheat_class (ca-on v1)
   # manure_applied: false  # required by packs with scope.manure (ca-on v1); true is refused
   soil_test: null  # or a full soil test: sample_date, depth, source, lab, values

@@ -20,8 +20,11 @@
 # ammonium acetate K, mg/kg, element form). P/K rates arrive in S3 and only with a
 # lab soil test (rule 3). Without a soil test the engine gives N only (max medium).
 #
-# Input this pack needs beyond the base input: `n_price_ratio`
-# (cost of N $/kg N divided by wheat price $/kg wheat; Pub 811 Table 4-14 footnote 1).
+# Inputs this pack needs beyond the base input: `n_price` (N price per kg N, wheat
+# price per kg, currency, source, date; ratio = N price / wheat price, Pub 811
+# Table 4-14 footnote 1), `wheat_class`, `manure_applied`.
+# Not applied by this pack (Pub 811 Table 4-14 notes): +30 kg N/ha spring N with a T2 or
+# T3 fungicide and no lodging concern. TODO(agronomist): decide whether to model it.
 #
 # See docs/agronomist-todo.md items #12-#20.
 
@@ -293,6 +296,8 @@ crops:
     # tests; values in ppm = mg/kg, element form). Declarative only in this
     # version: no P/K rates yet.
     # TODO(agronomist): confirm these soil tests (method, unit, element form) for the pilot labs.
+    # TODO(agronomist): confirm the soil tests this pack assumes (Olsen P, ammonium
+    # acetate K, mg/kg, element form); see docs/agronomist-todo.md #17.
     soil_test_methods:
       P:
         form: P

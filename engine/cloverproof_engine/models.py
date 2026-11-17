@@ -3,6 +3,7 @@
 Output models live in `results.py`; pack config models in `pack.py`.
 """
 
+import math
 from datetime import date
 from enum import StrEnum
 from typing import Annotated, Any, ClassVar, Self
@@ -131,6 +132,46 @@ class SoilTest(_Frozen):
         return next((v for v in self.values if v.nutrient == nutrient), None)
 
 
+class NPrice(_Frozen):
+    """N and grain prices behind the N:grain price ratio (rule 5: provenance kept).
+
+    ratio = cost of N (per kg N) / grain price (per kg grain), i.e. kg of grain that
+    pay for 1 kg N (Pub 811 Table 4-14 footnote 1). Computed from the two prices; a
+    stored ratio that does not match them is rejected.
+    """
+
+    n_price_per_kg_n: Annotated[float, Field(gt=0, allow_inf_nan=False)]
+    grain_price_per_kg: Annotated[float, Field(gt=0, allow_inf_nan=False)]
+    currency: Annotated[str, Field(pattern=r"^[A-Z]{3}$")]
+    source: str
+    price_date: date
+    ratio: Annotated[float, Field(gt=0, allow_inf_nan=False)]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _compute_ratio(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        try:
+            n = float(data["n_price_per_kg_n"])
+            g = float(data["grain_price_per_kg"])
+            computed = n / g
+        except (KeyError, TypeError, ValueError, ZeroDivisionError):
+            return data  # field validation reports the problem
+        given = data.get("ratio")
+        if given is not None and not math.isclose(float(given), computed):
+            raise ValueError(f"ratio {given} does not match the prices ({computed:.6g})")
+        return {**data, "ratio": computed}
+
+    @field_validator("source")
+    @classmethod
+    def _source_not_blank(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("price source must not be empty")
+        return cleaned
+
+
 class RecommendationInput(_Frozen):
     crop: Crop
     target_yield_t_ha: PositiveFloat
@@ -138,10 +179,10 @@ class RecommendationInput(_Frozen):
     area_ha: PositiveFloat
     plan_date: date
     soil_test: SoilTest | None = None
-    # N:grain price ratio = cost of N ($/kg N) / grain price ($/kg grain), i.e. kg of
-    # grain that pay for 1 kg N. An economic input, not a pack constant. Needed only by
-    # N methods that look the rate up by price ratio (e.g. pack ca-on v1).
-    n_price_ratio: PositiveFloat | None = None
+    # N and grain prices with source and date; the ratio is computed from them. An
+    # economic input, not a pack constant. Needed only by N methods that look the rate
+    # up by price ratio (e.g. pack ca-on v1).
+    n_price: NPrice | None = None
     # Wheat market class. Required by packs whose `scope.wheat_class` is set (ca-on v1:
     # pastry only).
     wheat_class: WheatClass | None = None
@@ -150,7 +191,7 @@ class RecommendationInput(_Frozen):
     # has no manure N credit yet.
     manure_applied: bool | None = None
 
-    _OMIT_IF_NONE: ClassVar[tuple[str, ...]] = ("n_price_ratio", "wheat_class", "manure_applied")
+    _OMIT_IF_NONE: ClassVar[tuple[str, ...]] = ("n_price", "wheat_class", "manure_applied")
 
     @model_serializer(mode="wrap")
     def _omit_absent_optionals(self, handler: SerializerFunctionWrapHandler) -> Any:

@@ -147,11 +147,11 @@ def table_n_rate(
     if len(corners) == 1:
         return f"Table N rate = {num(rate)} kg N/ha: the pack table cell at {where} {tag(cell)}."
     return (
-        f"Table N rate = {num(rate)} kg N/ha at {where}, interpolated linearly between "
+        f"Table N rate = {num(rate)} kg N/ha at {where}, interpolated bilinearly between "
         f"yields {num(bracket_yield[0])}-{num(bracket_yield[1])} t/ha and price ratios "
         f"{num(bracket_ratio[0])}-{num(bracket_ratio[1])} (cells "
         f"{', '.join(num(c) for c in corners)} kg N/ha) {tag(cell)}. "
-        "Linear interpolation is an engine choice, not stated by the table."
+        "Bilinear interpolation is an engine choice, not stated by the table."
     )
 
 

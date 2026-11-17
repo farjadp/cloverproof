@@ -73,13 +73,25 @@ def _pack_data(**table_change: object) -> dict[str, Any]:
     }
 
 
+def price_for_ratio(ratio: float) -> dict[str, Any]:
+    """TEST FIXTURE ONLY: not real prices; grain 0.25/kg so N price = ratio * 0.25."""
+    return {
+        "n_price_per_kg_n": ratio * 0.25,
+        "grain_price_per_kg": 0.25,
+        "currency": "CAD",
+        "source": "TEST FIXTURE",
+        "price_date": "2027-01-20",
+    }
+
+
 @pytest.fixture
 def table_pack() -> Pack:
     return parse_pack(_pack_data())
 
 
 def _calc(make_input, pack: Pack, **inputs: Any):
-    inputs.setdefault("n_price_ratio", 5.0)
+    ratio = inputs.pop("n_price_ratio", 5.0)
+    inputs.setdefault("n_price", price_for_ratio(ratio))
     inputs.setdefault("target_yield_t_ha", 4.0)
     return NitrogenYieldPriceTable().calculate(make_input(**inputs), pack)
 
@@ -162,7 +174,7 @@ def test_no_extrapolation_outside_the_table(make_input, table_pack, yield_t_ha, 
 
 
 def test_price_ratio_is_required(make_input, table_pack) -> None:
-    with pytest.raises(MissingInputError, match="n_price_ratio"):
+    with pytest.raises(MissingInputError, match="n_price"):
         NitrogenYieldPriceTable().calculate(make_input(target_yield_t_ha=4.0), table_pack)
 
 
@@ -185,7 +197,7 @@ def test_every_number_is_explained_and_flags_placeholders(make_input, table_pack
 
 
 def test_recommend_end_to_end_is_low_and_n_only(make_input, table_pack) -> None:
-    rec = recommend(make_input(target_yield_t_ha=5.0, n_price_ratio=6.0), table_pack)
+    rec = recommend(make_input(target_yield_t_ha=5.0, n_price=price_for_ratio(6.0)), table_pack)
     assert rec.nitrogen.method_id == "n_yield_price_table"
     assert rec.confidence is Confidence.LOW
     rule_ids = {h.rule_id for h in rec.confidence_reasons}

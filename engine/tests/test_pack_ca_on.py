@@ -62,7 +62,14 @@ def _input(**change: Any) -> RecommendationInput:
         "previous_crop": "corn",
         "area_ha": 10.0,
         "plan_date": date(2027, 3, 1),
-        "n_price_ratio": 5.0,
+        # TEST FIXTURE ONLY: not real prices (ratio 1.25 / 0.25 = 5).
+        "n_price": {
+            "n_price_per_kg_n": 1.25,
+            "grain_price_per_kg": 0.25,
+            "currency": "CAD",
+            "source": "TEST FIXTURE",
+            "price_date": "2027-01-20",
+        },
         "wheat_class": "pastry",
         "manure_applied": False,
     }
