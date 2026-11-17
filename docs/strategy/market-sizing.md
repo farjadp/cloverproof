@@ -2,7 +2,7 @@
 
 Owner: market-research-analyst for `cso`. Date: 2026-11-17. Internal only; never published. Access date for every source: 2026-11-17.
 Labels: FACT (cited), ESTIMATE (my inference, assumptions shown), UNKNOWN. Prices are the reference points already in `billing-model-options.md`; CloverProof has no price yet. Costs below are published budget spend, never fertilizer rates or advice.
-Method limits: statcan.gc.ca tables and pages returned HTTP 403 to my fetcher (Census tables 32-10-0416 and 32-10-0359 not read). Where a figure comes from a search snippet of a page I could not open, it says "snippet".
+Method limits: statcan.gc.ca tables and pages returned HTTP 403 to my fetcher (Census tables 32-10-0416 and 32-10-0359 not read). Where a figure comes from a search snippet of a page I could not open, it says "snippet". Re-verification status per figure: [verification-log.md](verification-log.md) (2026-11-17).
 
 ## 1. Ontario winter wheat: acres, farms, spend
 
@@ -22,8 +22,8 @@ Method limits: statcan.gc.ca tables and pages returned HTTP 403 to my fetcher (C
 **Spend per acre (FACT, budget not survey):** OMAFA Pub 60 (2026), soft red winter wheat sample budget, grain only: fertility $107.85/ac for N, $54.45 P2O5, $18.60 K2O (P and K are crop-removal-based lines), total $180.90/ac; straw P/K adds $42.99 ([Pub 60 2026](https://www.ontario.ca/files/2026-01/omafa-field-crop-budgets-pub-60-en-2026-01-14.pdf), p.15, accessed 2026-11-17). "Considerable variation" is stated by OMAFA. ESTIMATE: N-only pool = 1.06M ac x $107.85 = ~$115M/yr; all grain fertility = ~$192M/yr. Actual StatCan farm-expense fertilizer data: UNKNOWN (not retrieved).
 
 ## 2. Soil testing
-- Canada, all farms, Census 2020 reference year: 32.0% of farms reported soil sample testing; **Ontario 36.4%** (snippet of [StatCan Census release](https://www150.statcan.gc.ca/n1/daily-quotidien/220615/dq220615a-eng.htm), accessed 2026-11-17; universe is all farms, not wheat).
-- Canada, field crop farms that applied fertilizer, Farm Management Survey 2021: 94% tested soil for nutrients, +4 points on 2017 (snippet of [StatCan FMS 2021](https://www150.statcan.gc.ca/n1/daily-quotidien/230217/dq230217f-eng.pdf)). Ontario-only FMS figure: UNKNOWN.
+- Canada, all farms, Census 2020 reference year: 32.0% of farms reported soil sample testing; **Ontario 36.4%** (still-snippet: two independent search summaries attribute it to [StatCan 96-325-X, Canadian Agriculture at a Glance](https://www150.statcan.gc.ca/n1/pub/96-325-x/2021001/article/00006-eng.htm); page not opened, accessed 2026-11-17; universe is all farms, not wheat).
+- Canada, field crop farms that applied fertilizer, Farm Management Survey 2021: 94% tested soil for nutrients, +4 points on 2017 (snippet of [StatCan FMS 2021](https://www150.statcan.gc.ca/n1/daily-quotidien/230217/dq230217f-eng.pdf)). Ontario-only FMS figure: a Grain Farmers of Ontario summary reports 92% of Ontario farmers tested soils for nutrients in 2021 (still-snippet, search summary only, 2026-11-17).
 - Frequency, Canada, mixed crops (Fertilizer Canada 2024, n=1,258; Ontario sample is corn and soybean only, no wheat): over 55% test N and P every one to three years; N tested more often than P, P most commonly every three years ([Fertilizer Use Survey 2024](https://fertilizercanada.ca/wp-content/uploads/2026/03/Fertilizer-Use-Survey-National-Report-2024.pdf), p.12, accessed 2026-11-17). Self-reported, online, $25-50 incentive.
 - Read: farms that test are the majority among fertilizer-applying field-crop farms; the 36% Ontario figure is a different universe. Ontario winter wheat test share: UNKNOWN. Fraction testing every year before the N decision: UNKNOWN.
 
