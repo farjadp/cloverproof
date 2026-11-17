@@ -61,5 +61,5 @@ db-test:
 
 # Password is asked interactively (getpass); it is never a make variable or argv.
 user-create:
-	@test -n "$(EMAIL)" -a -n "$(ORG)" -a -n "$(ROLE)" || { echo "usage: make user-create EMAIL=... ORG=... ROLE=owner|agronomist|staff [ARGS='--create-org --name ...']"; exit 1; }
+	@test -n "$(EMAIL)" -a -n "$(ORG)" -a -n "$(ROLE)" || { echo "usage: make user-create EMAIL=... ORG=... ROLE=org_admin|agronomist|advisor [ARGS='--create-org --name ...']"; exit 1; }
 	uv run python -m cloverproof_app.cli user-create --email "$(EMAIL)" --org "$(ORG)" --role "$(ROLE)" $(ARGS)

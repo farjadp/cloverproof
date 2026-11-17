@@ -33,7 +33,7 @@ def make_user(
     org: Org,
     label: str,
     *,
-    roles: tuple[str, ...] = ("staff",),
+    roles: tuple[str, ...] = ("advisor",),
     platform_role: str | None = "superadmin",
     actor_kind: str = "human",
 ) -> UUID:
@@ -126,7 +126,7 @@ def test_platform_role_defaults_to_null(db: psycopg.Connection, org_a: Org) -> N
 
 def test_platform_role_values_are_checked(db: psycopg.Connection, org_a: Org) -> None:
     with pytest.raises(errors.CheckViolation, match="platform_role"):
-        make_user(db, org_a, "x", platform_role="staff")
+        make_user(db, org_a, "x", platform_role="advisor")
 
 
 def test_service_account_cannot_hold_a_platform_role(db: psycopg.Connection, org_a: Org) -> None:
@@ -243,9 +243,9 @@ def test_agronomist_who_is_also_superadmin_records_agronomist_approved(
 @pytest.mark.parametrize(
     ("label", "roles", "platform_role", "claimed", "message"),
     [
-        ("super-a", ("staff",), "superadmin", "agronomist_approved", "superadmin_approved"),
+        ("super-a", ("advisor",), "superadmin", "agronomist_approved", "superadmin_approved"),
         ("agro-super", ("agronomist",), "superadmin", "superadmin_approved", "agronomist_approved"),
-        ("plain-staff", ("staff",), None, "superadmin_approved", "superadmin"),
+        ("plain-staff", ("advisor",), None, "superadmin_approved", "superadmin"),
     ],
 )
 def test_review_kind_mismatch_raises(
@@ -276,7 +276,7 @@ def test_plain_human_staff_still_cannot_approve(db: psycopg.Connection, org_a: O
         review(db, org_a, org_a.staff, "approve")
 
 
-@pytest.mark.parametrize("roles", [("staff",), ("agronomist",)])
+@pytest.mark.parametrize("roles", [("advisor",), ("agronomist",)])
 def test_service_superadmin_never_approves_rejects_or_edits(
     db: psycopg.Connection, org_a: Org, engine_result: dict[str, Any], roles: tuple[str, ...]
 ) -> None:
@@ -367,7 +367,7 @@ def test_web_plain_staff_cannot_review(db: psycopg.Connection, org_a: Org) -> No
 def test_cli_creates_superadmin(db: psycopg.Connection, org_a: Org) -> None:
     with as_role(db, "cp_admin"):
         result = cli.user_create(
-            db, email="new.super@example.org", org=str(org_a.id), role="staff",
+            db, email="new.super@example.org", org=str(org_a.id), role="advisor",
             display_name=None, create_org=False, reset_password=False,
             read_password=lambda: "a long enough password", platform_role="superadmin",
         )  # fmt: skip

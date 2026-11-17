@@ -26,6 +26,7 @@ from cloverproof_app.auth import (
     session_token_hash,
 )
 from cloverproof_app.config import Settings
+from cloverproof_app.db.pool import set_rls_context
 from cloverproof_app.ratelimit import LoginDecision, LoginGuard
 from cloverproof_app.repo import sessions, users
 
@@ -160,7 +161,7 @@ def login(
         )
 
     guard.record_success(email, ip)
-    users.set_actor(conn, creds.id)
+    set_rls_context(conn, user_id=creds.id)  # admin_event actor (F2) for the rehash
     if new_hash:
         users.set_password_hash(conn, creds.id, new_hash)
     old = session_token_hash(request)

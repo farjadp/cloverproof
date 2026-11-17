@@ -7,7 +7,7 @@ import pytest
 
 from cloverproof_app.repo import farmers, sessions, users
 
-from .conftest import Org, insert
+from .conftest import Org, insert, use_context
 
 pytestmark = pytest.mark.db
 
@@ -17,6 +17,7 @@ def test_list_farmers_only_returns_the_given_org(
 ) -> None:
     insert(db, "farmer", organisation_id=org_a.id, display_name="Second farmer a")
     a = farmers.list_farmers(db, org_a.id)
+    use_context(db, org_b.agronomist, org_b.id)
     b = farmers.list_farmers(db, org_b.id)
     assert {f.id for f in a} >= {org_a.farmer}
     assert len(a) == 2 and len(b) == 1
@@ -30,7 +31,7 @@ def test_user_organisations_and_roles(db: psycopg.Connection, org_a: Org, org_b:
     assert users.has_org_role(db, user_id=org_a.agronomist, org_id=org_a.id, role="agronomist")
     assert not users.has_org_role(db, user_id=org_a.agronomist, org_id=org_b.id, role="agronomist")
     assert not users.has_org_role(db, user_id=org_a.staff, org_id=org_a.id, role="agronomist")
-    assert users.org_roles(db, user_id=org_a.staff, org_id=org_a.id) == ["staff"]
+    assert users.org_roles(db, user_id=org_a.staff, org_id=org_a.id) == ["advisor"]
 
 
 def test_email_lookup_is_case_insensitive(db: psycopg.Connection, org_a: Org) -> None:

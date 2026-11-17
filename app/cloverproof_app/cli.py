@@ -7,7 +7,7 @@ The password is read with getpass (asked twice), never from argv, and never echo
 logged. Without a terminal it reads one line from stdin (for scripted setup).
 Running it again for an existing email adds the membership; `--reset-password` also
 replaces the password with a temporary one: all the user's sessions are revoked and they
-must choose a new password at next sign-in (owners can also reset in /admin/users).
+must choose a new password at next sign-in (org admins can also reset in /admin/users).
 Accounts created here are human (actor_kind = 'human'); service accounts are refused (B1).
 Changes are recorded in admin_event by trigger with the database login as the actor (F2).
 
@@ -41,8 +41,8 @@ from cloverproof_app import security
 from cloverproof_app.ratelimit import UNLOCK_CHANNEL, account_key
 from cloverproof_app.repo import admin_users, sessions, users
 
-STAFF_ROLES = ("owner", "agronomist", "staff")
-PLATFORM_ROLES = ("superadmin",)  # more (staff) with RK-X11
+ORG_ROLES = ("org_admin", "agronomist", "advisor")
+PLATFORM_ROLES = ("superadmin",)  # platform `staff` comes with a later migration (RK-X11)
 
 
 class CliError(RuntimeError):
@@ -90,8 +90,8 @@ def user_create(
     read_password: Callable[[], str],
     platform_role: str | None = None,
 ) -> UserCreateResult:
-    if role not in STAFF_ROLES:
-        raise CliError(f"role must be one of {', '.join(STAFF_ROLES)}")
+    if role not in ORG_ROLES:
+        raise CliError(f"role must be one of {', '.join(ORG_ROLES)}")
     if platform_role is not None and platform_role not in PLATFORM_ROLES:
         raise CliError(f"platform role must be one of {', '.join(PLATFORM_ROLES)}")
     with conn.transaction():
@@ -174,7 +174,7 @@ def build_parser() -> argparse.ArgumentParser:
     create = commands.add_parser("user-create", help="create a user and/or add a membership")
     create.add_argument("--email", required=True)
     create.add_argument("--org", required=True, help="organisation name or id")
-    create.add_argument("--role", required=True, choices=STAFF_ROLES)
+    create.add_argument("--role", required=True, choices=ORG_ROLES)
     create.add_argument("--name", help="display name (default: part of the email before @)")
     create.add_argument("--create-org", action="store_true", help="create the org if missing")
     create.add_argument(

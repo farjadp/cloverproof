@@ -13,7 +13,7 @@ import psycopg
 import pytest
 from psycopg import errors
 
-from .conftest import Org, as_owner, as_role, insert
+from .conftest import Org, as_owner, as_role, insert, use_context
 
 pytestmark = pytest.mark.db
 
@@ -35,7 +35,7 @@ def set_actor(db: psycopg.Connection, user: UUID) -> None:
 @pytest.fixture
 def owner(db: psycopg.Connection, org_a: Org) -> UUID:
     user = insert(db, "app_user", email="owner-a@example.org", display_name="Owner A")
-    insert(db, "membership", organisation_id=org_a.id, user_id=user, role="owner")
+    insert(db, "membership", organisation_id=org_a.id, user_id=user, role="org_admin")
     return user
 
 
@@ -59,21 +59,22 @@ def test_web_grant_and_revoke_record_the_actor(
 ) -> None:
     set_actor(db, owner)
     target = insert(db, "app_user", email="new@example.org", display_name="New")
-    db.execute("select web_grant_member_role(%s, %s, %s, 'staff')", (owner, org_a.id, target))
-    db.execute("select web_revoke_member_role(%s, %s, %s, 'staff')", (owner, org_a.id, target))
+    db.execute("select web_grant_member_role(%s, %s, %s, 'advisor')", (owner, org_a.id, target))
+    db.execute("select web_revoke_member_role(%s, %s, %s, 'advisor')", (owner, org_a.id, target))
     rows = events(db, target)
     assert [(r[0], r[1]) for r in rows] == [
         ("user_created", owner),
         ("membership_granted", owner),
         ("membership_revoked", owner),
     ]
-    assert rows[2][3] == {"role": "staff"}
+    assert rows[2][3] == {"role": "advisor"}
 
 
 def test_cli_change_records_the_db_login(db: psycopg.Connection, org_a: Org) -> None:
+    use_context(db, None)  # the CLI sets no app.user_id
     with as_role(db, "cp_admin"):
         db.execute(
-            "update membership set role = 'owner' where user_id = %s and role = 'staff'",
+            "update membership set role = 'org_admin' where user_id = %s and role = 'advisor'",
             (org_a.staff,),
         )
     row = db.execute(
@@ -81,7 +82,7 @@ def test_cli_change_records_the_db_login(db: psycopg.Connection, org_a: Org) -> 
         " from admin_event where target_user_id = %s and action = 'membership_changed'",
         (org_a.staff,),
     ).fetchone()
-    assert row == ("membership_changed", None, True, {"role": "staff"}, {"role": "owner"})
+    assert row == ("membership_changed", None, True, {"role": "advisor"}, {"role": "org_admin"})
 
 
 def test_password_reset_is_recorded(db: psycopg.Connection, org_a: Org, owner: UUID) -> None:

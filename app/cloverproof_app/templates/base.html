@@ -31,7 +31,7 @@
       <div class="menu">
         <a href="/farmers">Farmers</a>
         <a href="/account">My account</a>
-        {% if org_context and "owner" in org_context.roles %}<a href="/admin/users">Users</a>{% endif %}
+        {% if org_context and "org_admin" in org_context.roles %}<a href="/admin/users">Users</a>{% endif %}
         {% if org_context and org_context.organisations | length > 1 %}<a href="/orgs/choose">Switch organisation</a>{% endif %}
         <form method="post" action="/logout">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
