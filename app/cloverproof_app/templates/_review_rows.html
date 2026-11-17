@@ -13,7 +13,8 @@
         <td data-label="Version">v{{ r.version_number }}<span class="sub">{{ "edited" if r.version_kind == "agronomist" else "engine" }} · {{ r.version_created_at.strftime("%Y-%m-%d %H:%M") }}</span></td>
         <td data-label="Confidence">{{ confidence(r.confidence) }}{% if r.placeholder_pack %}<span class="sub"><span class="badge placeholder" title="Pack not validated">Placeholder pack</span></span>{% elif r.uses_placeholder %}<span class="sub">{{ placeholder() }}</span>{% endif %}</td>
         <td data-label="Review">{{ status(row_status[r.status], status_labels) }}{% if r.ai_reviewed %} <span class="badge ai">AI review <span aria-hidden="true">—</span><span class="sr-only">,</span> not an approval</span>{% endif %}
-          {% if r.ai_reviewed and r.status == "awaiting" %}<span class="sub">Waiting for a human agronomist</span>{% endif %}</td>
+          {% if r.status != "awaiting" and r.final_kind == "superadmin_approved" %}<span class="sub">By superadmin, not an agronomist review</span>{% endif %}
+          {% if r.ai_reviewed and r.status == "awaiting" %}<span class="sub">Waiting for a human review</span>{% endif %}</td>
       </tr>
     {% endfor %}
     </tbody>

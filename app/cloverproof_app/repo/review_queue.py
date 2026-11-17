@@ -45,6 +45,7 @@ class QueueRow:
     uses_placeholder: bool
     ai_reviewed: bool
     status: str  # awaiting | approved | rejected
+    final_kind: str | None  # agronomist_approved | superadmin_approved (human final review)
     total: int  # rows matching the filters (before the limit)
 
 
@@ -87,7 +88,8 @@ select p.id as plan_id, l.id as recommendation_id,
   exists (select 1 from review a where a.organisation_id = p.organisation_id
     and a.recommendation_id = l.id and a.review_kind = 'ai_reviewed') as ai_reviewed,
   case fin.decision when 'approve' then 'approved' when 'reject' then 'rejected'
-    else 'awaiting' end as status
+    else 'awaiting' end as status,
+  fin.review_kind as final_kind
 from crop_plan p
 join season s on s.organisation_id = p.organisation_id and s.id = p.season_id
 join field f on f.organisation_id = p.organisation_id and f.id = p.field_id
@@ -102,7 +104,7 @@ join lateral (
   order by r.created_at desc, r.id desc limit 1
 ) l on true
 left join lateral (
-  select v.decision::text as decision from review v
+  select v.decision::text as decision, v.review_kind::text as review_kind from review v
   where v.organisation_id = p.organisation_id and v.recommendation_id = l.id
     and v.review_kind = any(%(human)s) and v.decision in ('approve', 'reject')
   order by v.created_at limit 1

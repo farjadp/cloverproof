@@ -127,7 +127,7 @@ def test_ai_review_is_never_an_approval(
     page = client.get("/review").text
     assert plan_ids(page) == [str(org_a.crop_plan)]  # still awaiting
     assert "AI review" in page and AI_BADGE in page
-    assert "Waiting for a human agronomist" in page
+    assert "Waiting for a human review" in page
     assert "status-approved" not in page and ">Approved<" not in page.split("<tbody>")[1]
     assert plan_ids(client.get("/review", params={"status": "approved"}).text) == []
     assert plan_ids(client.get("/review", params={"ai": "yes"}).text) == [str(org_a.crop_plan)]
@@ -146,6 +146,7 @@ def test_human_final_review_leaves_the_queue(
     assert "No plans waiting for a decision." in client.get("/review").text
     approved = client.get("/review", params={"status": "approved"}).text
     assert plan_ids(approved) == [str(org_a.crop_plan)] and "status-approved" in approved
+    assert "By superadmin" not in approved  # an agronomist approval is not relabelled
     assert plan_ids(client.get("/review", params={"status": "rejected"}).text) == [str(rejected)]
     assert len(plan_ids(client.get("/review", params={"status": "all"}).text)) == 2
 
@@ -155,9 +156,9 @@ def test_superadmin_final_review_counts_as_human(db: psycopg.Connection, org_a: 
     review(db, org_a, org_a.engine_rec, admin, "approve")
     client, _ = signed_in(db, org_a.agronomist)
     assert plan_ids(client.get("/review").text) == []
-    assert plan_ids(client.get("/review", params={"status": "approved"}).text) == [
-        str(org_a.crop_plan)
-    ]
+    approved = client.get("/review", params={"status": "approved"}).text
+    assert plan_ids(approved) == [str(org_a.crop_plan)]
+    assert "By superadmin, not an agronomist review" in approved
 
 
 def test_edit_review_keeps_the_new_version_awaiting(
@@ -261,7 +262,7 @@ def test_diff_shows_engine_vs_edited_values_and_reason(db: psycopg.Connection, o
     assert r.status_code == 303, r.text
     page = client.get(plan_url).text
     diff = page.split('id="diff"', 1)[1].split("</section>", 1)[0]
-    assert "Engine (v1)" in diff and "v2 (final)" in diff
+    assert "Engine (v1)" in diff and "v2 (latest)" in diff
     assert f"{float(engine_rate):,.1f} kg N/ha" in diff  # engine value kept
     assert "120.0 kg N/ha" in diff and "48.0 kg N/ha" in diff and "72.0 kg N/ha" in diff
     assert "Changed: rate, total" in diff  # season line
@@ -271,7 +272,7 @@ def test_diff_shows_engine_vs_edited_values_and_reason(db: psycopg.Connection, o
     assert "Elemental N (kg N/ha)" in diff
     # No soil test: P/K is a rule line on both sides, unchanged.
     assert diff.count("Soil test recommended. No P or K rate without a soil test.") == 2
-    assert "Rule line: no P/K without a soil test." in diff
+    assert "Set by rule, not editable: no P or K rate without a soil test." in diff
     # Every number keeps its explanation on both sides.
     assert "Set by agronomist: Manure last fall" in diff and "Recommended N rate" in diff
     # Still nothing approved: no human final review yet.

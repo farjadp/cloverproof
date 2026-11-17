@@ -1,6 +1,6 @@
 {# Engine output vs the version on screen, line by line (docs/design/review-queue.md §4.4).
    Needs `line_diff` (cloverproof_app.line_diff.LineDiff). Read-only. #}
-{% from "_macros.html" import explained, share, confidence %}
+{% from "_macros.html" import explained, share, confidence, num %}
 {% macro side(cell, value) -%}
 {% if cell.kind == "number" %}{{ explained(value) }}
 {% elif cell.kind == "share" %}{{ share(value) }}
@@ -8,11 +8,11 @@
 {% else %}<p class="diff-text">{{ value }}</p>{% endif %}
 {%- endmacro %}
 {% macro was(cell) -%}
-{% if cell.kind in ("number", "share") %}{{ cell.engine.value }} {{ cell.engine.unit }}{% else %}{{ cell.engine }}{% endif %}
+{% if cell.kind == "number" %}{{ num(cell.engine.value) }} {{ cell.engine.unit }}{% elif cell.kind == "share" %}{{ num(cell.engine.value * 100, 0) }}%{% else %}{{ cell.engine }}{% endif %}
 {%- endmacro %}
 {% set d = line_diff %}
 <section aria-labelledby="diff-h" class="diff-section" id="diff">
-  <h2 id="diff-h">Engine vs final</h2>
+  <h2 id="diff-h">Engine vs latest version</h2>
   {% if d.edit_depth == 0 %}
   <p class="muted">No edits. v{{ d.final_number }} has the engine's numbers.</p>
   {% else %}
@@ -22,7 +22,7 @@
   {% endfor %}
   <table class="stack diff">
     <caption class="sr-only">Each plan line, the engine value and the value in v{{ d.final_number }}</caption>
-    <thead><tr><th scope="col">Line</th><th scope="col">Engine (v1)</th><th scope="col">v{{ d.final_number }} (final)</th><th scope="col">Change</th></tr></thead>
+    <thead><tr><th scope="col">Line</th><th scope="col">Engine (v1)</th><th scope="col">v{{ d.final_number }} (latest)</th><th scope="col">Change</th></tr></thead>
     <tbody>
     {% for line in d.lines %}
       <tr>
@@ -32,7 +32,7 @@
           {% if line.only_in == "final" %}<p class="muted">Not in the engine version</p>
           {% else %}{% for cell in line.cells %}<div class="diff-attr"><span class="diff-label">{{ cell.label }}</span>{{ side(cell, cell.engine) }}</div>{% endfor %}{% endif %}
         </td>
-        <td data-label="v{{ d.final_number }} (final)"{% if line.changed %} class="changed"{% endif %}>
+        <td data-label="v{{ d.final_number }} (latest)"{% if line.changed %} class="changed"{% endif %}>
           {% if line.only_in == "engine" %}<p class="muted">Not in v{{ d.final_number }}</p>
           {% else %}{% for cell in line.cells %}<div class="diff-attr"><span class="diff-label">{{ cell.label }}</span>{% if cell.changed %} <span class="tag-changed">Changed</span><span class="sr-only">, was {{ was(cell) }}</span>{% endif %}{{ side(cell, cell.final) }}</div>{% endfor %}{% endif %}
         </td>
@@ -41,7 +41,7 @@
           {% elif line.only_in == "final" %}<strong>Only in v{{ d.final_number }}</strong>
           {% elif line.changed %}<strong>Changed: {{ line.changed | join(", ") }}</strong>
           {% else %}<span class="muted">No change</span>{% endif %}
-          {% if line.rule_line %}<p class="hint">Rule line: no P/K without a soil test.</p>{% endif %}
+          {% if line.rule_line %}<p class="hint">Set by rule, not editable: no P or K rate without a soil test. Get a soil test for P and K.</p>{% endif %}
         </td>
       </tr>
     {% endfor %}
