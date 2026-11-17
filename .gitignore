@@ -18,3 +18,6 @@ supabase/.temp/
 
 # Offline open-data caches (SoilGrids clips etc.); regenerate with the fetch CLIs
 data/cache/
+
+# Local proof-PDF store (PROOF_STORE_DIR default)
+var/

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "_macros.html" import breadcrumb %}
+{% block title %}Proof {{ d.id }}{% endblock %}
+{% block breadcrumb %}{{ breadcrumb([("Farmers", "/farmers"), (v.field.farmer_name, "/farmers/" ~ v.field.farmer_id), (v.field.name, "/fields/" ~ v.field.id), ("Plan v" ~ v.number, "/plans/" ~ v.plan.id), ("Proof", None)]) }}{% endblock %}
+{% block content %}
+<h1>Proof document</h1>
+<dl class="facts">
+  <dt>Document ID</dt><dd class="mono">{{ d.id }}</dd>
+  <dt>Recommendation ID</dt><dd class="mono">{{ d.recommendation_id }}</dd>
+  <dt>SHA-256</dt><dd class="mono">{{ d.sha256 }}</dd>
+  <dt>Created</dt><dd>{{ d.created_at.strftime("%Y-%m-%d %H:%M") }} by {{ d.created_by_name }}</dd>
+</dl>
+<p><a class="button" href="/proofs/{{ d.id }}/download">Download PDF</a></p>
+<p class="muted">The file is checked against this SHA-256 on every download. To check a copy: <code>shasum -a 256 file.pdf</code>.</p>
+{% endblock %}

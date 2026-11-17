@@ -2,7 +2,8 @@
 
 Required: DATABASE_URL, SESSION_SECRET; ENV too when DATABASE_URL is not on localhost.
 Optional: PACK_PATH (country-pack YAML the engine uses; default packs/placeholder/v0.yaml
-in the repo), login limits, proxy header, hosts and HSTS (see the fields below).
+in the repo), PROOF_STORE_DIR (proof PDF store root; default ./var/proofs), login limits,
+proxy header, hosts and HSTS (see the fields below).
 Missing or invalid values stop the app at startup (fail fast) with a message that names
 the variable but never prints its value.
 """
@@ -93,6 +94,9 @@ class Settings:
     # F4: minutes stored per review are capped here (a tab left open); capped reviews are
     # flagged in the review reason.
     review_minutes_cap: int = 240
+    # Proof PDFs: root of the write-once filesystem ProofStore (ADR 0005). Empty =
+    # ./var/proofs (gitignored). The Railway Bucket store (B1) is not wired yet.
+    proof_store_dir: str = ""
 
     def __post_init__(self) -> None:
         if not self.database_url.strip():
@@ -145,6 +149,8 @@ class Settings:
             optional["trusted_proxy_header"] = env["TRUSTED_PROXY_HEADER"].strip()
         if env.get("PACK_PATH"):
             optional["pack_path"] = env["PACK_PATH"].strip()
+        if env.get("PROOF_STORE_DIR"):
+            optional["proof_store_dir"] = env["PROOF_STORE_DIR"].strip()
         for name, field in (
             ("SESSION_IDLE_MINUTES", "session_idle_minutes"),
             ("SESSION_ABSOLUTE_HOURS", "session_absolute_hours"),

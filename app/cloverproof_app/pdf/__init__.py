@@ -1,0 +1,48 @@
+"""Proof PDF v0 (see `model.py` for the wording rules, `render.py` for WeasyPrint)."""
+
+from cloverproof_app.pdf.model import (
+    AGRONOMIST_APPROVED,
+    AI_REVIEWED,
+    APPROVAL_KINDS,
+    FORBIDDEN_PHRASES,
+    HASH_STATEMENT,
+    NO_SOIL_TEST,
+    NOT_YET_VALIDATED,
+    PLACEHOLDER_BANNER,
+    SUPERADMIN_APPROVED,
+    TEMPLATE_VERSION,
+    Approval,
+    Comparison,
+    NotAnApproval,
+    ProofInput,
+    Version,
+    approval_line,
+    explained_numbers,
+    snapshot_sha256,
+)
+from cloverproof_app.pdf.render import PdfRenderError, PdfUnavailable, render_html, render_pdf
+
+__all__ = [
+    "AGRONOMIST_APPROVED",
+    "AI_REVIEWED",
+    "APPROVAL_KINDS",
+    "FORBIDDEN_PHRASES",
+    "HASH_STATEMENT",
+    "NOT_YET_VALIDATED",
+    "NO_SOIL_TEST",
+    "PLACEHOLDER_BANNER",
+    "SUPERADMIN_APPROVED",
+    "TEMPLATE_VERSION",
+    "Approval",
+    "Comparison",
+    "NotAnApproval",
+    "PdfRenderError",
+    "PdfUnavailable",
+    "ProofInput",
+    "Version",
+    "approval_line",
+    "explained_numbers",
+    "render_html",
+    "render_pdf",
+    "snapshot_sha256",
+]

@@ -27,6 +27,7 @@ from cloverproof_app.config import DEPLOYED_ENVS, ConfigError, Settings
 from cloverproof_app.db.migrate import REPO_ROOT
 from cloverproof_app.db.pool import Database, PooledDatabase, check_least_privilege
 from cloverproof_app.plan_web import router as plan_router
+from cloverproof_app.proof_web import router as proof_router
 from cloverproof_app.ratelimit import LoginGuard, LoginRateLimiter, UnlockListener
 from cloverproof_app.web import (
     LOGIN_FAILED,
@@ -236,5 +237,6 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     app.include_router(router)
     app.include_router(plan_router)
+    app.include_router(proof_router)
     account.register(app)
     return app
