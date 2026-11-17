@@ -36,9 +36,6 @@ test("only IP prefixes leave the request", () => {
   assert.equal(ipPrefix("2001:db8:abcd:12::1"), "2001:db8:abcd::/48");
   assert.equal(ipPrefix("::1"), "0:0:0::/48");
   assert.equal(ipPrefix("not an ip"), null);
-  assert.equal(clientIp("6.6.6.6, 203.0.113.5", null), "203.0.113.5", "spoofable first entry ignored");
-  assert.equal(clientIp("6.6.6.6", "198.51.100.2"), "198.51.100.2", "X-Real-IP wins");
-  assert.equal(clientIp(null, null), null);
 });
 
 test("browser family only", () => {
@@ -47,4 +44,32 @@ test("browser family only", () => {
   assert.equal(uaFamily("Mozilla/5.0 (iPhone) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1"), "Safari");
   assert.equal(uaFamily("curl/8.4.0"), "Script");
   assert.equal(uaFamily(null), null);
+});
+
+// A-S2: the client IP is read from one operator-named header (TRUSTED_PROXY_HEADER), never guessed.
+const headers = (h: Record<string, string>) => (name: string) => h[name] ?? null;
+const spoofed = headers({ "x-real-ip": "6.6.6.6", "x-forwarded-for": "6.6.6.6, 7.7.7.7", "cf-connecting-ip": "6.6.6.6" });
+
+test("no trusted header configured: no client IP, whatever the request sends (per-IP limit off)", () => {
+  for (const name of [undefined, "", "   "]) assert.equal(clientIp(name, spoofed), null, String(name));
+});
+
+test("trusted header names that are not plain header tokens are ignored", () => {
+  for (const name of ["x real ip", "x-real-ip\r\nx", "x-real-ip,x-forwarded-for", "a".repeat(65)]) {
+    assert.equal(clientIp(name, spoofed), null, name);
+  }
+});
+
+test("trusted single-value header: used as given (case-insensitive name), must be one IP", () => {
+  assert.equal(clientIp("X-Real-IP", headers({ "x-real-ip": "198.51.100.2" })), "198.51.100.2");
+  assert.equal(clientIp("x-real-ip", headers({ "x-real-ip": " 2001:db8::1 " })), "2001:db8::1");
+  assert.equal(clientIp("x-real-ip", headers({ "x-real-ip": "6.6.6.6, 198.51.100.2" })), null, "a list is not trusted");
+  assert.equal(clientIp("x-real-ip", headers({ "x-real-ip": "not-an-ip" })), null);
+  assert.equal(clientIp("x-real-ip", headers({ "x-forwarded-for": "198.51.100.2" })), null, "only the named header counts");
+});
+
+test("trusted X-Forwarded-For: only the last entry (appended by the proxy); the spoofed first entry is ignored", () => {
+  assert.equal(clientIp("x-forwarded-for", headers({ "x-forwarded-for": "6.6.6.6, 203.0.113.5" })), "203.0.113.5");
+  assert.equal(clientIp("x-forwarded-for", headers({ "x-forwarded-for": "6.6.6.6, bogus" })), null);
+  assert.equal(clientIp("x-forwarded-for", headers({ "x-real-ip": "6.6.6.6" })), null);
 });

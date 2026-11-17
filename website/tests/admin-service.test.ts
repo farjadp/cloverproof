@@ -141,6 +141,21 @@ test("login: 20 failures from one IP prefix block that prefix", { skip }, () =>
     assert.equal(otherIp.ok, true);
   }));
 
+test("login: without a trusted IP header (no prefix) the per-IP limit is off and no IP is logged (A-S2)", { skip }, () =>
+  withDb(async (db) => {
+    await adminWithPassword(db);
+    const noIp = { ...meta, ipPrefix: null };
+    for (let i = 0; i < 25; i++) {
+      await login(db, config, { email: `x${i}@example.com`, password: "whatever123456" }, noIp, at(10));
+    }
+    const signedIn = await login(db, config, { email: "a@example.com", password: PASSWORD }, noIp, at(11));
+    assert.equal(signedIn.ok, true, "25 failures with no IP don't block everyone");
+    const { rows } = await db.query(
+      "select count(*) filter (where ip_prefix is null)::int as without, count(*) filter (where ip_prefix is not null)::int as with from website_log where action = 'login' and outcome = 'failed'",
+    );
+    assert.deepEqual(rows[0], { without: 25, with: 0 });
+  }));
+
 test("sessions: idle 30 min and absolute 12 h; disabled user loses the session", { skip }, () =>
   withDb(async (db) => {
     const token = await adminWithPassword(db);
