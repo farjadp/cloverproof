@@ -1,13 +1,15 @@
 # CloverProof consent wording — DRAFT
 
 > **This is not legal advice; a licensed Ontario lawyer should review before use.**
-> Drafted by `legal-compliance-specialist` (not a lawyer) for the CloverProof COO. v0.1 2026-11-16; v0.2 2026-11-16 (CPO decisions D4 + R4); v0.3 2026-11-16 (Farjad Iranmehr decisions: OQ-06 Canada, superadmin approval).
+> Drafted by `legal-compliance-specialist` (not a lawyer) for the CloverProof COO. v0.1 2026-11-16; v0.2 2026-11-16 (CPO decisions D4 + R4); v0.3 2026-11-16 (Farjad Iranmehr decisions: OQ-06 Canada, superadmin approval); v0.4 2026-11-16 (Farjad Iranmehr decision: website form data in the US on Railway until Canadian hosting is live).
 
 **v0.2 changes:** D4 — consent text now says an AI system may check plans and a named human agronomist approves every plan; nothing says or implies the founder is the agronomist. R4 — pilot is for Ontario farms; the form intro says so.
 
 **v0.3 changes:** OQ-06 DECIDED (Farjad Iranmehr, 2026-11-16): real farmer data is stored in Canada; the US/Railway option for pilot data is removed (§2). The website form's data location is **not** decided by OQ-06 — `[WEBSITE FORM DATA LOCATION — confirm in hosting ADR]` (§1). Superadmin approval: the §2 bullet now says who may approve and that a farmer is told when no agronomist reviewed the plan.
 
-Placeholders: `[LEGAL ENTITY]`, `[ADDRESS]`, `[CONTACT EMAIL]`, `[PRIVACY URL]`, `[HUMAN AGRONOMIST NAME, CREDENTIALS]`, `[SUPERADMIN NAME, ROLE]`, `[CANADIAN HOSTING PROVIDER, REGION]`, `[WEBSITE FORM DATA LOCATION — confirm in hosting ADR]`, `[AI PROVIDER]`.
+**v0.4 changes:** Decision by Farjad Iranmehr (2026-11-16): the website pilot-request form stays open; the free-text notes field is removed from the form (no consent text here listed it, so no wording change for that); until Canadian hosting is live, form data is stored in the United States by our website host, Railway, and moves to Canada when Canadian hosting is live. `[WEBSITE FORM DATA LOCATION — confirm in hosting ADR]` replaced in §1. "AI check notes" in §2 is unrelated and kept.
+
+Placeholders: `[LEGAL ENTITY]`, `[ADDRESS]`, `[CONTACT EMAIL]`, `[PRIVACY URL]`, `[HUMAN AGRONOMIST NAME, CREDENTIALS]`, `[SUPERADMIN NAME, ROLE]`, `[CANADIAN HOSTING PROVIDER, REGION]`, `[AI PROVIDER]`.
 English only. Other locales need native-speaker review (ADR 0003) and a counsel check that the translation keeps the legal meaning.
 
 ## Rules that shape the wording
@@ -38,7 +40,7 @@ Assessment: acceptable core; missing (a) who "CloverProof" is legally, (b) link 
 ### Proposed form block
 
 Intro line (above the boxes, plain text):
-> The 2027 pilot is for farms in Ontario, Canada. We use these details only to review your pilot request and contact you about it. They are stored [WEBSITE FORM DATA LOCATION — confirm in hosting ADR]. [Privacy notice]([PRIVACY URL])
+> The 2027 pilot is for farms in Ontario, Canada. We use these details only to review your pilot request and contact you about it. Until our Canadian hosting is live, they are stored in the United States by our website host, Railway, where US authorities may be able to access them under US law; when it is live, they move to Canada. [Privacy notice]([PRIVACY URL])
 
 **Box A — required, unticked by default**
 > ☐ I agree that [LEGAL ENTITY] (CloverProof) may store these details and contact me by email about my pilot request. I can ask for them to be deleted at any time by writing to [CONTACT EMAIL].
@@ -51,7 +53,8 @@ Implementation notes for `cp-website` (do not edit `website/` from this task):
 - Do not hide B inside A or inside the privacy link.
 - Do not send news to anyone without B, including pilot applicants. Replies about their pilot request are covered by box A and are not marketing; keep them free of promotional content. *(Counsel to confirm whether replies to a pilot inquiry rely on the CASL inquiry-based implied consent, 6 months, CASL s. 10(10) — S6, S9a.)*
 - Store the exact text of A and B shown, in the language shown (see §4).
-- Location flag: a pilot request holds a farmer's name and contact details. If the form stays outside Canada while pilot data is in Canada, the intro must say so plainly and the website must not claim "your data stays in Canada" without that qualifier (Competition Act general impression; counsel item 7).
+- Location flag: a pilot request holds a farmer's name and contact details and is stored in the US (Railway) until Canadian hosting is live, while pilot farm data is in Canada. The intro says so plainly; the website must not claim "your data stays in Canada" anywhere until the form data has moved (Competition Act general impression; counsel item 7). Update the intro and the stored `consent_text` version on the day the data moves.
+- Notes field removed (Farjad Iranmehr, 2026-11-16): `cp-website` removes `pilot.notes` from the form and `actions.ts`; not done here.
 
 ## 2. Pilot data-use consent (at enrolment, attached to pilot-terms.md)
 
@@ -135,5 +138,5 @@ Government of Canada / CRTC sites refused direct connections from this environme
 4. Consent-record retention period.
 5. Legal equivalence of translated consent text in each locale.
 6. Whether the AI-review bullets in §2 are enough disclosure, and whether sending pilot data to an AI provider needs its own consent or only notice (service-provider transfer).
-7. Residency wording now that Canada is decided: the US-owned-host qualifier, and how to describe the website form if its data stays outside Canada.
+7. Residency wording: the US-owned-host qualifier for pilot data, and whether the §1 intro wording on US storage of form data (Railway, until Canadian hosting is live) is adequate.
 8. §2 approval bullet: whether disclosing `superadmin_approved` at consent plus on the PDF is enough, or whether a farm must opt in to receiving non-agronomist-approved plans.
