@@ -233,6 +233,7 @@ def _citation(**change: object) -> dict[str, Any]:
         "locator": "Table 1",
         "url": "https://example.invalid/guide",
         "accessed_on": "2026-11-17",
+        "basis": "stated",
     }
     data.update(change)
     return data
@@ -250,7 +251,9 @@ def test_placeholder_constant_may_carry_a_citation(raw: dict[str, Any]) -> None:
     assert pack_sha256(pack) != PLACEHOLDER_V0_SHA256
 
 
-@pytest.mark.parametrize("missing", ["title", "publisher", "year", "locator", "url", "accessed_on"])
+@pytest.mark.parametrize(
+    "missing", ["title", "publisher", "year", "locator", "url", "accessed_on", "basis"]
+)
 def test_citation_needs_every_field(raw: dict[str, Any], missing: str) -> None:
     data = copy.deepcopy(raw)
     citation = _citation()
@@ -264,6 +267,34 @@ def test_citation_rejects_blank_fields(raw: dict[str, Any]) -> None:
     data = copy.deepcopy(raw)
     data["crops"]["wheat"]["nitrogen"]["soil_n_supply"]["citation"] = _citation(title=" ")
     with pytest.raises(ValidationError):
+        parse_pack(data)
+
+
+@pytest.mark.parametrize("basis", ["stated", "derived", "inferred"])
+def test_citation_basis_is_one_of_three(raw: dict[str, Any], basis: str) -> None:
+    data = copy.deepcopy(raw)
+    citation = _citation(basis=basis, note="TEST note")
+    data["crops"]["wheat"]["nitrogen"]["soil_n_supply"]["citation"] = citation
+    supply = parse_pack(data).crops[Crop.WHEAT].nitrogen.soil_n_supply
+    assert supply.citation is not None and supply.citation.basis == basis
+
+
+def test_citation_rejects_unknown_basis(raw: dict[str, Any]) -> None:
+    data = copy.deepcopy(raw)
+    data["crops"]["wheat"]["nitrogen"]["soil_n_supply"]["citation"] = _citation(basis="guessed")
+    with pytest.raises(ValidationError):
+        parse_pack(data)
+
+
+@pytest.mark.parametrize("basis", ["derived", "inferred"])
+@pytest.mark.parametrize("note", [None, "  "])
+def test_derived_or_inferred_citation_needs_a_note(
+    raw: dict[str, Any], basis: str, note: str | None
+) -> None:
+    data = copy.deepcopy(raw)
+    citation = _citation(basis=basis, note=note)
+    data["crops"]["wheat"]["nitrogen"]["soil_n_supply"]["citation"] = citation
+    with pytest.raises(ValidationError, match="note"):
         parse_pack(data)
 
 

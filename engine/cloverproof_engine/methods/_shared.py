@@ -43,10 +43,15 @@ def previous_crop(
         )
     path = f"crops.{inputs.crop.value}.nitrogen.previous_crop_credits.{inputs.previous_crop}.credit"
     if isinstance(entry.credit, UnsetConstant):
+        needs = (
+            f" It needs an input the engine does not take yet: {entry.needs_input}."
+            if (entry.needs_input)
+            else ""
+        )
         raise PackValueNotSetError(
             f"pack {pack.id} {pack.version}: the N credit after {inputs.previous_crop!r} "
             f"({entry.label}) is not set yet ({path}); the agronomist must set it "
-            "before the engine can recommend N after this crop"
+            f"before the engine can recommend N after this crop.{needs}"
         )
     return entry, entry.credit, path
 
@@ -94,7 +99,7 @@ def build_splits(
                     value=fraction,
                     unit="fraction",
                     explanation=explain.split_fraction(
-                        index, count, spec.stage_label, spec.fraction
+                        index, count, spec.stage_label, spec.fraction, spec.timing_citation
                     ),
                     uses_placeholder=any_placeholder([fraction_c]),
                 ),

@@ -65,10 +65,25 @@ class ConstantStatus(StrEnum):
     VALIDATED = "VALIDATED"
 
 
-class Citation(_Frozen):
-    """Where a number was read: a published document, entered by hand.
+class CitationBasis(StrEnum):
+    """How a cited value relates to the document.
 
-    Not a validation: a cited constant stays PLACEHOLDER (rule 9).
+    - `stated`: the document states this value; explanations say "read from".
+    - `derived`: computed by the engine from stated values (e.g. a table maximum).
+    - `inferred`: concluded by the engine from what the document says or omits.
+    Derived and inferred values are never presented as "read from" the source.
+    """
+
+    STATED = "stated"
+    DERIVED = "derived"
+    INFERRED = "inferred"
+
+
+class Citation(_Frozen):
+    """Where a number comes from: a published document, entered by hand.
+
+    Not a validation: a cited constant stays PLACEHOLDER (rule 9). `basis` is
+    required; a `derived` or `inferred` citation needs a `note` saying how.
     """
 
     _OMIT_IF_NONE = ("note",)
@@ -79,7 +94,14 @@ class Citation(_Frozen):
     locator: NonBlankStr  # page / table / figure
     url: NonBlankStr
     accessed_on: date
+    basis: CitationBasis
     note: str | None = None
+
+    @model_validator(mode="after")
+    def _check_note(self) -> Self:
+        if self.basis is not CitationBasis.STATED and not (self.note or "").strip():
+            raise ValueError(f"a {self.basis.value} citation needs a note saying how")
+        return self
 
     def short(self) -> str:
         return f"{self.title}, {self.locator}"
@@ -176,14 +198,23 @@ Years = Annotated[PackConstant, _unit("years"), AfterValidator(_positive)]
 
 
 class PreviousCrop(_Frozen):
+    _OMIT_IF_NONE = ("needs_input",)
+
     label: str = Field(min_length=1)
     # `value: null` (UnsetConstant) = credit not known yet; the method refuses.
     credit: KgNPerHa | UnsetKgNPerHa
+    # For an unset credit: the input the engine would need to set it (shown in
+    # the refusal message).
+    needs_input: NonBlankStr | None = None
 
 
 class SplitSpec(_Frozen):
+    _OMIT_IF_NONE = ("timing_citation",)
+
     stage_label: str = Field(min_length=1)
     fraction: Fraction
+    # Where the timing in `stage_label` comes from (the fraction cites itself).
+    timing_citation: Citation | None = None
 
 
 class _NitrogenBase(_Frozen):

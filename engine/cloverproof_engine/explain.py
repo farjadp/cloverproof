@@ -6,7 +6,7 @@ sentence is tagged PLACEHOLDER (or with its source when validated).
 
 from typing import Literal
 
-from cloverproof_engine.pack import PackConstant
+from cloverproof_engine.pack import Citation, CitationBasis, PackConstant
 
 
 def num(x: float) -> str:
@@ -17,10 +17,20 @@ def pct(x: float) -> str:
     return f"{x:.0%}"
 
 
+def cited(citation: Citation) -> str:
+    """Where a value comes from, by basis: only a `stated` value is "read from" a source."""
+    if citation.basis is CitationBasis.STATED:
+        return f"read from {citation.short()}"
+    return (
+        f"inferred by the engine from {citation.short()}, not a value stated there: "
+        f"{(citation.note or '').strip()}"
+    )
+
+
 def tag(c: PackConstant) -> str:
     if c.is_placeholder:
         if c.citation is not None:
-            return f"(PLACEHOLDER, not agronomist-validated; read from {c.citation.short()})"
+            return f"(PLACEHOLDER, not agronomist-validated; {cited(c.citation)})"
         return "(PLACEHOLDER, not agronomist-validated)"
     return f"(source: {c.source})"
 
@@ -90,11 +100,20 @@ def n_total(rate: float, area_ha: float, total: float) -> str:
     return f"Total N for the field = {num(rate)} kg N/ha x {num(area_ha)} ha = {num(total)} kg N."
 
 
-def split_fraction(index: int, count: int, stage_label: str, fraction: PackConstant) -> str:
-    return (
+def split_fraction(
+    index: int,
+    count: int,
+    stage_label: str,
+    fraction: PackConstant,
+    timing: Citation | None = None,
+) -> str:
+    text = (
         f"Application {index} of {count} ({stage_label}) gets {pct(fraction.value)} "
         f"of the N rate {tag(fraction)}."
     )
+    if timing is not None:
+        text += f" Timing {cited(timing)} (PLACEHOLDER, not agronomist-validated)."
+    return text
 
 
 def split_rate(index: int, fraction: float, rate: float, split: float) -> str:

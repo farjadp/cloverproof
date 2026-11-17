@@ -25,8 +25,10 @@ from cloverproof_engine.models import (
     SoilTest,
 )
 from cloverproof_engine.pack import (
+    CitationBasis,
     ConstantStatus,
     Pack,
+    PackConstant,
     UnsetConstant,
     YieldPriceTableNitrogen,
     pack_sha256,
@@ -36,7 +38,7 @@ CA_ON_PATH = Path(__file__).resolve().parents[2] / "packs" / "ca-on" / "v1.yaml"
 
 # Fingerprint of packs/ca-on/v1.yaml. Change only on purpose (a pack edit needs a
 # new pack version once any recommendation has recorded this one).
-CA_ON_V1_SHA256 = "5be0fa3e0f0461549703dff0719a8d7791e426e65a71496b9abbe643ef2f5976"
+CA_ON_V1_SHA256 = "987688f1543eae5ce1b37b17efc20d4ebacae8724e6296a83240f4f68024a007"
 
 
 @pytest.fixture
@@ -177,3 +179,69 @@ def test_previous_crop_without_a_credit_refuses(pack: Pack) -> None:
     assert unset
     with pytest.raises(PackValueNotSetError):
         recommend(_input(previous_crop=unset[0]), pack)
+
+
+# --- review fixes: citation basis and source corrections (PR #41) ---------------------
+
+
+def _basis(c: PackConstant | UnsetConstant) -> CitationBasis:
+    assert c.citation is not None
+    return c.citation.basis
+
+
+def test_citation_basis_per_constant(pack: Pack) -> None:
+    n = pack.crops[Crop.WHEAT].nitrogen
+    assert isinstance(n, YieldPriceTableNitrogen)
+    assert all(_basis(cell) is CitationBasis.STATED for cell in n.rate_table.cells())
+    assert _basis(n.max_rate) is CitationBasis.DERIVED
+    assert _basis(n.splits[0].fraction) is CitationBasis.DERIVED
+    credits = n.previous_crop_credits
+    assert _basis(credits["corn"].credit) is CitationBasis.INFERRED
+    assert _basis(credits["wheat"].credit) is CitationBasis.INFERRED
+    assert _basis(credits["soybean"].credit) is CitationBasis.STATED
+    conf = pack.crops[Crop.WHEAT].confidence
+    assert _basis(conf.target_yield_min) is CitationBasis.DERIVED
+    assert _basis(conf.target_yield_max) is CitationBasis.DERIVED
+
+
+def test_table_4_14_is_cited_by_its_title(pack: Pack) -> None:
+    n = pack.crops[Crop.WHEAT].nitrogen
+    assert isinstance(n, YieldPriceTableNitrogen)
+    assert n.rate_table.citation is not None
+    assert "Table 4-14, Nitrogen requirements for pastry wheat" in n.rate_table.citation.locator
+
+
+def test_corn_credit_explanation_says_inferred_not_read_from(pack: Pack) -> None:
+    rec = recommend(_input(previous_crop="corn"), pack)
+    credit = next(c for c in rec.nitrogen.components if c.name == "previous_crop_credit")
+    assert "inferred" in credit.explanation
+    assert "read from" not in credit.explanation
+
+
+def test_soybean_credit_is_zero_as_stated_in_table_9_9(pack: Pack) -> None:
+    soybean = pack.crops[Crop.WHEAT].nitrogen.previous_crop_credits["soybean"].credit
+    assert isinstance(soybean, PackConstant) and soybean.value == 0
+    assert soybean.citation is not None and "Table 9-9" in soybean.citation.locator
+    rec = recommend(_input(previous_crop="soybean"), pack)
+    credit = next(c for c in rec.nitrogen.components if c.name == "previous_crop_credit")
+    assert "read from" in credit.explanation and "Table 9-9" in credit.explanation
+
+
+def test_legume_sod_refuses_and_names_the_missing_input(pack: Pack) -> None:
+    legume = pack.crops[Crop.WHEAT].nitrogen.previous_crop_credits["legume_sod"].credit
+    assert isinstance(legume, UnsetConstant)
+    assert legume.citation is not None and "Table 9-9" in legume.citation.locator
+    with pytest.raises(PackValueNotSetError, match="legume fraction"):
+        recommend(_input(previous_crop="legume_sod"), pack)
+
+
+def test_spring_timing_is_the_table_4_14_header_not_a_growth_stage(pack: Pack, text: str) -> None:
+    assert "GS25" not in text and "GS30" not in text
+    split = pack.crops[Crop.WHEAT].nitrogen.splits[0]
+    assert "early spring" in split.stage_label.lower()
+    assert "10 kg N/ha at seeding" in split.stage_label
+    assert split.timing_citation is not None
+    assert split.timing_citation.basis is CitationBasis.STATED
+    assert "Table 4-14" in split.timing_citation.locator
+    rec = recommend(_input(), pack)
+    assert "read from" in rec.nitrogen.splits[0].fraction.explanation

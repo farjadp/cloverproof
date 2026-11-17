@@ -137,6 +137,16 @@ def test_total_and_single_split(make_input, table_pack) -> None:
     assert result.splits[0].stage_label == "Single pass (TEST)"
 
 
+def test_rate_floors_at_zero_when_the_credit_exceeds_the_table_rate(make_input) -> None:
+    data = _pack_data()
+    data["crops"]["wheat"]["nitrogen"]["previous_crop_credits"]["soybean"]["credit"]["value"] = 150
+    result = _calc(make_input, parse_pack(data), previous_crop="soybean")
+    assert result.rate.value == 0
+    assert result.bound_applied == "min"
+    assert result.total.value == 0
+    assert all(s.rate.value == 0 for s in result.splits)
+
+
 def test_rate_bounds_apply(make_input) -> None:
     data = _pack_data()
     data["crops"]["wheat"]["nitrogen"]["max_rate"]["value"] = 90
