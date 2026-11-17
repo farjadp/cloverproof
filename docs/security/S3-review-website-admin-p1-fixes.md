@@ -116,3 +116,21 @@ The "Security log of our staff area" section matches ADR 0012/0014 and the code:
 | — | D-S1 before the first KEK rotation | **met** by #70, on merge. Runbook to add N5 (wait for old replicas to stop before rewrap). |
 
 **ciso go** = merge #67–#71 in order, deploy, Farjad Iranmehr marks ADRs 0012–0014 Accepted, then the CISO header check (5) passes. No first admin and no `ADMIN_DATABASE_URL`/`WEBSITE_SECRETS_KEK` in production before that.
+
+## Gate 4 and 5 check (2026-11-17, live commit ddc76bc, read-only GETs, no login)
+- **Gate 4:** ADRs 0012–0014 are `Accepted` on `main` (#73), and `/en/privacy` shows "Security log of our staff area". **Met.**
+- **Gate 5:** `/admin/login` returns 200 "Admin not configured". **Met.** Headers:
+  - CSP: `default-src 'self'`, `script-src` with a per-request nonce (it differs on each request) plus `'strict-dynamic'`, `object-src 'none'`, `base-uri 'none'`, `form-action 'self'` and `frame-ancestors 'none'`.
+  - HSTS: `max-age=31536000; includeSubDomains`.
+  - `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` and `Cache-Control: no-store`.
+  - The pre-session cookie is `__Host-cp_admin_pre` with Secure, HttpOnly and SameSite=Strict. There is no `x-powered-by` header.
+- `/admin`, `/admin/keys`, `/admin/users` and `/admin/log/export` all 307 to `/admin/login`. `/admin/setup` without a link only says "not configured".
+
+## ciso go: first admin (2026-11-17)
+**GO** to apply migrations 0024/0025, set the admin env vars and create the first admin, under these conditions:
+1. Migrations 0024/0025 are applied by the migrator credential, never one the running website can read. `ADMIN_DATABASE_URL` uses the `cp_website_admin` login, never the superuser or `cp_migrator`. The public site keeps `cp_website`.
+2. `WEBSITE_SECRETS_KEK` is 32 random bytes (e.g. `openssl rand -base64 32`), set as a sealed Railway variable on the website service only. `WEBSITE_SECRETS_KEK_ID` is set explicitly. An offline copy of the KEK is kept in Farjad Iranmehr's password manager, because losing it loses every stored key and every admin's MFA.
+3. `TRUSTED_PROXY_HEADER` stays empty until the staging probe.
+4. The first admin is created by the CLI only. The one-time setup link is used at once (it lasts 72 h at most), and MFA is enrolled in the same sitting. Recovery codes go into the password manager.
+5. After it is enabled, the CISO repeats this header check and confirms `/admin/setup` no longer accepts the used link. Any failure there → disable by unsetting `ADMIN_DATABASE_URL`.
+Open S4 items, not blocking: lockout residual N1 (known-device exemption), X-Real-IP only and fail-fast on unknown header (N2/N3), the rotation test for deleted/disabled users (N4), the runbook replica note (N5), A-S3 pool limits, and the earlier notes.
