@@ -89,13 +89,13 @@ def test_staff_gets_403_and_no_menu_link(db: psycopg.Connection, org_a: Org) -> 
 
 
 def test_owner_gets_403(db: psycopg.Connection, org_a: Org) -> None:
-    owner = make_user(db, org_a, "org-owner", roles=("owner",), platform_role=None)
+    owner = make_user(db, org_a, "org-owner", roles=("org_admin",), platform_role=None)
     client, _ = signed_in(db, owner)
     assert client.get("/review").status_code == 403
 
 
 def test_superadmin_member_sees_queue(db: psycopg.Connection, org_a: Org) -> None:
-    admin = make_user(db, org_a, "super-admin", roles=("staff",))
+    admin = make_user(db, org_a, "super-admin", roles=("advisor",))
     client, _ = signed_in(db, admin)
     page = client.get("/review")
     assert page.status_code == 200 and str(org_a.crop_plan) in plan_ids(page.text)
@@ -151,7 +151,7 @@ def test_human_final_review_leaves_the_queue(
 
 
 def test_superadmin_final_review_counts_as_human(db: psycopg.Connection, org_a: Org) -> None:
-    admin = make_user(db, org_a, "super-admin", roles=("staff",))
+    admin = make_user(db, org_a, "super-admin", roles=("advisor",))
     review(db, org_a, org_a.engine_rec, admin, "approve")
     client, _ = signed_in(db, org_a.agronomist)
     assert plan_ids(client.get("/review").text) == []

@@ -408,6 +408,21 @@ def load_plan(conn: Conn, context: OrgContext, plan_id: UUID) -> PlanView:
     return view
 
 
+def comparison(view: PlanView) -> list[dict[str, Any]]:
+    """Engine vs final rows for every number that differs (used by the proof PDF)."""
+    if view.diff is None or view.diff["edit_depth"] == 0:
+        return []
+    engine, final = view.diff["engine_result"]["nitrogen"], view.diff["final_result"]["nitrogen"]
+    rows = [("N rate", engine["rate"], final["rate"]), ("N total", engine["total"], final["total"])]
+    for e, f in zip(engine["splits"], final["splits"], strict=False):
+        rows.append((f"{e['stage_label']}: rate", e["rate"], f["rate"]))
+    return [
+        {"item": item, "engine": e, "final": f}
+        for item, e, f in rows
+        if not math.isclose(e["value"], f["value"], abs_tol=1e-9)
+    ]
+
+
 def plan_page(request: Request, conn: Conn, context: OrgContext, settings: SettingsDep,
               plan_id: UUID, *, errors: dict[str, str] | None = None,
               values: dict[str, str] | None = None, status: int = 200) -> Response:  # fmt: skip
