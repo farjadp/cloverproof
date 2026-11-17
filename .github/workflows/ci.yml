@@ -76,3 +76,18 @@ jobs:
 
       - name: DB tests (CP_DB_TESTS_REQUIRED=1, skips fail)
         run: make db-test
+
+  docker:
+    # App image (Dockerfile): build only, never pushed. The smoke script starts its own
+    # throwaway PostGIS, migrates it from the image, checks that a superuser login is
+    # refused and that cp_app_login serves GET /healthz (docs/runbook-webapp.md).
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build app image (no push)
+        run: docker build -t cloverproof-app:ci .
+
+      - name: Smoke test (migrate, refuse superuser, /healthz)
+        run: .github/scripts/docker_smoke.sh cloverproof-app:ci
