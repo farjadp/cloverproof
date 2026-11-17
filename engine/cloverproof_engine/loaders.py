@@ -8,7 +8,7 @@ from typing import Any
 
 import yaml
 
-from cloverproof_engine.golden import GoldenCase
+from cloverproof_engine.golden import ExpectedCase, ExternalReferenceCase, parse_golden_case
 from cloverproof_engine.pack import Pack, parse_pack
 
 
@@ -30,23 +30,26 @@ def pack_path(packs_dir: str | Path, pack_id: str, version: str) -> Path:
 
 
 def golden_paths(golden_dir: str | Path) -> list[Path]:
-    """Golden case files, sorted: <golden_dir>/*.yaml."""
+    """Golden case files, sorted: <golden_dir>/*.yaml, except names starting with `_`
+    (templates and other non-case files)."""
     directory = Path(golden_dir)
     if not directory.is_dir():
         raise FileNotFoundError(f"golden directory not found: {directory}")
-    return sorted(directory.glob("*.yaml"))
+    return sorted(p for p in directory.glob("*.yaml") if not p.name.startswith("_"))
 
 
-def load_golden_case(path: str | Path) -> GoldenCase:
+def load_golden_case(path: str | Path) -> ExpectedCase | ExternalReferenceCase:
     path = Path(path)
     data = read_yaml(path)
     if not isinstance(data, dict):
         raise ValueError(f"{path}: golden case must be a YAML mapping")
-    case = GoldenCase.model_validate(data)
+    case = parse_golden_case(data)
     if case.id != path.stem:
         raise ValueError(f"{path}: id {case.id!r} must equal the file name {path.stem!r}")
     return case
 
 
-def load_golden_cases(golden_dir: str | Path) -> list[tuple[Path, GoldenCase]]:
+def load_golden_cases(
+    golden_dir: str | Path,
+) -> list[tuple[Path, ExpectedCase | ExternalReferenceCase]]:
     return [(p, load_golden_case(p)) for p in golden_paths(golden_dir)]

@@ -13,25 +13,28 @@ Every constant used is recorded in `constants_used` (with its path and label),
 and every number says whether a PLACEHOLDER constant feeds it.
 """
 
-from typing import ClassVar, Literal
+from typing import ClassVar
 
 from cloverproof_engine import explain
+from cloverproof_engine.methods._shared import (
+    KG_N,
+    KG_N_PER_HA,
+    UnknownPreviousCropError,
+    apply_limits,
+    build_splits,
+    check_scope,
+    previous_crop,
+    scope_sentences,
+)
+from cloverproof_engine.methods._shared import (
+    any_placeholder as _any_placeholder,
+)
 from cloverproof_engine.methods.base import NutrientMethod
 from cloverproof_engine.models import RecommendationInput
-from cloverproof_engine.pack import Pack
-from cloverproof_engine.results import (
-    ExplainedNumber,
-    NutrientResult,
-    SplitApplication,
-    UsedConstant,
-)
+from cloverproof_engine.pack import MassBalanceNitrogen, Pack
+from cloverproof_engine.results import ExplainedNumber, NutrientResult, UsedConstant
 
-KG_N_PER_HA = "kg N/ha"
-KG_N = "kg N"
-
-
-class UnknownPreviousCropError(ValueError):
-    pass
+__all__ = ["NitrogenMassBalance", "UnknownPreviousCropError"]
 
 
 class NitrogenMassBalance(NutrientMethod):
@@ -40,27 +43,21 @@ class NitrogenMassBalance(NutrientMethod):
 
     def calculate(self, inputs: RecommendationInput, pack: Pack) -> NutrientResult:
         cfg = pack.crops[inputs.crop].nitrogen
-        previous = cfg.previous_crop_credits.get(inputs.previous_crop)
-        if previous is None:
-            options = ", ".join(sorted(cfg.previous_crop_credits))
-            raise UnknownPreviousCropError(
-                f"previous crop {inputs.previous_crop!r} is not in pack "
-                f"{pack.id} {pack.version}; options: {options}"
+        if not isinstance(cfg, MassBalanceNitrogen):
+            raise ValueError(
+                f"pack {pack.id} {pack.version} nitrogen method is {cfg.method!r}, "
+                f"not {self.method_id!r}"
             )
+        check_scope(inputs, pack)
+        previous, credit_const, credit_path = previous_crop(inputs, pack, cfg.previous_crop_credits)
 
         base = f"crops.{inputs.crop.value}.nitrogen"
         uptake = UsedConstant.of(f"{base}.n_uptake_per_t_grain", cfg.n_uptake_per_t_grain)
         soil_c = UsedConstant.of(f"{base}.soil_n_supply", cfg.soil_n_supply)
-        credit_c = UsedConstant.of(
-            f"{base}.previous_crop_credits.{inputs.previous_crop}.credit", previous.credit
-        )
+        credit_c = UsedConstant.of(credit_path, credit_const)
         efficiency = UsedConstant.of(f"{base}.fertilizer_n_efficiency", cfg.fertilizer_n_efficiency)
         min_c = UsedConstant.of(f"{base}.min_rate", cfg.min_rate)
         max_c = UsedConstant.of(f"{base}.max_rate", cfg.max_rate)
-        fractions = [
-            UsedConstant.of(f"{base}.splits[{i}].fraction", spec.fraction)
-            for i, spec in enumerate(cfg.splits)
-        ]
 
         # Which constants feed each number (directly or through earlier steps).
         net_inputs = [uptake, soil_c, credit_c]
@@ -74,13 +71,7 @@ class NitrogenMassBalance(NutrientMethod):
         credit = credit_c.value
         net = demand - soil - credit
         raw = net / efficiency.value
-        low, high = min_c.value, max_c.value
-        bound: Literal["min", "max"] | None = None
-        rate = raw
-        if raw < low:
-            rate, bound = low, "min"
-        elif raw > high:
-            rate, bound = high, "max"
+        rate, bound = apply_limits(raw, min_c, max_c)
         area = inputs.area_ha
         total = rate * area
 
@@ -103,7 +94,7 @@ class NitrogenMassBalance(NutrientMethod):
                 name="previous_crop_credit",
                 value=credit,
                 unit=KG_N_PER_HA,
-                explanation=explain.previous_crop_credit(previous.label, previous.credit),
+                explanation=explain.previous_crop_credit(previous.label, credit_const),
                 uses_placeholder=_any_placeholder([credit_c]),
             ),
             ExplainedNumber(
@@ -122,41 +113,7 @@ class NitrogenMassBalance(NutrientMethod):
             ),
         ]
 
-        count = len(cfg.splits)
-        splits: list[SplitApplication] = []
-        for index, (spec, fraction_c) in enumerate(zip(cfg.splits, fractions, strict=True), 1):
-            fraction = fraction_c.value
-            split_rate = rate * fraction
-            split_total = split_rate * area
-            split_inputs = [*rate_inputs, fraction_c]
-            splits.append(
-                SplitApplication(
-                    stage_label=spec.stage_label,
-                    fraction=ExplainedNumber(
-                        name=f"split_{index}_fraction",
-                        value=fraction,
-                        unit="fraction",
-                        explanation=explain.split_fraction(
-                            index, count, spec.stage_label, spec.fraction
-                        ),
-                        uses_placeholder=_any_placeholder([fraction_c]),
-                    ),
-                    rate=ExplainedNumber(
-                        name=f"split_{index}_rate",
-                        value=split_rate,
-                        unit=KG_N_PER_HA,
-                        explanation=explain.split_rate(index, fraction, rate, split_rate),
-                        uses_placeholder=_any_placeholder(split_inputs),
-                    ),
-                    total=ExplainedNumber(
-                        name=f"split_{index}_total",
-                        value=split_total,
-                        unit=KG_N,
-                        explanation=explain.split_total(index, split_rate, area, split_total),
-                        uses_placeholder=_any_placeholder(split_inputs),
-                    ),
-                )
-            )
+        splits, fractions = build_splits(inputs, pack, rate, rate_inputs)
 
         return NutrientResult(
             nutrient="N",
@@ -165,7 +122,8 @@ class NitrogenMassBalance(NutrientMethod):
                 name="n_rate",
                 value=rate,
                 unit=KG_N_PER_HA,
-                explanation=explain.n_rate(raw, rate, bound, cfg.min_rate, cfg.max_rate),
+                explanation=explain.n_rate(raw, rate, bound, cfg.min_rate, cfg.max_rate)
+                + scope_sentences(inputs, pack),
                 uses_placeholder=_any_placeholder(rate_inputs),
             ),
             total=ExplainedNumber(
@@ -180,7 +138,3 @@ class NitrogenMassBalance(NutrientMethod):
             bound_applied=bound,
             constants_used=[*rate_inputs, *fractions],
         )
-
-
-def _any_placeholder(constants: list[UsedConstant]) -> bool:
-    return any(c.is_placeholder for c in constants)

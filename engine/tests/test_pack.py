@@ -209,3 +209,185 @@ def test_pack_sha256_changes_when_split_order_changes(raw: dict[str, Any]) -> No
     changed = copy.deepcopy(raw)
     changed["crops"]["wheat"]["nitrogen"]["splits"].reverse()
     assert pack_sha256(parse_pack(changed)) != pack_sha256(parse_pack(raw))
+
+
+# Fingerprint of packs/placeholder/v0.yaml under engine 0.2.0. Optional schema
+# additions (citations, soil-test methods, other N methods) must not change it,
+# or recorded recommendations would no longer match their pack.
+PLACEHOLDER_V0_SHA256 = "e3a0b4142335f7bbe6413572a85ae89a1f13c6155e55a9968bc3fd2384f2ff46"
+
+
+def test_placeholder_pack_sha256_is_unchanged_by_schema_additions() -> None:
+    assert pack_sha256(load_pack(PACK_PATH)) == PLACEHOLDER_V0_SHA256
+
+
+# --- citations on constants (rule 9: cited, still PLACEHOLDER) --------------------
+
+
+def _citation(**change: object) -> dict[str, Any]:
+    """TEST FIXTURE ONLY: not a real document."""
+    data: dict[str, Any] = {
+        "title": "Test Guide",
+        "publisher": "Test Publisher",
+        "year": 2025,
+        "locator": "Table 1",
+        "url": "https://example.invalid/guide",
+        "accessed_on": "2026-11-17",
+        "basis": "stated",
+    }
+    data.update(change)
+    return data
+
+
+def test_placeholder_constant_may_carry_a_citation(raw: dict[str, Any]) -> None:
+    data = copy.deepcopy(raw)
+    data["crops"]["wheat"]["nitrogen"]["soil_n_supply"]["citation"] = _citation(note="read p. 3")
+    pack = parse_pack(data)
+    supply = pack.crops[Crop.WHEAT].nitrogen.soil_n_supply
+    assert supply.is_placeholder and supply.source is None
+    assert supply.citation is not None and supply.citation.locator == "Table 1"
+    # A cited constant is still a placeholder until a human agronomist validates it.
+    assert pack.has_placeholders
+    assert pack_sha256(pack) != PLACEHOLDER_V0_SHA256
+
+
+@pytest.mark.parametrize(
+    "missing", ["title", "publisher", "year", "locator", "url", "accessed_on", "basis"]
+)
+def test_citation_needs_every_field(raw: dict[str, Any], missing: str) -> None:
+    data = copy.deepcopy(raw)
+    citation = _citation()
+    del citation[missing]
+    data["crops"]["wheat"]["nitrogen"]["soil_n_supply"]["citation"] = citation
+    with pytest.raises(ValidationError):
+        parse_pack(data)
+
+
+def test_citation_rejects_blank_fields(raw: dict[str, Any]) -> None:
+    data = copy.deepcopy(raw)
+    data["crops"]["wheat"]["nitrogen"]["soil_n_supply"]["citation"] = _citation(title=" ")
+    with pytest.raises(ValidationError):
+        parse_pack(data)
+
+
+@pytest.mark.parametrize("basis", ["stated", "derived", "inferred"])
+def test_citation_basis_is_one_of_three(raw: dict[str, Any], basis: str) -> None:
+    data = copy.deepcopy(raw)
+    citation = _citation(basis=basis, note="TEST note")
+    data["crops"]["wheat"]["nitrogen"]["soil_n_supply"]["citation"] = citation
+    supply = parse_pack(data).crops[Crop.WHEAT].nitrogen.soil_n_supply
+    assert supply.citation is not None and supply.citation.basis == basis
+
+
+def test_citation_rejects_unknown_basis(raw: dict[str, Any]) -> None:
+    data = copy.deepcopy(raw)
+    data["crops"]["wheat"]["nitrogen"]["soil_n_supply"]["citation"] = _citation(basis="guessed")
+    with pytest.raises(ValidationError):
+        parse_pack(data)
+
+
+@pytest.mark.parametrize("basis", ["derived", "inferred"])
+@pytest.mark.parametrize("note", [None, "  "])
+def test_derived_or_inferred_citation_needs_a_note(
+    raw: dict[str, Any], basis: str, note: str | None
+) -> None:
+    data = copy.deepcopy(raw)
+    citation = _citation(basis=basis, note=note)
+    data["crops"]["wheat"]["nitrogen"]["soil_n_supply"]["citation"] = citation
+    with pytest.raises(ValidationError, match="note"):
+        parse_pack(data)
+
+
+# --- nitrogen method selection ----------------------------------------------------
+
+
+def test_unknown_nitrogen_method_is_rejected_at_load(raw: dict[str, Any]) -> None:
+    data = copy.deepcopy(raw)
+    data["crops"]["wheat"]["nitrogen"]["method"] = "does_not_exist"
+    with pytest.raises(ValidationError):
+        parse_pack(data)
+
+
+def test_mass_balance_fields_are_required_for_mass_balance(raw: dict[str, Any]) -> None:
+    data = copy.deepcopy(raw)
+    del data["crops"]["wheat"]["nitrogen"]["n_uptake_per_t_grain"]
+    with pytest.raises(ValidationError):
+        parse_pack(data)
+
+
+# --- previous-crop credit not set yet -----------------------------------------------
+
+
+def _unset_credit(raw: dict[str, Any], **change: object) -> dict[str, Any]:
+    data = copy.deepcopy(raw)
+    credit: dict[str, Any] = {
+        "value": None,
+        "unit": "kg N/ha",
+        "status": "PLACEHOLDER",
+        "source": None,
+    }
+    credit.update(change)
+    data["crops"]["wheat"]["nitrogen"]["previous_crop_credits"]["soybean"]["credit"] = credit
+    return data
+
+
+def test_credit_value_may_be_not_set_while_placeholder(raw: dict[str, Any]) -> None:
+    pack = parse_pack(_unset_credit(raw))
+    credit = pack.crops[Crop.WHEAT].nitrogen.previous_crop_credits["soybean"].credit
+    assert credit.value is None
+    assert pack.has_placeholders
+
+
+def test_validated_credit_needs_a_value(raw: dict[str, Any]) -> None:
+    with pytest.raises(ValidationError):
+        parse_pack(_unset_credit(raw, status="VALIDATED", source="TEST FIXTURE ONLY"))
+
+
+def test_only_previous_crop_credits_may_be_not_set(raw: dict[str, Any]) -> None:
+    data = copy.deepcopy(raw)
+    data["crops"]["wheat"]["nitrogen"]["soil_n_supply"]["value"] = None
+    with pytest.raises(ValidationError):
+        parse_pack(data)
+
+
+# --- accepted soil-test methods (declarative; P/K rates arrive in S3) --------------
+
+
+def _methods(**change: object) -> dict[str, Any]:
+    methods: dict[str, Any] = {
+        "P": {"form": "P", "unit": "mg/kg", "extraction_method": "olsen"},
+        "K": {
+            "form": "K",
+            "unit": "mg/kg",
+            "extraction_method": "other",
+            "extraction_method_detail": "ammonium acetate",
+        },
+    }
+    methods.update(change)
+    return methods
+
+
+def test_soil_test_methods_load(raw: dict[str, Any]) -> None:
+    data = copy.deepcopy(raw)
+    data["crops"]["wheat"]["soil_test_methods"] = _methods()
+    pack = parse_pack(data)
+    methods = pack.crops[Crop.WHEAT].soil_test_methods
+    assert methods is not None
+    assert methods["P"].extraction_method.value == "olsen"
+    assert methods["K"].extraction_method_detail == "ammonium acetate"
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"P": {"form": "K", "unit": "mg/kg", "extraction_method": "olsen"}},
+        {"K": {"form": "K", "unit": "mg/kg", "extraction_method": "other"}},
+        {"N": {"form": "N", "unit": "mg/kg", "extraction_method": "olsen"}},
+        {"P": {"form": "P2O5", "unit": "mg/kg", "extraction_method": "olsen"}},
+    ],
+)
+def test_soil_test_methods_reject_bad_entries(raw: dict[str, Any], change: dict) -> None:
+    data = copy.deepcopy(raw)
+    data["crops"]["wheat"]["soil_test_methods"] = _methods(**change)
+    with pytest.raises(ValidationError):
+        parse_pack(data)

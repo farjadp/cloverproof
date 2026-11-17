@@ -6,7 +6,7 @@ sentence is tagged PLACEHOLDER (or with its source when validated).
 
 from typing import Literal
 
-from cloverproof_engine.pack import PackConstant
+from cloverproof_engine.pack import Citation, CitationBasis, PackConstant
 
 
 def num(x: float) -> str:
@@ -17,8 +17,21 @@ def pct(x: float) -> str:
     return f"{x:.0%}"
 
 
+def cited(citation: Citation) -> str:
+    """Where a value comes from, by basis: only a `stated` value is "read from" a source."""
+    if citation.basis is CitationBasis.STATED:
+        return f"read from {citation.short()}"
+    verb = "derived" if citation.basis is CitationBasis.DERIVED else "inferred"
+    return (
+        f"{verb} by the engine from {citation.short()}, not a value stated there: "
+        f"{(citation.note or '').strip()}"
+    )
+
+
 def tag(c: PackConstant) -> str:
     if c.is_placeholder:
+        if c.citation is not None:
+            return f"(PLACEHOLDER, not agronomist-validated; {cited(c.citation)})"
         return "(PLACEHOLDER, not agronomist-validated)"
     return f"(source: {c.source})"
 
@@ -65,8 +78,9 @@ def n_rate(
     bound: Literal["min", "max"] | None,
     min_rate: PackConstant,
     max_rate: PackConstant,
+    method_label: str = "nitrogen mass balance",
 ) -> str:
-    base = f"Recommended N rate = {num(rate)} kg N/ha (wheat, nitrogen mass balance)."
+    base = f"Recommended N rate = {num(rate)} kg N/ha (wheat, {method_label})."
     if bound == "max":
         return (
             f"{base} The calculated {num(raw)} kg N/ha was cut to the pack upper limit "
@@ -87,11 +101,20 @@ def n_total(rate: float, area_ha: float, total: float) -> str:
     return f"Total N for the field = {num(rate)} kg N/ha x {num(area_ha)} ha = {num(total)} kg N."
 
 
-def split_fraction(index: int, count: int, stage_label: str, fraction: PackConstant) -> str:
-    return (
+def split_fraction(
+    index: int,
+    count: int,
+    stage_label: str,
+    fraction: PackConstant,
+    timing: Citation | None = None,
+) -> str:
+    text = (
         f"Application {index} of {count} ({stage_label}) gets {pct(fraction.value)} "
         f"of the N rate {tag(fraction)}."
     )
+    if timing is not None:
+        text += f" Timing {cited(timing)} (PLACEHOLDER, not agronomist-validated)."
+    return text
 
 
 def split_rate(index: int, fraction: float, rate: float, split: float) -> str:
@@ -103,6 +126,58 @@ def split_rate(index: int, fraction: float, rate: float, split: float) -> str:
 def split_total(index: int, split: float, area_ha: float, total: float) -> str:
     return (
         f"Application {index} total = {num(split)} kg N/ha x {num(area_ha)} ha = {num(total)} kg N."
+    )
+
+
+# --- nitrogen yield x price-ratio table ---------------------------------------
+
+
+def table_n_rate(
+    target_yield: float,
+    ratio: float,
+    rate: float,
+    cell: PackConstant,
+    bracket_yield: tuple[float, float],
+    bracket_ratio: tuple[float, float],
+    corners: list[float],
+    prices: str | None = None,
+) -> str:
+    where = (
+        f"expected yield {num(target_yield)} t/ha and N:grain price ratio {num(ratio)} "
+        "(kg grain per kg N)"
+    )
+    if prices:
+        where += f" ({prices})"
+    if len(corners) == 1:
+        return f"Table N rate = {num(rate)} kg N/ha: the pack table cell at {where} {tag(cell)}."
+    return (
+        f"Table N rate = {num(rate)} kg N/ha at {where}, interpolated bilinearly between "
+        f"yields {num(bracket_yield[0])}-{num(bracket_yield[1])} t/ha and price ratios "
+        f"{num(bracket_ratio[0])}-{num(bracket_ratio[1])} (cells "
+        f"{', '.join(num(c) for c in corners)} kg N/ha) {tag(cell)}. "
+        "Bilinear interpolation is an engine choice, not stated by the table."
+    )
+
+
+def wheat_class_scope(label: str) -> str:
+    return f"Scope: {label}."
+
+
+def assumes_no_manure() -> str:
+    return "Assumes no manure applied (input manure_applied = false); no manure N credit is used."
+
+
+def manure_not_supported() -> str:
+    return (
+        "the engine has no manure N credit yet, so it gives no N rate when manure was applied; "
+        "the agronomist decides N for this field"
+    )
+
+
+def table_rate_after_credit(table_rate: float, credit: float, net: float) -> str:
+    return (
+        f"Table rate {num(table_rate)} - previous-crop credit {num(credit)} "
+        f"= {num(net)} kg N/ha before the pack limits."
     )
 
 
@@ -140,7 +215,12 @@ def pack_has_placeholders(pack_id: str, version: str) -> str:
     )
 
 
-def soil_nitrate_not_used() -> str:
+def soil_nitrate_not_used(method_id: str = "n_mass_balance") -> str:
+    if method_id == "n_yield_price_table":
+        return (
+            "The soil test includes nitrate-N, but the engine does not use measured soil N; "
+            "the N rate comes from the pack's yield x price-ratio table only."
+        )
     return (
         "The soil test includes nitrate-N, but engine v0 does not use measured soil N; "
         "the pack default soil N supply was used instead."
