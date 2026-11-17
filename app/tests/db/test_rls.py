@@ -338,6 +338,7 @@ def test_c0_every_public_table_is_classified_once(db: psycopg.Connection) -> Non
         list(RLS_TABLES["tenant"])
         + RLS_TABLES["identity"]
         + RLS_TABLES["website"]
+        + RLS_TABLES["website_admin"]
         + RLS_TABLES["global"]
     )
     assert len(listed) == len(set(listed))
@@ -359,7 +360,7 @@ def test_c1_catalog_state_matches_class(db: psycopg.Connection) -> None:
         assert state[table] == (True, True), table
     for table in RLS_TABLES["website"]:
         assert state[table] == (True, False), table
-    for table in RLS_TABLES["identity"] + RLS_TABLES["global"]:
+    for table in RLS_TABLES["identity"] + RLS_TABLES["website_admin"] + RLS_TABLES["global"]:
         assert state[table] == (False, False), table
 
 

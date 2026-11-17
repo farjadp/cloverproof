@@ -10,7 +10,7 @@ The admin needs a system log of logins, admin actions, content changes, API-key 
 ## What is logged
 One table `website_log`: `occurred_at`, `actor_user_id` (null for anonymous/system), `kind` (auth | admin | content | secret | error | job), `action`, `target_type/id`, `outcome` (ok | denied | failed), `ip_prefix` (IPv4 /24, IPv6 /48 — not the full IP), `ua_family` (e.g. "Firefox"), `detail` jsonb with **whitelisted keys only**. Never: passwords, tokens, keys, TOTP codes, post bodies, form values, emails of non-users, full URLs with query strings. Errors use the existing `safeError()` redaction (name, SQLSTATE, table/constraint, masked message) and record path only. Public-site errors carry no IP prefix.
 
-Append-only: `cp_website_admin` has INSERT and SELECT only. Deletion only via `website_log_purge()` (`security definer`, owned by a purge role): `delete from website_log where occurred_at < now() - interval '60 days'`, returns the count. Also purges expired sessions, used/expired one-time tokens and old rate-limit rows.
+Append-only: `cp_website_admin` has INSERT and SELECT only. Deletion only via `website_log_purge()` (`security definer`, owned by `cp_migrator` like the other definer functions, pinned `search_path`; EXECUTE only for `cp_website_admin`): `delete from website_log where occurred_at < now() - interval '60 days'`, returns the count. Also purges expired sessions, used/expired one-time tokens and old rate-limit rows.
 
 ## Scheduling options
 ### A — In-process daily job in the Next.js service (recommended now)
