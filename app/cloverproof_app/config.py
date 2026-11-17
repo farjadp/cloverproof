@@ -2,7 +2,8 @@
 
 Required: DATABASE_URL, SESSION_SECRET; ENV too when DATABASE_URL is not on localhost.
 Optional: PACK_PATH (country-pack YAML the engine uses; default packs/placeholder/v0.yaml
-in the repo), PROOF_STORE_DIR (proof PDF store root; default ./var/proofs), login limits, proxy header, hosts and HSTS (see the fields below).
+in the repo), PROOF_STORE_DIR (proof PDF store root; default ./var/proofs), login limits,
+proxy header, hosts and HSTS (see the fields below).
 Missing or invalid values stop the app at startup (fail fast) with a message that names
 the variable but never prints its value.
 """

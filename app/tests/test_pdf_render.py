@@ -22,11 +22,15 @@ import pytest
 
 from cloverproof_app.db.migrate import REPO_ROOT
 from cloverproof_app.pdf import (
-    AI_ACTOR,
+    AGRONOMIST_APPROVED,
+    AI_REVIEWED,
     FORBIDDEN_PHRASES,
-    HUMAN_ACTOR,
-    PLACEHOLDER_PACK_BANNER,
+    NO_SOIL_TEST,
+    PLACEHOLDER_BANNER,
+    SUPERADMIN_APPROVED,
     Approval,
+    Comparison,
+    NotAnApproval,
     ProofInput,
     approval_line,
     render_html,
@@ -87,11 +91,12 @@ def proof(doc: dict[str, Any] | None = None, approval: Approval | None = None,
         "farmer_name": "Test Farmer",
         "farm_name": "Home Farm",
         "field_name": "North 40",
+        "season_label": "2026-2027",
         "previous_crop_label": "Canola",
         "doc": doc if doc is not None else engine_doc(),
         "approval": approval
         if approval is not None
-        else Approval(reviewer_name="Agro Tester", approved_at=APPROVED_AT),
+        else Approval("Agro Tester", APPROVED_AT, AGRONOMIST_APPROVED),
     }
     values.update(overrides)
     return ProofInput(**values)
@@ -134,9 +139,16 @@ def assert_wording(text: str) -> None:
     lowered = text.lower()
     for phrase in FORBIDDEN_PHRASES:
         assert phrase not in lowered, phrase
-    # "Approved by" only as our own reviewer line.
+    # "approved by" only inside our own reviewer lines (see approval_line).
+    allowed = (
+        "reviewed and approved by agronomist agro tester",
+        "approved by agro tester (platform administrator; not an agronomist review)",
+    )
     for match in re.finditer(r"approved by", lowered):
-        assert re.match(r"approved by agro tester \(agronomist\)", lowered[match.start() :])
+        window = lowered[max(0, match.start() - 13) :]
+        assert any(
+            window.startswith(a) or lowered[match.start() :].startswith(a) for a in allowed
+        ), lowered[match.start() - 20 : match.end() + 40]
 
 
 # --- HTML (always runs) -----------------------------------------------------------------
@@ -145,14 +157,14 @@ def assert_wording(text: str) -> None:
 def test_required_sections_present() -> None:
     text = visible_text(render_html(proof()))
     for heading in (
-        "Farm and field", "Inputs", "Soil test", "Nitrogen recommendation",
-        "How the rate was calculated", "Split applications", "Confidence",
+        "Farm and field", "Inputs", "Soil test", "Recommendation",
+        "How the engine calculated the rate", "Split applications and timing", "Confidence",
         "Phosphorus and potassium", "Constants used", "Versions and identifiers",
         "This file",
     ):  # fmt: skip
         assert heading in text, heading
     for value in ("Test Farmer", "Home Farm", "North 40", "12.5 ha", "Wheat", "6 t/ha",
-                  "Canola", "2027-03-01", str(DOC_ID), str(REC_ID)):  # fmt: skip
+                  "Canola", "2027-03-01", "2026-2027", str(DOC_ID), str(REC_ID)):  # fmt: skip
         assert value in text, value
 
 
@@ -182,15 +194,16 @@ def test_split_timing_label_comes_from_the_pack() -> None:
 
 def test_soil_test_method_depth_date_form_units() -> None:
     text = visible_text(render_html(proof()))
-    for value in ("2026-10-01", "0–15 cm", "Lab (Test Lab)", "P2O5", "Olsen", "mg/kg",
+    for value in ("2026-10-01", "0\u201315 cm", "Lab (Test Lab)", "P2O5", "Olsen", "mg/kg",
                   "ppm", "Other: Ammonium acetate", "12", "150"):  # fmt: skip
         assert value in text, value
 
 
 def test_no_soil_test_says_so_and_asks_for_p_k_test() -> None:
     text = visible_text(render_html(proof(engine_doc(with_soil=False))))
-    assert "No soil test on file" in text
-    assert "Get a soil test for P and K" in text
+    assert NO_SOIL_TEST == "No soil test: N only; P/K soil test recommended"
+    assert NO_SOIL_TEST in text
+    assert "Olsen" not in text
 
 
 def test_confidence_and_reasons() -> None:
@@ -207,15 +220,15 @@ def test_placeholder_pack_banner_and_markers() -> None:
     assert doc["pack_status"] == "placeholder"
     markup = render_html(proof(doc))
     text = visible_text(markup)
-    assert PLACEHOLDER_PACK_BANNER == "Placeholder pack — not agronomic advice — test document"
-    assert PLACEHOLDER_PACK_BANNER in text
-    assert PLACEHOLDER_PACK_BANNER in markup.split("<body", 1)[0]  # also on every page (CSS)
+    assert PLACEHOLDER_BANNER == "PLACEHOLDER values — not for field use"
+    assert PLACEHOLDER_BANNER in text
+    assert PLACEHOLDER_BANNER in markup.split("<body", 1)[0]  # also on every page (CSS)
     assert "PLACEHOLDER — not yet validated" in text
 
 
 def test_validated_pack_has_no_placeholder_banner_or_markers() -> None:
     markup = render_html(proof(validated(engine_doc())))
-    assert PLACEHOLDER_PACK_BANNER not in markup
+    assert PLACEHOLDER_BANNER not in markup
     assert "not yet validated" not in visible_text(markup)
 
 
@@ -232,44 +245,59 @@ def test_hash_statement_and_how_to_check() -> None:
     assert "cannot contain its own SHA-256" in text
 
 
+SUPERADMIN = Approval("Agro Tester", APPROVED_AT, SUPERADMIN_APPROVED)
+
+
 @pytest.mark.parametrize("pack_status", ["placeholder", "validated"])
 def test_no_third_party_or_certification_wording(pack_status: str) -> None:
     doc = engine_doc() if pack_status == "placeholder" else validated(engine_doc())
-    for approval in (None, Approval("Agro Tester", APPROVED_AT, actor_kind=AI_ACTOR)):
-        assert_wording(visible_text(render_html(proof(doc, approval=approval))))
-    assert_wording(visible_text(render_html(proof(doc))))
+    draft = ProofInput(**{**proof(doc).__dict__, "approval": None})
+    for item in (proof(doc), proof(doc, approval=SUPERADMIN), draft):
+        assert_wording(visible_text(render_html(item)))
 
 
-def test_human_approval_line() -> None:
-    approval = Approval("Agro Tester", APPROVED_AT, actor_kind=HUMAN_ACTOR)
-    assert approval_line(approval) == "Approved by Agro Tester (agronomist) on 2027-02-03"
+def test_agronomist_approval_line() -> None:
+    approval = Approval("Agro Tester", APPROVED_AT, AGRONOMIST_APPROVED)
+    assert approval_line(approval) == "Reviewed and approved by agronomist Agro Tester"
     markup = render_html(proof(approval=approval))
-    assert "Approved by Agro Tester (agronomist) on 2027-02-03" in visible_text(markup)
-    assert ">DRAFT<" not in markup
+    text = visible_text(markup)
+    assert "Reviewed and approved by agronomist Agro Tester" in text
+    assert "2027-02-03 14:30 UTC" in text and "agronomist_approved" in text
+    assert ">DRAFT<" not in markup and "platform administrator" not in text
 
 
-def test_ai_review_is_never_an_agronomist_approval() -> None:
-    approval = Approval("cp-agronomist", APPROVED_AT, actor_kind=AI_ACTOR)
-    line = approval_line(approval)
-    assert "approved by" not in line.lower() and "(agronomist)" not in line
-    text = visible_text(render_html(proof(approval=approval)))
-    assert "Approved by" not in text
-    assert "reviewed by an agronomist" not in text.lower()
-    assert "Not approved by a human agronomist" not in text  # no "approved by" at all
-    assert "No human agronomist has approved this plan" in text
-    assert "DRAFT" in text
+def test_superadmin_approval_is_not_called_an_agronomist_review() -> None:
+    line = approval_line(SUPERADMIN)
+    assert line == "Approved by Agro Tester (platform administrator; not an agronomist review)"
+    text = visible_text(render_html(proof(approval=SUPERADMIN)))
+    assert line in text and "superadmin_approved" in text
+    assert "approved by agronomist" not in text.lower()
 
 
-def test_unknown_actor_kind_is_treated_as_not_human() -> None:
-    approval = Approval("someone", APPROVED_AT, actor_kind="robot")
-    assert "(agronomist)" not in approval_line(approval)
+def test_ai_review_is_never_an_approval() -> None:
+    with pytest.raises(NotAnApproval):
+        Approval("cp-agronomist", APPROVED_AT, AI_REVIEWED)
+    with pytest.raises(NotAnApproval):
+        Approval("someone", APPROVED_AT, "robot")
 
 
 def test_draft_watermark_without_approval() -> None:
     draft = ProofInput(**{**proof().__dict__, "approval": None})
-    text = visible_text(render_html(draft))
+    markup = render_html(draft)
+    text = visible_text(markup)
     assert "DRAFT" in text and "Not approved" in text
-    assert "Approved by" not in text
+    assert "approved by" not in text.lower()
+    assert "DRAFT — not approved" in markup.split("<body", 1)[0]  # every page (CSS)
+
+
+def test_engine_vs_final_and_lineage() -> None:
+    doc = engine_doc()
+    engine = doc["nitrogen"]["rate"]
+    final = {**engine, "value": engine["value"] - 10, "explanation": "Agronomist lowered it."}
+    item = proof(doc, comparison=(Comparison("N rate", engine, final),), version_number=2)
+    text = visible_text(render_html(item))
+    assert "Engine vs final" in text and "Agronomist lowered it." in text
+    assert "Input snapshot SHA-256" in text and item.input_snapshot_sha256 in text
 
 
 def test_user_text_is_escaped() -> None:
@@ -302,7 +330,8 @@ def pdf_reader(data: bytes) -> Any:
     try:
         import pypdf  # type: ignore[import-not-found]
     except ImportError:
-        _skip("pypdf not installed (PDF text extraction)")
+        # pypdf is not a dependency (only weasyprint is approved): always a plain skip.
+        pytest.skip("pypdf not installed (optional PDF text extraction)")
     return pypdf.PdfReader(io.BytesIO(data))
 
 
@@ -344,7 +373,8 @@ def test_pdf_text_explanations_banner_wording(render_pdf: Any) -> None:
     flat = compact(text)
     for number in explained_numbers(doc):
         assert compact(number["explanation"]) in flat, number["name"]
-    for needle in (PLACEHOLDER_PACK_BANNER, "Approved by Agro Tester (agronomist) on 2027-02-03",
-                   "SHA-256 of this file is recorded in CloverProof", "not yet validated"):  # fmt: skip
+    for needle in (PLACEHOLDER_BANNER, "Reviewed and approved by agronomist Agro Tester",
+                   "SHA-256 of this file is recorded in CloverProof",
+                   "not yet validated"):  # fmt: skip
         assert compact(needle) in flat, needle
     assert_wording(text)

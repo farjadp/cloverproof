@@ -1,0 +1,18 @@
+{#- Proof section of the plan page (GET /plans/{id}/proof, loaded by htmx). -#}
+<div id="proof-panel">
+{% if docs %}
+  {% for d in docs %}
+  <p>Proof document <a href="/proofs/{{ d.id }}" class="mono">{{ d.id }}</a> · created {{ d.created_at.strftime("%Y-%m-%d %H:%M") }} by {{ d.created_by_name }} · <a href="/proofs/{{ d.id }}/download">Download PDF</a></p>
+  <p class="muted mono">SHA-256 {{ d.sha256 }}</p>
+  {% endfor %}
+  <p class="muted">A proof is never regenerated. Editing the numbers makes a new version, which gets its own document after approval.</p>
+{% elif approved %}
+  <form method="post" action="/plans/{{ v.plan.id }}/proof">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="button" type="submit" data-loading="Generating PDF…">Generate proof PDF</button>
+  </form>
+  {% if v.doc.pack_status != "validated" %}<p class="muted">This plan uses a placeholder pack: every page of the PDF says “PLACEHOLDER values — not for field use”.</p>{% endif %}
+{% else %}
+  <p class="muted">A proof PDF can be generated once a human agronomist (or superadmin) approves this version. AI reviews never count.</p>
+{% endif %}
+</div>

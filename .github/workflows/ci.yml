@@ -33,7 +33,12 @@ jobs:
       - name: Lint
         run: make lint
 
-      - name: Test
+      - name: WeasyPrint system libraries (proof PDF tests)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
+
+      - name: Test (CP_PDF_TESTS_REQUIRED=1, PDF render skips fail)
+        env:
+          CP_PDF_TESTS_REQUIRED: "1"
         run: make test
 
   db:
@@ -65,6 +70,9 @@ jobs:
 
       - name: Install Python 3.12 and locked dependencies
         run: make setup
+
+      - name: WeasyPrint system libraries (proof PDF route tests)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
 
       - name: DB tests (CP_DB_TESTS_REQUIRED=1, skips fail)
         run: make db-test
