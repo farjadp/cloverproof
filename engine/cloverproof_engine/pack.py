@@ -20,6 +20,7 @@ where a number was read, not that it was validated.
 """
 
 import hashlib
+import itertools
 import json
 import math
 from collections.abc import Iterator
@@ -215,7 +216,7 @@ class MassBalanceNitrogen(_NitrogenBase):
 def _strictly_increasing_positive(values: list[float]) -> list[float]:
     if any(v <= 0 for v in values):
         raise ValueError("axis values must be > 0")
-    if any(b <= a for a, b in zip(values, values[1:], strict=False)):
+    if any(b <= a for a, b in itertools.pairwise(values)):
         raise ValueError("axis values must be strictly increasing")
     return values
 
