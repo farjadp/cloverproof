@@ -4,9 +4,9 @@ Golden YAML lives in engine/tests/golden/. Every case declares a `kind`:
 
 - `sample`: expected numbers derived from the placeholder pack, only to exercise
   the report. Never counts toward the agreement gate.
-- `agronomist_approved`: the agronomist's decision. Must carry `reviewer` and
-  `reviewed_on` (top level) and a non-empty `expected.reason`. The only kind that
-  counts toward the agreement gate.
+- `agronomist_approved`: the agronomist's decision. Must carry `reviewer` (a human,
+  never `cp-agronomist`) and `reviewed_on` (top level) and a non-empty
+  `expected.reason`. The only kind that counts toward the agreement gate.
 - `external_reference`: the output of a public tool or the numbers of an official
   document, entered by hand by a human. Must carry `source` (a tool + URL and/or
   version, or a document: title, publisher, year, page/table locator, URL),
@@ -120,6 +120,11 @@ class ExpectedCase(_Frozen):
         ]
         if missing:
             raise ValueError(f"agronomist_approved case needs non-empty: {', '.join(missing)}")
+        if (self.reviewer or "").strip().lower() == AI_AGRONOMIST:
+            raise ValueError(
+                f"{AI_AGRONOMIST} (AI) can never approve: an agronomist_approved case needs "
+                "a human reviewer (CLAUDE.md rule 11); use kind ai_reviewed"
+            )
         return self
 
 
