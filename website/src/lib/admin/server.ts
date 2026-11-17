@@ -3,6 +3,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Pool } from "pg";
 import { keyFromBase64 } from "./crypto.ts";
+import { kekRingFromEnv } from "./kek-env.ts";
 import { can, STEP_UP_SECONDS, type Action } from "./permissions.ts";
 import { clientIp, ipPrefix, uaFamily } from "./request-meta.ts";
 import { csrfToken, csrfValid, loadSession, type AdminConfig, type Current, type RequestMeta } from "./service.ts";
@@ -30,15 +31,7 @@ let config: AdminConfig | null | undefined;
 export function adminConfig(): AdminConfig | null {
   if (config !== undefined) return config;
   try {
-    const keks = [
-      { id: process.env.WEBSITE_SECRETS_KEK_ID || "k1", key: keyFromBase64("WEBSITE_SECRETS_KEK", process.env.WEBSITE_SECRETS_KEK) },
-    ];
-    if (process.env.WEBSITE_SECRETS_KEK_PREVIOUS) {
-      keks.push({
-        id: process.env.WEBSITE_SECRETS_KEK_PREVIOUS_ID || "previous",
-        key: keyFromBase64("WEBSITE_SECRETS_KEK_PREVIOUS", process.env.WEBSITE_SECRETS_KEK_PREVIOUS),
-      });
-    }
+    const keks = kekRingFromEnv();
     config = { keks, hmacKey: keyFromBase64("WEBSITE_ADMIN_HMAC_KEY", process.env.WEBSITE_ADMIN_HMAC_KEY), siteUrl };
   } catch {
     config = null;

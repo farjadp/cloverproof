@@ -10,9 +10,9 @@ Names only — values go in Railway variables, never in git. `.env.example` must
 |---|---|
 | `ADMIN_DATABASE_URL` | URL for the `cp_website_admin_login` role (not the public site's `DATABASE_URL`) |
 | `WEBSITE_SECRETS_KEK` | 32 random bytes, base64: `openssl rand -base64 32` |
-| `WEBSITE_SECRETS_KEK_ID` | short id for that key, e.g. `k2026a` |
+| `WEBSITE_SECRETS_KEK_ID` | **required, no default**: short id for that key, e.g. `k2026a` (letters, digits, `_ . -`). Use a new id for every new key |
 | `WEBSITE_ADMIN_HMAC_KEY` | 32 random bytes, base64 (rate-limit keys, CSRF, recovery codes) |
-| `WEBSITE_SECRETS_KEK_PREVIOUS`, `WEBSITE_SECRETS_KEK_PREVIOUS_ID` | only during a KEK rotation |
+| `WEBSITE_SECRETS_KEK_PREVIOUS`, `WEBSITE_SECRETS_KEK_PREVIOUS_ID` | only during a KEK rotation; both or neither. The id must differ from `WEBSITE_SECRETS_KEK_ID` (the site refuses to start the admin otherwise) |
 | `TRUSTED_PROXY_HEADER` | **leave empty** until the staging probe in §5 passes; then the one header Railway sets with the client IP (e.g. `X-Real-IP`) |
 
 Keep a copy of `WEBSITE_SECRETS_KEK` in Farjad Iranmehr's password manager. Losing it means every enrolled two-step sign-in (and later every API key) must be set up again.
@@ -61,4 +61,9 @@ With `X-Forwarded-For`, only the last entry is used. Any other header must hold 
 
 ## 6. API keys and the master key (ADR 0013)
 - Keys are entered on `/admin/keys` (admin, fresh code). After saving only the last 4 characters are shown. Removing a key here wipes its ciphertext; also revoke it in the provider's console.
-- Master-key rotation (e.g. if `WEBSITE_SECRETS_KEK` may have leaked): set the new key as `WEBSITE_SECRETS_KEK`/`_ID`, the old one as `WEBSITE_SECRETS_KEK_PREVIOUS`/`_ID`, run `npm run secrets:rewrap` in the website shell, then delete the `_PREVIOUS` variables. Also rotate the provider keys themselves if a leak is suspected.
+- **Master-key rotation** (e.g. if `WEBSITE_SECRETS_KEK` may have leaked). **Do not rotate yet:** two-step sign-in secrets are not re-sealed until the D-S1 fix lands. Rotating before then breaks two-step sign-in for every admin. Order:
+  1. In Railway, set `WEBSITE_SECRETS_KEK_PREVIOUS` and `WEBSITE_SECRETS_KEK_PREVIOUS_ID` to the **current** key and id. Then set `WEBSITE_SECRETS_KEK` to a new key (`openssl rand -base64 32`) and `WEBSITE_SECRETS_KEK_ID` to a **new** id.
+  2. **Redeploy** the website, so the running site can open values under either key.
+  3. In the website service shell, run `npm run secrets:rewrap`. Wait for "Rotation complete". The command re-seals everything under the new key in one transaction, then checks that no active value is still under the old id and that each opens with the new key alone. If not, it rolls back and changes nothing.
+  4. Only after "Rotation complete": delete the two `_PREVIOUS` variables and redeploy. Keep the old key in the password manager for a few days.
+  5. If a leak is suspected, also rotate the provider keys themselves.
