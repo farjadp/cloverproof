@@ -71,7 +71,7 @@ Every plan must record: the engine output AND the human agronomist's final numbe
 - Unknown licences are never assumed; anything "unknown" in `docs/data-sources.md` stays out of production.
 
 ## Build order (Farjad Iranmehr, 2026-11-16)
-Website (`website/`, Next.js, 8 locales, en first) → web app portal (internal concierge tool to the S5 gate, then farmer & advisor portal S9–S12) → mobile app (native planning S11, build after S12). One step at a time; each step is planned and approved before code. Plans: `docs/plans/website-v1.md`, `docs/plans/webapp-v1.md`, `docs/plans/backend-plan.md` read through `docs/plans/backend-plan-reconciliation.md` (the reconciliation wins on conflict).
+Website (`website/`, Next.js, 9 locales incl. Hebrew (he, 2026-11-17), en first) → web app portal (internal concierge tool to the S5 gate, then farmer & advisor portal S9–S12) → mobile app (native planning S11, build after S12). One step at a time; each step is planned and approved before code. Plans: `docs/plans/website-v1.md`, `docs/plans/webapp-v1.md`, `docs/plans/backend-plan.md` read through `docs/plans/backend-plan-reconciliation.md` (the reconciliation wins on conflict).
 
 ## Repo layout
 ```
@@ -104,7 +104,7 @@ docs/
 - farmer → farm → field → field_geometry_version (per season)
 - field → soil_test (date, depth, method, units, form, lab, source: `lab` | `estimate`); estimates keep source, version, resolution, depth, retrieved_at
 - season → crop_plan → recommendation (immutable, `parent_id`, versions, inputs snapshot) → `recommendation_line` (per nutrient, explicit form, product, split, timing window)
-- recommendation → review (approve / edit / reject + reason, reviewer, `minutes_spent`, `review_kind`: `agronomist_approved` | `ai_reviewed`)
+- recommendation → review (approve / edit / reject + reason, reviewer, `minutes_spent`, `review_kind`: `agronomist_approved` | `superadmin_approved` | `ai_reviewed`)
 - crop_plan → application_log (planned vs actual)
 - recommendation → proof_document (pdf path, sha256, created_at)
 - `audit_event` for approvals, grants, exports, deletions, admin and support actions
