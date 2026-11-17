@@ -8,7 +8,7 @@ let pool: pg.Pool | null = null;
 function db(): pg.Pool | null {
   const url = process.env.ADMIN_DATABASE_URL;
   if (!url) return null;
-  pool ??= new pg.Pool({ connectionString: url, max: 1 });
+  pool ??= new pg.Pool({ connectionString: url, max: 1, statement_timeout: 10_000, idle_in_transaction_session_timeout: 30_000 });
   return pool;
 }
 

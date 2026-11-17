@@ -80,7 +80,7 @@ export async function actors(db: Db): Promise<{ id: string; name: string }[]> {
   return rows;
 }
 
-/** CSV with a formula-injection guard (cells starting with = + - @ get a leading apostrophe). */
+/** CSV with a formula-injection guard (cells starting with = + - @ | % get a leading apostrophe). */
 export function toCsv(rows: LogRow[]): string {
   const cell = (v: unknown) => {
     let s =
@@ -91,7 +91,7 @@ export function toCsv(rows: LogRow[]): string {
           : typeof v === "object"
             ? JSON.stringify(v)
             : String(v);
-    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+    if (/^[=+\-@|%\t\r]/.test(s)) s = `'${s}`;
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const head = ["occurred_at", "actor", "kind", "action", "target_type", "target_id", "outcome", "ip_prefix", "browser", "detail"];
