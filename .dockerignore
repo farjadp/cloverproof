@@ -1,0 +1,25 @@
+# Build context for the app image (Dockerfile). The uv workspace needs every member's
+# pyproject.toml, so this excludes what must never ship rather than allow-listing.
+.env
+.env.*
+.git
+.gitignore
+.github
+.claude
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/*.egg-info
+dist
+build
+var
+data/cache
+website
+docs
+brand
+**/node_modules
+*.pdf
+.DS_Store
