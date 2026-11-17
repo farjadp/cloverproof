@@ -12,8 +12,8 @@ import pytest
 from psycopg import errors
 
 from cloverproof_app import cli, security
+from cloverproof_app.db.pool import set_rls_context
 from cloverproof_app.repo import admin_users
-from cloverproof_app.repo.users import set_actor
 
 from .conftest import Org, as_role, insert
 from .test_account import client
@@ -23,6 +23,11 @@ from .test_web_auth import PASSWORD, email_of, login, with_password
 
 pytestmark = pytest.mark.db
 
+
+def set_actor(db: psycopg.Connection, user_id: UUID) -> None:
+    set_rls_context(db, user_id=user_id)
+
+
 TEMP_PASSWORD = re.compile(r"([a-km-zA-HJ-NP-Z2-9]{5}-){3}[a-km-zA-HJ-NP-Z2-9]{5}")
 HASH = security.hash_password("new password for nb1 tests")
 
@@ -30,7 +35,7 @@ HASH = security.hash_password("new password for nb1 tests")
 @pytest.fixture
 def owner(db: psycopg.Connection, org_a: Org) -> UUID:
     user = insert(db, "app_user", email=OWNER_EMAIL, display_name="Owner A")
-    insert(db, "membership", organisation_id=org_a.id, user_id=user, role="owner")
+    insert(db, "membership", organisation_id=org_a.id, user_id=user, role="org_admin")
     with_password(db, user)
     return user
 
@@ -38,7 +43,7 @@ def owner(db: psycopg.Connection, org_a: Org) -> UUID:
 @pytest.fixture
 def superadmin(db: psycopg.Connection, org_a: Org) -> UUID:
     """The expected setup: a member of one org with only the staff role (ciso NB1)."""
-    user = make_user(db, org_a, "super-a", roles=("staff",), platform_role="superadmin")
+    user = make_user(db, org_a, "super-a", roles=("advisor",), platform_role="superadmin")
     with_password(db, user)
     return user
 
@@ -116,7 +121,7 @@ def test_db_refuses_owner_account_of_someone_else(
     db: psycopg.Connection, org_a: Org, owner: UUID
 ) -> None:
     second = insert(db, "app_user", email="owner2-a@example.org", display_name="Owner 2")
-    insert(db, "membership", organisation_id=org_a.id, user_id=second, role="owner")
+    insert(db, "membership", organisation_id=org_a.id, user_id=second, role="org_admin")
     set_actor(db, owner)
     with pytest.raises(errors.InsufficientPrivilege, match="CLI only"), db.transaction():
         db.execute("update app_user set disabled_at = now() where id = %s", (second,))
@@ -155,7 +160,7 @@ def test_cli_resets_superadmin_and_it_is_audited(
     email = email_of(db, superadmin)
     with as_role(db, "cp_admin"):  # the CLI logs in as cp_admin_login (ADR 0007)
         result = cli.user_create(
-            db, email=email, org=str(org_a.id), role="staff", display_name=None,
+            db, email=email, org=str(org_a.id), role="advisor", display_name=None,
             create_org=False, reset_password=True, read_password=lambda: "temporary password 9",
         )  # fmt: skip
     assert result.password_set

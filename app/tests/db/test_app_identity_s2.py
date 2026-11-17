@@ -67,12 +67,12 @@ def audit(db: psycopg.Connection, target: UUID) -> list[tuple[str, UUID | None]]
 
 def test_admin_actions_record_the_owner(db: psycopg.Connection, org_a: Org) -> None:
     owner = insert(db, "app_user", email="owner-a@example.org", display_name="Owner A")
-    insert(db, "membership", organisation_id=org_a.id, user_id=owner, role="owner")
+    insert(db, "membership", organisation_id=org_a.id, user_id=owner, role="org_admin")
     client, csrf = signed_in(db, owner)
     r = client.post(
         "/admin/users",
         data={"csrf_token": csrf, "email": "new@example.org", "display_name": "New",
-              "role": "staff"},
+              "role": "advisor"},
     )  # fmt: skip
     assert r.status_code == 200
     new = db.execute("select id from app_user where email = 'new@example.org'").fetchone()

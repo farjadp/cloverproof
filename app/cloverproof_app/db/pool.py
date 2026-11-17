@@ -3,6 +3,12 @@
 Routes get a connection with `Database.connection()`. The block runs in one transaction:
 committed on success, rolled back on any exception. Tests swap in a `Database` that hands
 out a single connection inside a rolled-back transaction (see app/tests/db/conftest.py).
+
+Row-level security (ADR 0008, migration 0021): `set_rls_context` is the only place in the
+app that sets `app.user_id` / `app.org_id` / `app.platform_role`, always transaction-local
+(`set_config(..., true)` with bind parameters), from the server-side session (auth.py).
+The settings die with the transaction; the pool's reset callback (`reset_connection`) runs
+`RESET ALL` on every returned connection and discards it if a context value survives.
 """
 
 from __future__ import annotations
@@ -10,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import AbstractContextManager, contextmanager
 from typing import Protocol
+from uuid import UUID
 
 import psycopg
 from psycopg_pool import ConnectionPool
@@ -18,6 +25,47 @@ from cloverproof_app.config import ConfigError
 
 APP_ROLE = "cp_app"
 ADMIN_ROLE = "cp_admin"  # CLI login (ADR 0007); the web app must not hold it
+RLS_SETTINGS = ("app.user_id", "app.org_id", "app.platform_role")
+
+
+def set_rls_context(
+    conn: psycopg.Connection,
+    *,
+    user_id: UUID,
+    org_id: UUID | None = None,
+    platform_role: str | None = None,
+) -> None:
+    """Set the RLS context for the current transaction only (ADR 0008 §2).
+
+    `org_id` must be an organisation the session user was verified to belong to (auth.py);
+    the database checks the membership again (`app_ctx_org()`). An empty string means
+    "not set" to the policies, so a call without `org_id` clears an earlier org.
+    """
+    conn.execute(
+        "select set_config('app.user_id', %s, true), set_config('app.org_id', %s, true),"
+        " set_config('app.platform_role', %s, true)",
+        (str(user_id), str(org_id) if org_id is not None else "", platform_role or ""),
+    )
+
+
+class ContextLeak(RuntimeError):
+    """A pooled connection still carried an RLS context after RESET ALL."""
+
+
+def reset_connection(conn: psycopg.Connection) -> None:
+    """Pool `reset` callback: clear session state before the next checkout (ADR 0008 §3).
+
+    Context is transaction-local already; this is the second line for a session-level
+    `SET app.*` by mistake. Raising makes the pool discard the connection.
+    """
+    with conn.transaction():
+        conn.execute("reset all")
+        row = conn.execute(
+            "select " + ", ".join("nullif(current_setting(%s, true), '')" for _ in RLS_SETTINGS),
+            RLS_SETTINGS,
+        ).fetchone()
+    if row is None or any(value is not None for value in row):
+        raise ContextLeak("RLS context survived RESET ALL; connection discarded")
 
 
 def check_least_privilege(conn: psycopg.Connection) -> None:
@@ -68,6 +116,7 @@ class PooledDatabase:
             max_size=max_size,
             open=False,
             name="cloverproof",
+            reset=reset_connection,
         )
 
     def open(self) -> None:

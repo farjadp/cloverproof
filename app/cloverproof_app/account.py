@@ -1,11 +1,11 @@
-"""My account (/account) and owner user management (/admin/users).
+"""My account (/account) and org admin user management (/admin/users).
 
 Register with `account.register(app)` in main.create_app: it includes `router` and the
 `PasswordChangeRequired` handler (redirect to /account/password). Idempotent.
 
 Temporary passwords (new user, admin reset) are generated here, shown once in the POST
 response (Cache-Control: no-store from main.py) and stored only as an argon2id hash with
-`password_change_required = true`. No email is sent; the owner hands the password over.
+`password_change_required = true`. No email is sent; the org admin hands the password over.
 """
 
 from __future__ import annotations
@@ -39,13 +39,18 @@ log = logging.getLogger(__name__)
 router = APIRouter()
 
 InternalOrg = Annotated[OrgContext, Depends(require_org_role(*INTERNAL_ROLES))]
-OwnerOrg = Annotated[OrgContext, Depends(require_org_role("owner"))]
+OrgAdminOrg = Annotated[OrgContext, Depends(require_org_role("org_admin"))]
 
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 MAX_PASSWORD = 1024
-ROLE_LABELS = {"owner": "Owner", "agronomist": "Agronomist", "staff": "Staff", "farmer": "Farmer"}
+ROLE_LABELS = {
+    "org_admin": "Org admin",
+    "agronomist": "Agronomist",
+    "advisor": "Advisor",
+    "farmer": "Farmer",
+}
 
-# No 0/O/1/l/I: the owner reads it out or copies it. 20 symbols from 55 = ~115 bits.
+# No 0/O/1/l/I: the org admin reads it out or copies it. 20 symbols from 55 = ~115 bits.
 TEMP_ALPHABET = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 TEMP_GROUPS, TEMP_GROUP_LEN = 4, 5
 
@@ -210,7 +215,7 @@ def _users_page(
             "role_label": role_label,
             "roles": [(r, ROLE_LABELS[r]) for r in WEB_ROLES],
             "cli_roles": [ROLE_LABELS[r] for r in CLI_ONLY_ROLES],
-            "form": form or {"email": "", "display_name": "", "role": "staff"},
+            "form": form or {"email": "", "display_name": "", "role": "advisor"},
             "errors": errors or {},
             "created": created,
         },
@@ -219,7 +224,7 @@ def _users_page(
 
 
 @router.get("/admin/users")
-def users_list(request: Request, conn: Conn, context: OwnerOrg) -> Response:
+def users_list(request: Request, conn: Conn, context: OrgAdminOrg) -> Response:
     return _users_page(request, conn, context)
 
 
@@ -227,7 +232,7 @@ def users_list(request: Request, conn: Conn, context: OwnerOrg) -> Response:
 def users_create(
     request: Request,
     conn: Conn,
-    context: OwnerOrg,
+    context: OrgAdminOrg,
     email: Annotated[str, Form(max_length=1000)] = "",
     display_name: Annotated[str, Form(max_length=1000)] = "",
     role: Annotated[str, Form(max_length=50)] = "",
@@ -260,7 +265,7 @@ def users_create(
     except AdminError as error:
         errors["email"] = str(error)
         return _users_page(request, conn, context, form=form, errors=errors, status=409)
-    log.info("owner created user %s", user_id)
+    log.info("org admin created user %s", user_id)
     created = {"email": form["email"], "name": form["display_name"], "password": password}
     return _users_page(request, conn, context, created=created)
 
@@ -297,7 +302,7 @@ def _member_page(
 
 @router.get("/admin/users/{user_id}")
 def member_detail(
-    request: Request, conn: Conn, context: OwnerOrg, user_id: UUID, saved: str = ""
+    request: Request, conn: Conn, context: OrgAdminOrg, user_id: UUID, saved: str = ""
 ) -> Response:
     notice = {
         "roles": "Roles saved.",
@@ -328,7 +333,7 @@ def _apply(
 def member_roles(
     request: Request,
     conn: Conn,
-    context: OwnerOrg,
+    context: OrgAdminOrg,
     user_id: UUID,
     roles: Annotated[list[str] | None, Form()] = None,
 ) -> Response:
@@ -347,7 +352,7 @@ def member_roles(
 
 @router.post("/admin/users/{user_id}/reset-password")
 def member_reset_password(
-    request: Request, conn: Conn, context: OwnerOrg, user_id: UUID
+    request: Request, conn: Conn, context: OrgAdminOrg, user_id: UUID
 ) -> Response:
     _member_or_404(conn, context, user_id)
     if user_id == context.user.id:
@@ -364,12 +369,12 @@ def member_reset_password(
             )
     except AdminError as error:
         return _member_page(request, conn, context, user_id, error=str(error), status=409)
-    log.info("owner reset password of %s; %d sessions revoked", user_id, revoked)
+    log.info("org admin reset password of %s; %d sessions revoked", user_id, revoked)
     return _member_page(request, conn, context, user_id, temp_password=password)
 
 
 @router.post("/admin/users/{user_id}/disable")
-def member_disable(request: Request, conn: Conn, context: OwnerOrg, user_id: UUID) -> Response:
+def member_disable(request: Request, conn: Conn, context: OrgAdminOrg, user_id: UUID) -> Response:
     def action() -> None:
         admin_users.set_disabled(
             conn, actor_id=context.user.id, org_id=context.org.id, user_id=user_id,
@@ -383,7 +388,7 @@ def member_disable(request: Request, conn: Conn, context: OwnerOrg, user_id: UUI
 
 
 @router.post("/admin/users/{user_id}/enable")
-def member_enable(request: Request, conn: Conn, context: OwnerOrg, user_id: UUID) -> Response:
+def member_enable(request: Request, conn: Conn, context: OrgAdminOrg, user_id: UUID) -> Response:
     def action() -> None:
         admin_users.set_disabled(
             conn, actor_id=context.user.id, org_id=context.org.id, user_id=user_id,

@@ -294,7 +294,7 @@ def test_user_in_two_orgs_chooses_one(db: psycopg.Connection, org_a: Org, org_b:
 
 
 def test_forged_org_cookie_is_ignored(db: psycopg.Connection, org_a: Org, org_b: Org) -> None:
-    insert(db, "membership", organisation_id=org_b.id, user_id=org_a.agronomist, role="staff")
+    insert(db, "membership", organisation_id=org_b.id, user_id=org_a.agronomist, role="advisor")
     with_password(db, org_a.agronomist)
     client = build_client(db)
     login(client, email_of(db, org_a.agronomist))

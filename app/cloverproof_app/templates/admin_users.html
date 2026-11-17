@@ -60,7 +60,7 @@
         <option value="{{ value }}"{% if form.role == value %} selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
-      <p class="muted">Only Agronomist can approve plans. Owner manages users. {{ cli_roles | join(' and ') }} are added only with the <code>user-create</code> command (change via CLI).</p>
+      <p class="muted">Only Agronomist can approve plans. Org admin manages users. {{ cli_roles | join(' and ') }} are added only with the <code>user-create</code> command (change via CLI).</p>
       {% if errors.role %}<p class="alert" id="role-error">{{ errors.role }}</p>{% endif %}
     </div>
     <button class="button" type="submit">Add user</button>

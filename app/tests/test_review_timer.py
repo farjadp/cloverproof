@@ -66,7 +66,7 @@ def context(kind: str, roles: tuple[str, ...], platform_role: str | None = None)
 def test_only_a_human_agronomist_or_superadmin_may_review() -> None:
     allowed = [
         context("human", ("agronomist",)),
-        context("human", ("staff",), "superadmin"),
+        context("human", ("advisor",), "superadmin"),
         context("human", ("agronomist",), "superadmin"),
     ]
     for ctx in allowed:
@@ -74,10 +74,10 @@ def test_only_a_human_agronomist_or_superadmin_may_review() -> None:
         assert plan_web.is_agronomist(ctx)
     denied = [
         context("service", ("agronomist",)),
-        context("service", ("staff",), "superadmin"),
+        context("service", ("advisor",), "superadmin"),
         context("service", ("agronomist",), "superadmin"),
-        context("human", ("staff",)),
-        context("human", ("owner",)),
+        context("human", ("advisor",)),
+        context("human", ("org_admin",)),
     ]
     for ctx in denied:
         with pytest.raises(HTTPException) as error:
@@ -90,9 +90,9 @@ def test_review_kind_follows_actor_and_role() -> None:
     kind = plan_web.review_kind_for
     assert kind(context("human", ("agronomist",))) == "agronomist_approved"
     assert kind(context("human", ("agronomist",), "superadmin")) == "agronomist_approved"
-    assert kind(context("human", ("staff",), "superadmin")) == "superadmin_approved"
+    assert kind(context("human", ("advisor",), "superadmin")) == "superadmin_approved"
     assert kind(context("service", ("agronomist",), "superadmin")) == "ai_reviewed"
     with pytest.raises(ValueError, match="not a reviewer"):
-        kind(context("human", ("staff",)))
+        kind(context("human", ("advisor",)))
     with pytest.raises(ValueError, match="actor_kind"):
         kind(context("robot", ("agronomist",)))

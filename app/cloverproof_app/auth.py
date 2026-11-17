@@ -25,6 +25,7 @@ from fastapi import Depends, HTTPException, Request
 
 from cloverproof_app import security
 from cloverproof_app.config import Settings
+from cloverproof_app.db.pool import set_rls_context
 from cloverproof_app.repo import admin_users, sessions, users
 from cloverproof_app.repo.users import Organisation
 
@@ -39,7 +40,7 @@ PASSWORD_CHANGE_PATH = "/account/password"
 PASSWORD_CHANGE_EXEMPT = frozenset({PASSWORD_CHANGE_PATH, "/logout"})
 
 # Roles that may use the internal tool at all. `farmer` is for the Phase 4 portal.
-INTERNAL_ROLES = ("owner", "agronomist", "staff")
+INTERNAL_ROLES = ("org_admin", "agronomist", "advisor")
 
 
 class NotAuthenticated(Exception):
@@ -122,7 +123,8 @@ def optional_user(request: Request, conn: Conn, settings: SettingsDep) -> Curren
         live.actor_kind,
         live.platform_role,
     )
-    users.set_actor(conn, user.id)  # F2: admin_event records this user for the request
+    # RLS context (ADR 0008) and admin_event actor (F2): this user, no organisation yet.
+    set_rls_context(conn, user_id=user.id, platform_role=user.platform_role)
     request.state.user = user
     request.state.csrf_token = security.csrf_token(settings.session_secret, token_hash)
     return user
@@ -170,6 +172,9 @@ def current_org(request: Request, user: UserDep, conn: Conn, settings: SettingsD
         org = next((o for o in organisations if o.id == wanted), None)
         if org is None:
             raise OrgSelectionRequired()
+    # Only an organisation the session user belongs to (checked above, and again by
+    # app_ctx_org() in the database) becomes the RLS org for this transaction (ADR 0008).
+    set_rls_context(conn, user_id=user.id, org_id=org.id, platform_role=user.platform_role)
     roles = tuple(users.org_roles(conn, user_id=user.id, org_id=org.id))
     context = OrgContext(user, org, roles, organisations)
     request.state.org = context

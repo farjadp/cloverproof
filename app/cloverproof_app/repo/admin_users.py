@@ -1,16 +1,16 @@
-"""Account self-service and owner user management. Every member query is org-scoped.
+"""Account self-service and org admin user management. Every member query is org-scoped.
 
 Rules enforced here (not only in the UI):
-- the web app grants and removes only `staff` (WEB_ROLES), through the database functions
-  web_grant_member_role / web_revoke_member_role; `agronomist` and `owner` are changed
+- the web app grants and removes only `advisor` (WEB_ROLES), through the database functions
+  web_grant_member_role / web_revoke_member_role; `agronomist` and `org_admin` are changed
   with the CLI only (cp_admin, ADR 0007) and shown read-only;
-- passwords of agronomist/owner accounts and of platform accounts (`platform_role`, e.g.
+- passwords of agronomist/org_admin accounts and of platform accounts (`platform_role`, e.g.
   superadmin) are reset with the CLI only, and those accounts are disabled/re-enabled with
-  the CLI only, so an owner page cannot take over or lock out an approver (ciso NB1; the
+  the CLI only, so an org admin page cannot take over or lock out an approver (ciso NB1; the
   database enforces the same rule, migration 0014);
-- an organisation never loses its last enabled owner (disable);
+- an organisation never loses its last enabled org_admin (disable);
 - account-wide actions (password reset, disable) refuse accounts that also belong to
-  another organisation, so an owner of one org cannot lock someone out of another;
+  another organisation, so an org admin of one org cannot lock someone out of another;
 - `farmer` memberships are left as they are.
 """
 
@@ -23,12 +23,12 @@ from uuid import UUID
 import psycopg
 from psycopg.rows import class_row
 
-INTERNAL_ROLES = ("owner", "agronomist", "staff")
-WEB_ROLES = ("staff",)
-CLI_ONLY_ROLES = ("owner", "agronomist")
-CLI_ONLY = "Agronomist and Owner roles can only be changed with the user-create command."
+INTERNAL_ROLES = ("org_admin", "agronomist", "advisor")
+WEB_ROLES = ("advisor",)
+CLI_ONLY_ROLES = ("org_admin", "agronomist")
+CLI_ONLY = "Agronomist and Org admin roles can only be changed with the user-create command."
 CLI_ONLY_ACCOUNT = (
-    "Passwords and access of Agronomist, Owner and platform accounts can only be changed"
+    "Passwords and access of Agronomist, Org admin and platform accounts can only be changed"
     " with the user-create command (--reset-password)."
 )
 
@@ -183,15 +183,15 @@ def _revoke(
     conn.execute("select web_revoke_member_role(%s, %s, %s, %s)", (actor_id, org_id, user_id, role))
 
 
-def _lock_enabled_owners(conn: psycopg.Connection, org_id: UUID) -> set[UUID]:
-    """Enabled owners of the org; their app_user rows stay locked until commit.
+def _lock_enabled_org_admins(conn: psycopg.Connection, org_id: UUID) -> set[UUID]:
+    """Enabled org admins of the org; their app_user rows stay locked until commit.
 
     Locks app_user, not membership: cp_app has no UPDATE on membership, and row locks need
-    it. Two owners disabling each other at once serialise on these rows.
+    it. Two org admins disabling each other at once serialise on these rows.
     """
     rows = conn.execute(
         "select u.id from membership m join app_user u on u.id = m.user_id"
-        " where m.organisation_id = %s and m.role = 'owner' and u.disabled_at is null"
+        " where m.organisation_id = %s and m.role = 'org_admin' and u.disabled_at is null"
         " order by u.id for update of u",
         (org_id,),
     ).fetchall()
@@ -209,7 +209,7 @@ def set_roles(
 ) -> None:
     """Set the member's web-managed roles (WEB_ROLES) in this org to `roles`.
 
-    Agronomist/owner are kept as they are; posting one the member does not hold is refused.
+    Agronomist/org_admin are kept as they are; posting one the member does not hold is refused.
     The member must keep at least one internal role.
     """
     member = _require(get_member(conn, org_id, user_id))
@@ -257,10 +257,10 @@ def set_disabled(
     if member.cli_only_account and member.id != actor_id:
         raise AdminError(CLI_ONLY_ACCOUNT)
     if disabled:
-        owners = _lock_enabled_owners(conn, org_id)
-        if owners == {member.id}:
+        org_admins = _lock_enabled_org_admins(conn, org_id)
+        if org_admins == {member.id}:
             raise AdminError(
-                "This is the last owner of the organisation. Make someone else owner first."
+                "This is the last org admin of the organisation. Make someone else org admin first."
             )
         conn.execute(
             "update app_user set disabled_at = coalesce(disabled_at, now()) where id = %s",

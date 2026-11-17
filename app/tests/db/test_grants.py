@@ -39,7 +39,7 @@ def roles_of(db: psycopg.Connection, org_id: UUID, user_id: UUID) -> list[str]:
 @pytest.fixture
 def owner(db: psycopg.Connection, org_a: Org) -> UUID:
     user = insert(db, "app_user", email="owner-a@example.org", display_name="Owner A")
-    insert(db, "membership", organisation_id=org_a.id, user_id=user, role="owner")
+    insert(db, "membership", organisation_id=org_a.id, user_id=user, role="org_admin")
     return user
 
 
@@ -73,7 +73,7 @@ def test_roles_exist_without_login(db: psycopg.Connection) -> None:
 )
 def test_cp_app_cannot_write_identity(db: psycopg.Connection, org_a: Org, query: str) -> None:
     refused(db, query, {"org": org_a.id, "user": org_a.staff})
-    assert roles_of(db, org_a.id, org_a.staff) == ["staff"]
+    assert roles_of(db, org_a.id, org_a.staff) == ["advisor"]
 
 
 @pytest.mark.parametrize(
@@ -162,22 +162,22 @@ def revoke(db: psycopg.Connection, actor: UUID, org: UUID, user: UUID, role: str
 
 
 def test_owner_grants_and_revokes_staff(db: psycopg.Connection, org_a: Org, owner: UUID) -> None:
-    grant(db, owner, org_a.id, org_a.agronomist, "staff")
-    assert roles_of(db, org_a.id, org_a.agronomist) == ["agronomist", "staff"]
-    grant(db, owner, org_a.id, org_a.agronomist, "staff")  # idempotent
-    revoke(db, owner, org_a.id, org_a.agronomist, "staff")
+    grant(db, owner, org_a.id, org_a.agronomist, "advisor")
+    assert roles_of(db, org_a.id, org_a.agronomist) == ["agronomist", "advisor"]
+    grant(db, owner, org_a.id, org_a.agronomist, "advisor")  # idempotent
+    revoke(db, owner, org_a.id, org_a.agronomist, "advisor")
     assert roles_of(db, org_a.id, org_a.agronomist) == ["agronomist"]
     grant(db, owner, org_a.id, org_a.staff, "farmer")
-    assert roles_of(db, org_a.id, org_a.staff) == ["staff", "farmer"]
+    assert roles_of(db, org_a.id, org_a.staff) == ["advisor", "farmer"]
 
 
 def test_owner_adds_brand_new_user(db: psycopg.Connection, org_a: Org, owner: UUID) -> None:
     user = insert(db, "app_user", email="fresh@example.org", display_name="Fresh")
-    grant(db, owner, org_a.id, user, "staff")
-    assert roles_of(db, org_a.id, user) == ["staff"]
+    grant(db, owner, org_a.id, user, "advisor")
+    assert roles_of(db, org_a.id, user) == ["advisor"]
 
 
-@pytest.mark.parametrize("role", ["agronomist", "owner"])
+@pytest.mark.parametrize("role", ["agronomist", "org_admin"])
 @pytest.mark.parametrize("fn", [grant, revoke])
 def test_functions_refuse_agronomist_and_owner(
     db: psycopg.Connection, org_a: Org, owner: UUID, role: str, fn: Any
@@ -194,17 +194,17 @@ def test_functions_refuse_non_owner_actor(
     db: psycopg.Connection, org_a: Org, org_b: Org, owner: UUID, fn: Any
 ) -> None:
     other_owner = insert(db, "app_user", email="owner-b@example.org", display_name="Owner B")
-    insert(db, "membership", organisation_id=org_b.id, user_id=other_owner, role="owner")
+    insert(db, "membership", organisation_id=org_b.id, user_id=other_owner, role="org_admin")
     target = insert(db, "app_user", email="t@example.org", display_name="T")
-    insert(db, "membership", organisation_id=org_a.id, user_id=target, role="staff")
+    insert(db, "membership", organisation_id=org_a.id, user_id=target, role="advisor")
     for actor in (org_a.agronomist, org_a.staff, other_owner):
-        with pytest.raises(errors.InsufficientPrivilege, match="owner"), db.transaction():
-            fn(db, actor, org_a.id, target, "staff")
+        with pytest.raises(errors.InsufficientPrivilege, match="org_admin"), db.transaction():
+            fn(db, actor, org_a.id, target, "advisor")
     with as_owner(db):  # operator setup; cp_app cannot disable approvers (0014)
         db.execute("update app_user set disabled_at = now() where id = %s", (owner,))
-    with pytest.raises(errors.InsufficientPrivilege, match="owner"), db.transaction():
-        fn(db, owner, org_a.id, target, "staff")
-    assert roles_of(db, org_a.id, target) == ["staff"]
+    with pytest.raises(errors.InsufficientPrivilege, match="org_admin"), db.transaction():
+        fn(db, owner, org_a.id, target, "advisor")
+    assert roles_of(db, org_a.id, target) == ["advisor"]
 
 
 def test_grant_refuses_member_of_another_org(
@@ -214,7 +214,7 @@ def test_grant_refuses_member_of_another_org(
         pytest.raises(errors.InsufficientPrivilege, match="another organisation"),
         db.transaction(),
     ):
-        grant(db, owner, org_a.id, org_b.staff, "staff")
+        grant(db, owner, org_a.id, org_b.staff, "advisor")
     assert roles_of(db, org_a.id, org_b.staff) == []
 
 
@@ -279,7 +279,7 @@ def test_cp_website_can_only_insert_pilot_requests(db: psycopg.Connection, org_a
         for table in ("app_user", "user_session", "membership", "organisation", "recommendation"):
             refused(db, f"select 1 from {table} limit 1")
         refused(db, "insert into organisation (name) values ('Website org')")
-        refused(db, "select web_grant_member_role(%s, %s, %s, 'staff')", (org_a.staff,) * 3)
+        refused(db, "select web_grant_member_role(%s, %s, %s, 'advisor')", (org_a.staff,) * 3)
     with as_owner(db):
         row = db.execute("select count(*) from pilot_request where email = 'test@example.org'")
         assert row.fetchone() == (1,)

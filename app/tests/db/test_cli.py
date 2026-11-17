@@ -51,12 +51,12 @@ def test_existing_user_gets_membership_password_unchanged(
         db,
         email="agro-a@example.org",
         org=str(org_a.id),
-        role="owner",
+        role="org_admin",
         read_password=lambda: asked.append(1) or PASSWORD,
     )
     assert not result.created_user and not result.password_set and not asked
     assert users.org_roles(db, user_id=org_a.agronomist, org_id=org_a.id) == [
-        "owner",
+        "org_admin",
         "agronomist",
     ]
 

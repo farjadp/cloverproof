@@ -46,11 +46,6 @@ def get_credentials_by_email(conn: psycopg.Connection, email: str) -> UserCreden
         ).fetchone()
 
 
-def set_actor(conn: psycopg.Connection, user_id: UUID) -> None:
-    """`SET LOCAL app.user_id`: the admin_event triggers (0012, F2) record who acted."""
-    conn.execute("select set_config('app.user_id', %s, true)", (str(user_id),))
-
-
 def create_user(
     conn: psycopg.Connection, *, email: str, display_name: str, password_hash: str
 ) -> UUID:

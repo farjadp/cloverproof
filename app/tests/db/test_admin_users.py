@@ -1,4 +1,4 @@
-"""Owner user management and admin-driven recovery (TestClient + real DB)."""
+"""Org admin user management and admin-driven recovery (TestClient + real DB)."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ TEMP_RE = re.compile(r"<code>([A-Za-z0-9-]+)</code>")
 @pytest.fixture
 def owner(db: psycopg.Connection, org_a: Org) -> UUID:
     user = insert(db, "app_user", email=OWNER_EMAIL, display_name="Owner A")
-    insert(db, "membership", organisation_id=org_a.id, user_id=user, role="owner")
+    insert(db, "membership", organisation_id=org_a.id, user_id=user, role="org_admin")
     with_password(db, user)
     return user
 
@@ -63,7 +63,7 @@ def test_temporary_password_is_high_entropy() -> None:
         assert re.fullmatch(r"([a-km-zA-HJ-NP-Z2-9]{5}-){3}[a-km-zA-HJ-NP-Z2-9]{5}", value)
 
 
-@pytest.mark.parametrize("role", ["agronomist", "staff"])
+@pytest.mark.parametrize("role", ["agronomist", "advisor"])
 def test_non_owner_gets_403(db: psycopg.Connection, org_a: Org, owner: UUID, role: str) -> None:
     user = org_a.agronomist if role == "agronomist" else org_a.staff
     with_password(db, user)
@@ -73,14 +73,19 @@ def test_non_owner_gets_403(db: psycopg.Connection, org_a: Org, owner: UUID, rol
     token = page_csrf(c, "/account")
     create = c.post(
         "/admin/users",
-        data={"email": "x@example.org", "display_name": "X", "role": "owner", "csrf_token": token},
+        data={
+            "email": "x@example.org",
+            "display_name": "X",
+            "role": "org_admin",
+            "csrf_token": token,
+        },
     )
     assert create.status_code == 403
     for action in ("reset-password", "disable"):
         assert (
             c.post(f"/admin/users/{owner}/{action}", data={"csrf_token": token}).status_code == 403
         )
-    roles = c.post(f"/admin/users/{user}/roles", data={"roles": "owner", "csrf_token": token})
+    roles = c.post(f"/admin/users/{user}/roles", data={"roles": "org_admin", "csrf_token": token})
     assert roles.status_code == 403
     assert flags(db, owner)[1] is False and not admin_users.email_exists(db, "x@example.org")
 
@@ -105,7 +110,7 @@ def test_cross_org_member_not_visible_or_editable(
     assert c.get(f"/admin/users/{target}", headers={"accept": "text/html"}).status_code == 404
     for action in ("reset-password", "disable", "enable"):
         assert post(c, f"/admin/users/{target}/{action}").status_code == 404
-    assert post(c, f"/admin/users/{target}/roles", roles="owner").status_code == 404
+    assert post(c, f"/admin/users/{target}/roles", roles="org_admin").status_code == 404
     assert flags(db, target) == before
     assert victim.get("/").status_code == 200
     assert not admin_users.get_member(db, org_a.id, target)
@@ -120,7 +125,7 @@ def test_owner_creates_user_and_temp_login_forces_change(
         "/admin/users",
         email="New.Person@example.org",
         display_name="New Person",
-        role="staff",
+        role="advisor",
     )
     assert response.status_code == 200 and "shown only now" in response.text
     match = TEMP_RE.search(response.text)
@@ -135,7 +140,7 @@ def test_owner_creates_user_and_temp_login_forces_change(
     user_id, stored, required = row
     assert required is True and stored.startswith("$argon2id$") and temp not in stored
     member = admin_users.get_member(db, org_a.id, user_id)
-    assert member is not None and member.roles == ["staff"]
+    assert member is not None and member.roles == ["advisor"]
     # Shown once: the list page does not show it again.
     assert temp not in c.get("/admin/users").text
 
@@ -171,12 +176,12 @@ def test_create_user_validation_and_duplicate(
     assert bad.status_code == 422
     for text in ("Enter an email address", "1 to 200 characters", "Choose a role"):
         assert text in bad.text
-    for role in ("agronomist", "owner"):
+    for role in ("agronomist", "org_admin"):
         cli_only = post(c, "/admin/users", email="z@example.org", display_name="Z", role=role)
         assert cli_only.status_code == 422 and "user-create command" in cli_only.text
     assert not admin_users.email_exists(db, "z@example.org")
     # Exists already (even in another org, any case): refused, nothing changed.
-    dup = post(c, "/admin/users", email="AGRO-B@example.org", display_name="Dup", role="staff")
+    dup = post(c, "/admin/users", email="AGRO-B@example.org", display_name="Dup", role="advisor")
     assert dup.status_code == 409 and "already exists" in dup.text
     assert admin_users.get_member(db, org_a.id, org_b.agronomist) is None
 
@@ -215,7 +220,7 @@ def test_owner_cannot_reset_own_password_here(db: psycopg.Connection, owner: UUI
 def test_account_in_another_org_cannot_be_reset_or_disabled(
     db: psycopg.Connection, org_a: Org, org_b: Org, owner: UUID
 ) -> None:
-    insert(db, "membership", organisation_id=org_b.id, user_id=org_a.staff, role="staff")
+    insert(db, "membership", organisation_id=org_b.id, user_id=org_a.staff, role="advisor")
     c = owner_client(db)
     for action in ("reset-password", "disable"):
         response = post(c, f"/admin/users/{org_a.staff}/{action}")
@@ -249,22 +254,22 @@ def test_owner_cannot_change_agronomist_or_owner_roles(
     page = c.get(f"/admin/users/{org_a.agronomist}")
     assert "change via CLI" in page.text
     assert 'name="roles" value="agronomist"' not in page.text
-    assert 'name="roles" value="owner"' not in page.text
+    assert 'name="roles" value="org_admin"' not in page.text
     for target, roles in (
-        (org_a.staff, ["staff", "agronomist"]),
-        (org_a.staff, ["staff", "owner"]),
-        (owner, ["agronomist", "owner"]),
+        (org_a.staff, ["advisor", "agronomist"]),
+        (org_a.staff, ["advisor", "org_admin"]),
+        (owner, ["agronomist", "org_admin"]),
     ):
         response = post(c, f"/admin/users/{target}/roles", roles=roles)
         assert response.status_code == 409 and "user-create command" in response.text
-    assert admin_users.get_member(db, org_a.id, org_a.staff).roles == ["staff"]  # type: ignore[union-attr]
+    assert admin_users.get_member(db, org_a.id, org_a.staff).roles == ["advisor"]  # type: ignore[union-attr]
     # Not posting a CLI-only role does not remove it.
     assert post(c, f"/admin/users/{owner}/roles").status_code == 303
-    assert post(c, f"/admin/users/{org_a.agronomist}/roles", roles="staff").status_code == 303
-    assert admin_users.get_member(db, org_a.id, owner).roles == ["owner"]  # type: ignore[union-attr]
+    assert post(c, f"/admin/users/{org_a.agronomist}/roles", roles="advisor").status_code == 303
+    assert admin_users.get_member(db, org_a.id, owner).roles == ["org_admin"]  # type: ignore[union-attr]
     assert admin_users.get_member(db, org_a.id, org_a.agronomist).roles == [  # type: ignore[union-attr]
         "agronomist",
-        "staff",
+        "advisor",
     ]
     # Re-posting a CLI-only role the member already holds is a no-op, not an error.
     kept = post(c, f"/admin/users/{org_a.agronomist}/roles", roles=["agronomist"])
@@ -276,7 +281,7 @@ def test_owner_cannot_reset_agronomist_or_owner_password(
     db: psycopg.Connection, org_a: Org, owner: UUID
 ) -> None:
     second = insert(db, "app_user", email="owner2-a@example.org", display_name="Owner 2")
-    insert(db, "membership", organisation_id=org_a.id, user_id=second, role="owner")
+    insert(db, "membership", organisation_id=org_a.id, user_id=second, role="org_admin")
     c = owner_client(db)
     assert "Reset password" not in c.get(f"/admin/users/{org_a.agronomist}").text
     for target in (org_a.agronomist, second):
@@ -289,23 +294,23 @@ def test_owner_cannot_reset_agronomist_or_owner_password(
 def test_last_owner_cannot_disable_self(db: psycopg.Connection, org_a: Org, owner: UUID) -> None:
     c = owner_client(db)
     disable = post(c, f"/admin/users/{owner}/disable")
-    assert disable.status_code == 409 and "last owner" in disable.text
+    assert disable.status_code == 409 and "last org admin" in disable.text
     assert flags(db, owner)[1] is False
     assert c.get("/admin/users").status_code == 200
 
     # With a second enabled owner (added by an operator), disabling yourself is allowed.
-    insert(db, "membership", organisation_id=org_a.id, user_id=org_a.agronomist, role="owner")
+    insert(db, "membership", organisation_id=org_a.id, user_id=org_a.agronomist, role="org_admin")
     response = post(c, f"/admin/users/{owner}/disable")
     assert response.status_code == 303 and response.headers["location"] == "/login"
     assert flags(db, owner)[1] is True
 
 
 def test_disabled_owner_does_not_count(db: psycopg.Connection, org_a: Org, owner: UUID) -> None:
-    insert(db, "membership", organisation_id=org_a.id, user_id=org_a.staff, role="owner")
+    insert(db, "membership", organisation_id=org_a.id, user_id=org_a.staff, role="org_admin")
     with as_owner(db):  # operator setup; cp_app cannot disable approvers (0014)
         db.execute("update app_user set disabled_at = now() where id = %s", (org_a.staff,))
     disable = post(owner_client(db), f"/admin/users/{owner}/disable")
-    assert disable.status_code == 409 and "last owner" in disable.text
+    assert disable.status_code == 409 and "last org admin" in disable.text
 
 
 def test_roles_set_staff_and_keep_farmer(db: psycopg.Connection, org_a: Org, owner: UUID) -> None:
@@ -316,14 +321,14 @@ def test_roles_set_staff_and_keep_farmer(db: psycopg.Connection, org_a: Org, own
     unknown = post(c, f"/admin/users/{org_a.staff}/roles", roles=["farmer"])
     assert unknown.status_code == 409
     member = admin_users.get_member(db, org_a.id, org_a.staff)
-    assert member is not None and member.roles == ["staff", "farmer"]
+    assert member is not None and member.roles == ["advisor", "farmer"]
 
 
 def test_admin_posts_need_csrf(db: psycopg.Connection, org_a: Org, owner: UUID) -> None:
     c = owner_client(db)
     assert c.post(f"/admin/users/{org_a.staff}/disable").status_code == 403
     no_token = c.post(
-        "/admin/users", data={"email": "y@example.org", "display_name": "Y", "role": "staff"}
+        "/admin/users", data={"email": "y@example.org", "display_name": "Y", "role": "advisor"}
     )
     assert no_token.status_code == 403
     assert flags(db, org_a.staff)[1] is False and not admin_users.email_exists(db, "y@example.org")
