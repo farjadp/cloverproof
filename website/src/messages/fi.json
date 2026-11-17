@@ -177,7 +177,6 @@
     "farmSize": "Tilan koko",
     "farmSizeHint": "Arvio yksikön kanssa (ha tai eekkeriä)",
     "crop": "Pääkasvi",
-    "notes": "Muuta tiedettävää (valinnainen)",
     "consent": "Hyväksyn, että CloverProof saa tallentaa nämä tiedot ja ottaa minuun yhteyttä pilottiin liittyen. Voin milloin tahansa pyytää tietojen poistamista.",
     "privacyLink": "Tietosuojaseloste",
     "submit": "Pyydä pilottisuunnitelma",
@@ -259,7 +258,7 @@
     "sections": [
       {
         "h": "Mitä keräämme",
-        "p": "Kun pyydät pilottisuunnitelmaa, keräämme antamasi tiedot: nimen, sähköpostin, maan, tilan arvioidun koon, pääkasvin ja mahdolliset lisätiedot."
+        "p": "Kun pyydät pilottisuunnitelmaa, keräämme antamasi tiedot: nimen, sähköpostiosoitteen, maan, tilan arvioidun koon ja pääkasvin sekä käyttämäsi kielen ja hyväksymäsi suostumustekstin tarkan sanamuodon hyväksymisajankohtineen."
       },
       {
         "h": "Miksi keräämme tietoja",

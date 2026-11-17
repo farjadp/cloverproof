@@ -177,7 +177,6 @@
     "farmSize": "Çiftlik büyüklüğü",
     "farmSizeHint": "Yaklaşık, birimiyle (ha veya akre)",
     "crop": "Ana ürün",
-    "notes": "Bilmemiz gereken bir şey (isteğe bağlı)",
     "consent": "CloverProof'un bu bilgileri saklamasını ve pilot program hakkında benimle iletişime geçmesini kabul ediyorum. Bilgilerin silinmesini istediğim zaman talep edebilirim.",
     "privacyLink": "Gizlilik bildirimi",
     "submit": "Pilot planı isteyin",
@@ -259,7 +258,7 @@
     "sections": [
       {
         "h": "Ne topluyoruz",
-        "p": "Bir pilot planı istediğinizde girdiğiniz bilgileri topluyoruz: ad, e-posta, ülke, yaklaşık çiftlik büyüklüğü, ana ürün ve varsa notlarınız."
+        "p": "Bir pilot planı istediğinizde girdiğiniz bilgileri topluyoruz: ad, e-posta, ülke, yaklaşık çiftlik büyüklüğü ve ana ürün; ayrıca kullandığınız dili ve kabul ettiğiniz onay metninin tam ifadesini, zamanıyla birlikte."
       },
       {
         "h": "Neden topluyoruz",

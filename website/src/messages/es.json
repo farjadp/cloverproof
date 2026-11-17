@@ -177,7 +177,6 @@
     "farmSize": "Tamaño de la finca",
     "farmSizeHint": "Aproximado, con unidades (ha o acres)",
     "crop": "Cultivo principal",
-    "notes": "Algo que debamos saber (opcional)",
     "consent": "Acepto que CloverProof almacene estos datos y se ponga en contacto conmigo sobre el piloto. Puedo solicitar que se eliminen en cualquier momento.",
     "privacyLink": "Aviso de privacidad",
     "submit": "Solicitar un plan piloto",
@@ -259,7 +258,7 @@
     "sections": [
       {
         "h": "Qué recopilamos",
-        "p": "Cuando solicita un plan piloto, recopilamos los datos que introduce: nombre, correo electrónico, país, tamaño aproximado de la finca, cultivo principal y cualquier nota."
+        "p": "Cuando solicita un plan piloto, recopilamos lo que introduce: nombre, correo electrónico, país, tamaño aproximado de la finca y cultivo principal, además del idioma que utilizó y el texto exacto del consentimiento que aceptó, con la hora."
       },
       {
         "h": "Por qué lo recopilamos",

@@ -177,7 +177,6 @@
     "farmSize": "Surface de l'exploitation",
     "farmSizeHint": "Approximative, avec l'unité (ha ou acres)",
     "crop": "Culture principale",
-    "notes": "Ce que nous devrions savoir (facultatif)",
     "consent": "J'accepte que CloverProof conserve ces informations et me contacte au sujet du pilote. Je peux demander leur suppression à tout moment.",
     "privacyLink": "Avis de confidentialité",
     "submit": "Demander un plan pilote",
@@ -259,7 +258,7 @@
     "sections": [
       {
         "h": "Ce que nous collectons",
-        "p": "Lorsque vous demandez un plan pilote, nous collectons les informations que vous saisissez : nom, e-mail, pays, surface approximative de l'exploitation, culture principale et toute remarque."
+        "p": "Lorsque vous demandez un plan pilote, nous collectons ce que vous saisissez : nom, e-mail, pays, surface approximative de l'exploitation et culture principale, ainsi que la langue que vous avez utilisée et le libellé exact du consentement que vous avez accepté, avec l'heure."
       },
       {
         "h": "Pourquoi nous les collectons",

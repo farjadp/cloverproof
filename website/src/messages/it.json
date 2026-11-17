@@ -177,7 +177,6 @@
     "farmSize": "Superficie aziendale",
     "farmSizeHint": "Approssimativa, con unità (ha o acri)",
     "crop": "Coltura principale",
-    "notes": "Altro che dovremmo sapere (facoltativo)",
     "consent": "Accetto che CloverProof conservi questi dati e mi contatti in merito al pilota. Posso chiederne la cancellazione in qualsiasi momento.",
     "privacyLink": "Informativa sulla privacy",
     "submit": "Richiedi un piano pilota",
@@ -259,7 +258,7 @@
     "sections": [
       {
         "h": "Cosa raccogliamo",
-        "p": "Quando richiedi un piano pilota raccogliamo i dati che inserisci: nome, email, paese, superficie aziendale approssimativa, coltura principale ed eventuali note."
+        "p": "Quando richiedi un piano pilota raccogliamo ciò che inserisci: nome, email, paese, superficie aziendale approssimativa e coltura principale, oltre alla lingua che hai usato e al testo esatto del consenso che hai accettato, con l'ora."
       },
       {
         "h": "Perché li raccogliamo",

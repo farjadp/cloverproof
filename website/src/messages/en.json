@@ -177,7 +177,6 @@
     "farmSize": "Farm size",
     "farmSizeHint": "Approximate, with units (ha or acres)",
     "crop": "Main crop",
-    "notes": "Anything we should know (optional)",
     "consent": "I agree that CloverProof may store these details and contact me about the pilot. I can ask for them to be deleted at any time.",
     "privacyLink": "Privacy notice",
     "submit": "Request a pilot plan",
@@ -259,7 +258,7 @@
     "sections": [
       {
         "h": "What we collect",
-        "p": "When you request a pilot plan we collect the details you enter: name, email, country, approximate farm size, main crop and any notes."
+        "p": "When you request a pilot plan we collect what you enter: name, email, country, approximate farm size and main crop, plus the language you used and the exact consent wording you agreed to, with the time."
       },
       {
         "h": "Why we collect it",
