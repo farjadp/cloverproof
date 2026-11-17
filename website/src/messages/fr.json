@@ -257,16 +257,36 @@
     "updated": "Dernière mise à jour : novembre 2026",
     "sections": [
       {
+        "h": "Qui peut participer au pilote",
+        "p": "Le pilote 2027 est ouvert aux exploitations situées en Ontario, Canada. Vous pouvez envoyer une demande depuis n'importe où, mais nous ne pouvons inclure que des exploitations de l'Ontario."
+      },
+      {
         "h": "Ce que nous collectons",
-        "p": "Lorsque vous demandez un plan pilote, nous collectons ce que vous saisissez : nom, e-mail, pays, surface approximative de l'exploitation et culture principale, ainsi que la langue que vous avez utilisée et le libellé exact du consentement que vous avez accepté, avec l'heure."
+        "p": "Lorsque vous demandez un plan pilote, nous collectons ce que vous saisissez : nom, e-mail, pays, surface approximative de l'exploitation, culture principale, ainsi que la langue que vous avez utilisée et le libellé exact du consentement que vous avez accepté, avec l'heure. Si vous rejoignez le pilote, nous collectons également des informations sur l'exploitation, les parcelles et les analyses de sol, ainsi que les plans que nous établissons pour vous."
       },
       {
         "h": "Pourquoi nous les collectons",
-        "p": "Uniquement pour évaluer si nous pouvons inclure votre exploitation dans le pilote et pour vous contacter à ce sujet. Nous ne vendons ni ne partageons vos informations à des fins de marketing."
+        "p": "Pour décider si nous pouvons inclure votre exploitation dans le pilote, pour vous contacter à ce sujet et, si vous le rejoignez, pour établir et consigner vos plans de fertilisation. Nous n'envoyons pas de lettres d'information par e-mail."
+      },
+      {
+        "h": "Mesure d'audience du site",
+        "p": "Nous mesurons nous-mêmes l'utilisation de ce site web, sans société d'analyse d'audience et sans cookies ni autre stockage sur votre appareil. Nous le faisons uniquement sur les versions anglaise, française, espagnole, italienne et turque du site ; les versions finnoise, bulgare et arabe n'enregistrent rien. Pour chaque chargement de page, nous enregistrons la page, la langue et l'heure, les boutons sur lesquels vous cliquez, vos réponses au diagnostic parcelle et son résultat, l'étape du formulaire que vous atteignez et si l'envoi a abouti, l'étiquette de campagne du lien que vous avez suivi, le nom du site web qui vous a dirigé vers nous (pas l'adresse complète) et si votre écran a la taille d'un mobile ou d'un ordinateur. Un nombre aléatoire conservé uniquement dans la mémoire de votre navigateur regroupe les clics d'une même consultation de page et disparaît lorsque vous quittez la page. Nous n'enregistrons ni votre nom, ni votre e-mail, ni rien de ce que vous saisissez, nous ne stockons pas votre adresse IP et nous ne relions pas les visites entre elles ni à vous. Les enregistrements détaillés sont conservés 90 jours, puis transformés en totaux quotidiens conservés jusqu'à 25 mois. Si votre navigateur envoie Global Privacy Control ou Do Not Track, nous n'enregistrons rien. Si vous envoyez une demande de pilote, l'étiquette de campagne du lien, le site web référent et le résultat de votre diagnostic parcelle sont enregistrés avec votre demande, afin que nous sachions comment vous nous avez trouvés."
+      },
+      {
+        "h": "Comment les plans sont vérifiés",
+        "p": "Notre logiciel propose chaque plan. Un système d'IA peut aider à le vérifier. Le système d'IA ne reçoit jamais votre nom, vos coordonnées, votre adresse ni les limites exactes de vos parcelles ; il ne voit que des données de cas dépersonnalisées. Une personne identifiée par son nom approuve, modifie ou rejette ensuite chaque chiffre avant que vous ne le voyiez : soit notre agronome humain, soit un administrateur de CloverProof qui n'est pas agronome. Votre plan et son PDF de preuve indiquent lequel des deux l'a approuvé, ainsi que son nom ; nous ne qualifions jamais l'approbation d'un administrateur de validation par un agronome. Une vérification par IA, à elle seule, n'approuve jamais un plan. C'est vous qui prenez la décision finale sur ce que vous appliquez."
+      },
+      {
+        "h": "Améliorer le moteur de calcul",
+        "p": "Si vous y consentez, nous conservons une copie dépersonnalisée des résultats du pilote (la proposition du moteur comparée aux chiffres finaux de l'agronome humain) afin de rendre le moteur plus précis. Nous utilisons uniquement les plans approuvés par notre agronome humain, et non les plans approuvés par un administrateur. Les noms, les coordonnées, les noms d'exploitation et de parcelle et les localisations exactes sont supprimés. Vous pouvez refuser et participer quand même."
+      },
+      {
+        "h": "Qui y a accès",
+        "p": "Uniquement les membres de l'équipe CloverProof qui en ont besoin, notre agronome humain, notre hébergeur canadien, qui stockera les données du pilote au Canada, et Railway, une société américaine qui héberge notre site web et qui, jusqu'à la mise en service de l'hébergement canadien, stocke aux États-Unis les demandes envoyées via le site et les données de mesure d'audience du site, en tant que prestataires de services. Aucun fournisseur d'IA ne reçoit d'informations qui vous identifient, vous ou votre exploitation. Nous ne vendons pas vos informations et nous n'utilisons ni traceurs publicitaires ni aucune société d'analyse d'audience."
       },
       {
         "h": "Où elles sont stockées",
-        "p": "Vos informations sont stockées chez notre fournisseur de base de données, avec un accès limité à l'équipe CloverProof."
+        "p": "Les données des exploitations du pilote (contacts, exploitations, parcelles, analyses de sol, plans, vérifications et PDF de preuve) seront stockées au Canada. Nous ne collectons pas de données réelles du pilote dans nos systèmes hébergés tant que cet hébergement canadien n'est pas opérationnel. Jusqu'à la mise en service de l'hébergement canadien, les demandes envoyées via le site et les données de mesure d'audience du site sont stockées aux États-Unis par l'hébergeur de notre site, Railway, une société américaine ; là-bas, les autorités américaines peuvent être en mesure d'y accéder en vertu du droit américain. Lorsque l'hébergement canadien sera opérationnel, ces données seront transférées au Canada et nous mettrons à jour cet avis. Nous utilisons des contrats de traitement des données pour protéger vos informations."
       },
       {
         "h": "Combien de temps nous les conservons",
@@ -274,7 +294,7 @@
       },
       {
         "h": "Vos droits",
-        "p": "Vous pouvez demander à consulter, corriger ou supprimer vos données, et retirer votre consentement à tout moment."
+        "p": "Vous pouvez demander à consulter, corriger ou supprimer vos informations, demander comment un chiffre de votre plan a été obtenu et qui l'a approuvé, et retirer votre consentement à tout moment. Nous répondons dans un délai de 30 jours. Vous pouvez déposer une plainte auprès du Commissariat à la protection de la vie privée du Canada (priv.gc.ca) ou, si vous êtes dans l'UE, auprès de votre autorité locale de protection des données."
       }
     ]
   },

@@ -257,16 +257,36 @@
     "updated": "Ultimo aggiornamento: novembre 2026",
     "sections": [
       {
+        "h": "Chi può partecipare al pilota",
+        "p": "Il pilota 2027 è aperto alle aziende agricole in Ontario, Canada. Puoi inviare una richiesta da qualsiasi luogo, ma possiamo includere solo aziende dell'Ontario."
+      },
+      {
         "h": "Cosa raccogliamo",
-        "p": "Quando richiedi un piano pilota raccogliamo ciò che inserisci: nome, email, paese, superficie aziendale approssimativa e coltura principale, oltre alla lingua che hai usato e al testo esatto del consenso che hai accettato, con l'ora."
+        "p": "Quando richiedi un piano pilota raccogliamo ciò che inserisci: nome, email, paese, superficie aziendale approssimativa, coltura principale, oltre alla lingua che hai usato e al testo esatto del consenso che hai accettato, con l'ora. Se partecipi al pilota raccogliamo anche informazioni sull'azienda, sugli appezzamenti e sulle analisi del suolo, nonché i piani che elaboriamo per te."
       },
       {
         "h": "Perché li raccogliamo",
-        "p": "Solo per valutare se possiamo includere la tua azienda nel pilota e per contattarti in merito. Non vendiamo né condividiamo i tuoi dati per scopi di marketing."
+        "p": "Per decidere se possiamo includere la tua azienda nel pilota, per contattarti in merito e, se partecipi, per elaborare e registrare i tuoi piani di concimazione. Non inviamo newsletter via email."
+      },
+      {
+        "h": "Misurazione del sito web",
+        "p": "Misuriamo noi stessi come viene utilizzato questo sito web, senza alcuna società di analytics e senza cookie né altre forme di archiviazione sul tuo dispositivo. Lo facciamo solo sulle versioni inglese, francese, spagnola, italiana e turca del sito; le versioni finlandese, bulgara e araba non registrano nulla. Per ogni caricamento di pagina registriamo la pagina, la lingua e l'ora, i pulsanti su cui fai clic, le tue risposte alla verifica dell'appezzamento e il relativo risultato, il passaggio del modulo che raggiungi e se l'invio è riuscito, il tag di campagna del link che hai seguito, il nome del sito web che ti ha indirizzato da noi (non l'indirizzo completo) e se il tuo schermo ha dimensioni da dispositivo mobile o da computer. Un numero casuale conservato solo nella memoria del tuo browser raggruppa i clic di una singola visualizzazione di pagina e scompare quando esci. Non registriamo il tuo nome, la tua email né nulla di ciò che digiti, non conserviamo il tuo indirizzo IP e non colleghiamo le visite tra loro né a te. I dati dettagliati sono conservati per 90 giorni, poi trasformati in totali giornalieri conservati fino a 25 mesi. Se il tuo browser invia Global Privacy Control o Do Not Track, non registriamo nulla. Se invii una richiesta per il pilota, il tag di campagna del link, il sito web di provenienza e il risultato della tua verifica dell'appezzamento vengono conservati insieme alla richiesta, così sappiamo come ci hai trovati."
+      },
+      {
+        "h": "Come vengono revisionati i piani",
+        "p": "Il nostro software propone ogni piano. Un sistema di IA può aiutare a controllarlo. Il sistema di IA non riceve mai il tuo nome, i tuoi recapiti, il tuo indirizzo né i confini esatti dei tuoi appezzamenti; vede solo dati del caso de-identificati. Una persona identificata per nome approva, modifica o respinge poi ogni numero prima che tu lo veda: il nostro agronomo umano oppure un amministratore di CloverProof che non è un agronomo. Il tuo piano e il relativo PDF di prova indicano quale dei due lo ha approvato e il suo nome; non chiamiamo mai revisione dell'agronomo l'approvazione di un amministratore. Un controllo dell'IA da solo non approva mai un piano. La decisione finale su cosa distribuire spetta a te."
+      },
+      {
+        "h": "Migliorare il motore di calcolo",
+        "p": "Se acconsenti, conserviamo una copia de-identificata dei risultati del pilota (la proposta del motore a confronto con i numeri finali dell'agronomo umano) per rendere il motore più accurato. Utilizziamo solo i piani approvati dal nostro agronomo umano, non quelli approvati da un amministratore. Nomi, recapiti, nomi di aziende e appezzamenti e posizioni esatte vengono rimossi. Puoi rifiutare e partecipare comunque."
+      },
+      {
+        "h": "Chi li vede",
+        "p": "Solo i membri del team di CloverProof che ne hanno bisogno, il nostro agronomo umano, il nostro fornitore di hosting canadese, che conserverà i dati del pilota in Canada, e Railway, una società statunitense che ospita il nostro sito web e, finché l'hosting canadese non sarà attivo, conserva negli Stati Uniti le richieste inviate tramite il sito e i dati di misurazione del sito, in qualità di nostri fornitori di servizi. Nessun fornitore di IA riceve informazioni che identificano te o la tua azienda. Non vendiamo i tuoi dati e non utilizziamo tracker pubblicitari né alcuna società di analytics."
       },
       {
         "h": "Dove sono conservati",
-        "p": "I tuoi dati sono conservati presso il nostro fornitore di database, con accesso limitato al team di CloverProof."
+        "p": "I dati delle aziende del pilota (contatti, aziende, appezzamenti, analisi del suolo, piani, revisioni e PDF di prova) saranno conservati in Canada. Non raccogliamo dati reali del pilota nei nostri sistemi ospitati finché quell'hosting canadese non sarà attivo. Finché l'hosting canadese non sarà attivo, le richieste inviate tramite il sito e i dati di misurazione del sito sono conservati negli Stati Uniti dal fornitore di hosting del nostro sito, Railway, una società statunitense, e lì le autorità statunitensi potrebbero accedervi ai sensi della legge statunitense. Quando l'hosting canadese sarà attivo, questi dati verranno trasferiti in Canada e aggiorneremo questa informativa. Utilizziamo contratti per il trattamento dei dati per proteggere i tuoi dati."
       },
       {
         "h": "Per quanto tempo li conserviamo",
@@ -274,7 +294,7 @@
       },
       {
         "h": "I tuoi diritti",
-        "p": "Puoi chiedere di vedere, correggere o cancellare i tuoi dati e revocare il consenso in qualsiasi momento."
+        "p": "Puoi chiedere di vedere, correggere o cancellare i tuoi dati, chiedere come è stato ottenuto un numero del tuo piano e chi lo ha approvato, e revocare il consenso in qualsiasi momento. Rispondiamo entro 30 giorni. Puoi presentare un reclamo all'Ufficio del Commissario per la privacy del Canada (priv.gc.ca) o, se ti trovi nell'UE, alla tua autorità locale per la protezione dei dati."
       }
     ]
   },

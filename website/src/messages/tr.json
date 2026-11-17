@@ -257,16 +257,36 @@
     "updated": "Son güncelleme: Kasım 2026",
     "sections": [
       {
+        "h": "Pilot programa kimler katılabilir",
+        "p": "2027 pilot programı Ontario, Kanada'daki çiftliklere açıktır. Talebinizi her yerden gönderebilirsiniz, ancak yalnızca Ontario'daki çiftlikleri dahil edebiliriz."
+      },
+      {
         "h": "Ne topluyoruz",
-        "p": "Bir pilot planı istediğinizde girdiğiniz bilgileri topluyoruz: ad, e-posta, ülke, yaklaşık çiftlik büyüklüğü ve ana ürün; ayrıca kullandığınız dili ve kabul ettiğiniz onay metninin tam ifadesini, zamanıyla birlikte."
+        "p": "Bir pilot planı istediğinizde girdiğiniz bilgileri topluyoruz: ad, e-posta, ülke, yaklaşık çiftlik büyüklüğü, ana ürün; ayrıca kullandığınız dili ve kabul ettiğiniz onay metninin tam ifadesini, zamanıyla birlikte. Pilot programa katılırsanız çiftlik, tarla ve toprak analizi bilgilerini ve sizin için hazırladığımız planları da topluyoruz."
       },
       {
         "h": "Neden topluyoruz",
-        "p": "Yalnızca çiftliğinizi pilot programa dahil edip edemeyeceğimizi değerlendirmek ve bu konuda sizinle iletişime geçmek için. Bilgilerinizi pazarlama amacıyla satmıyor veya paylaşmıyoruz."
+        "p": "Çiftliğinizi pilot programa dahil edip edemeyeceğimize karar vermek, bu konuda sizinle iletişime geçmek ve katılırsanız gübreleme planlarınızı hazırlayıp kaydetmek için. Haber bülteni e-postaları göndermiyoruz."
+      },
+      {
+        "h": "Web sitesi ölçümü",
+        "p": "Bu web sitesinin nasıl kullanıldığını, herhangi bir analiz şirketi olmadan ve cihazınızda çerez veya başka bir depolama olmadan kendimiz sayıyoruz. Bunu yalnızca sitenin İngilizce, Fransızca, İspanyolca, İtalyanca ve Türkçe sürümlerinde yapıyoruz; Fince, Bulgarca ve Arapça sürümler hiçbir şey kaydetmez. Her sayfa yüklemesinde sayfayı, dili ve zamanı, tıkladığınız düğmeleri, tarla kontrolü yanıtlarınızı ve sonucunu, formda ulaştığınız adımı ve gönderimin başarılı olup olmadığını, izlediğiniz bağlantının kampanya etiketini, sizi yönlendiren web sitesinin adını (tam adresini değil) ve ekranınızın mobil boyutta mı yoksa masaüstü boyutunda mı olduğunu kaydediyoruz. Yalnızca tarayıcınızın belleğinde tutulan rastgele bir sayı, tek bir sayfa görüntülemesine ait tıklamaları gruplar ve siteden ayrıldığınızda kaybolur. Adınızı, e-postanızı veya yazdığınız hiçbir şeyi kaydetmiyoruz, IP adresinizi saklamıyoruz ve ziyaretleri birbirine ya da size bağlamıyoruz. Ayrıntılı kayıtlar 90 gün saklanır, ardından en fazla 25 ay saklanan günlük toplamlara dönüştürülür. Tarayıcınız Global Privacy Control veya Do Not Track gönderiyorsa hiçbir şey kaydetmiyoruz. Bir pilot talebi gönderirseniz, bağlantının kampanya etiketi, yönlendiren web sitesi ve tarla kontrolü sonucunuz talebinizle birlikte saklanır; böylece bizi nasıl bulduğunuzu biliriz."
+      },
+      {
+        "h": "Planlar nasıl inceleniyor",
+        "p": "Her planı yazılımımız önerir. Bir yapay zekâ sistemi planın kontrol edilmesine yardımcı olabilir. Yapay zekâ sistemi adınızı, iletişim bilgilerinizi, adresinizi veya tarlalarınızın kesin sınırlarını hiçbir zaman almaz; yalnızca kimliksizleştirilmiş vaka verilerini görür. Ardından adı belirtilen bir kişi, siz görmeden önce her sayıyı onaylar, değiştirir veya reddeder: ya insan ziraat mühendisimiz ya da ziraat mühendisi olmayan bir CloverProof yöneticisi. Planınızda ve planınıza ait kanıt PDF dosyasında, ikisinden hangisinin onayladığı ve bu kişinin adı gösterilir; bir yönetici onayını asla ziraat mühendisi incelemesi olarak adlandırmayız. Tek başına bir yapay zekâ kontrolü hiçbir zaman bir planı onaylamaz. Neyi uygulayacağınıza ilişkin son kararı siz verirsiniz."
+      },
+      {
+        "h": "Hesaplama motorunu geliştirme",
+        "p": "Kabul ederseniz, motoru daha doğru hâle getirmek için pilot sonuçlarının kimliksizleştirilmiş bir kopyasını (motorun önerisi ile insan ziraat mühendisinin nihai sayılarının karşılaştırması) saklıyoruz. Yalnızca insan ziraat mühendisimizin onayladığı planları kullanıyoruz, bir yöneticinin onayladığı planları değil. Adlar, iletişim bilgileri, çiftlik ve tarla adları ve kesin konumlar çıkarılır. Hayır diyebilir ve yine de katılabilirsiniz."
+      },
+      {
+        "h": "Kimler görüyor",
+        "p": "Yalnızca bu bilgilere ihtiyaç duyan CloverProof ekip üyeleri, insan ziraat mühendisimiz ve hizmet sağlayıcılarımız olarak, pilot verilerini Kanada'da saklayacak olan Kanadalı barındırma sağlayıcımız ile web sitemizi barındıran ve Kanada'daki barındırma devreye girene kadar web sitesi taleplerini ve web sitesi ölçüm verilerini Amerika Birleşik Devletleri'nde saklayan ABD merkezli şirket Railway. Hiçbir yapay zekâ sağlayıcısı sizi veya çiftliğinizi tanımlayan bilgi almaz. Bilgilerinizi satmıyoruz ve reklam izleyicileri ya da herhangi bir analiz şirketi kullanmıyoruz."
       },
       {
         "h": "Nerede saklanıyor",
-        "p": "Bilgileriniz veritabanı sağlayıcımızda saklanır ve erişim CloverProof ekibiyle sınırlıdır."
+        "p": "Pilot çiftlik verileri (iletişim bilgileri, çiftlikler, tarlalar, toprak analizleri, planlar, incelemeler ve kanıt PDF'leri) Kanada'da saklanacaktır. Bu Kanada barındırması devreye girene kadar gerçek pilot verilerini barındırılan sistemlerimizde toplamıyoruz. Kanada'daki barındırma devreye girene kadar web sitesi talepleri ve web sitesi ölçüm verileri, web sitesi barındırma sağlayıcımız olan ABD merkezli şirket Railway tarafından Amerika Birleşik Devletleri'nde saklanır; orada ABD makamlarının ABD yasaları uyarınca bunlara erişmesi mümkün olabilir. Kanada'daki barındırma devreye girdiğinde bu veriler Kanada'ya taşınacak ve bu bildirimi güncelleyeceğiz. Bilgilerinizi korumak için veri işleme sözleşmeleri kullanıyoruz."
       },
       {
         "h": "Ne kadar süre saklıyoruz",
@@ -274,7 +294,7 @@
       },
       {
         "h": "Haklarınız",
-        "p": "Verilerinizi görmeyi, düzeltmeyi veya silmeyi talep edebilir ve onayınızı istediğiniz zaman geri çekebilirsiniz."
+        "p": "Bilgilerinizi görmeyi, düzeltmeyi veya silmeyi talep edebilir, planınızdaki bir sayının nasıl üretildiğini ve kimin onayladığını sorabilir ve onayınızı istediğiniz zaman geri çekebilirsiniz. 30 gün içinde yanıt veriyoruz. Kanada Gizlilik Komiserliği Ofisi'ne (priv.gc.ca) veya AB'deyseniz yerel veri koruma otoritenize şikâyette bulunabilirsiniz."
       }
     ]
   },

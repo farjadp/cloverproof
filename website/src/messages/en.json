@@ -257,16 +257,36 @@
     "updated": "Last updated: November 2026",
     "sections": [
       {
+        "h": "Who can join the pilot",
+        "p": "The 2027 pilot is open to farms in Ontario, Canada. You can send a request from anywhere, but we can only include Ontario farms."
+      },
+      {
         "h": "What we collect",
-        "p": "When you request a pilot plan we collect what you enter: name, email, country, approximate farm size and main crop, plus the language you used and the exact consent wording you agreed to, with the time."
+        "p": "When you request a pilot plan we collect what you enter: name, email, country, approximate farm size, main crop, plus the language you used and the exact consent wording you agreed to, with the time. If you join the pilot we also collect farm, field and soil-test information and the plans we make for you."
       },
       {
         "h": "Why we collect it",
-        "p": "Only to assess whether we can include your farm in the pilot and to contact you about it. We don't sell or share your details for marketing."
+        "p": "To decide whether we can include your farm in the pilot, to contact you about it and, if you join, to make and record your fertilizer plans. We don’t send news emails."
+      },
+      {
+        "h": "Website measurement",
+        "p": "We count how this website is used, ourselves, with no analytics company and no cookies or other storage on your device. We do this only on the English, French, Spanish, Italian and Turkish versions of the site; the Finnish, Bulgarian and Arabic versions record nothing. For each page load we record the page, language and time, the buttons you click, your field-check answers and result, the form step you reach and whether sending worked, the campaign tag of the link you followed, the name of the website that sent you (not the full address) and whether your screen is mobile or desktop size. A random number held only in your browser's memory groups the clicks of one page view and disappears when you leave. We do not record your name, email or anything you type, we do not store your IP address, and we do not link visits to each other or to you. Detailed records are kept 90 days, then turned into daily totals kept up to 25 months. If your browser sends Global Privacy Control or Do Not Track, we record nothing. If you send a pilot request, the link's campaign tag, the referring website and your field-check result are stored with your request, so we know how you found us."
+      },
+      {
+        "h": "How plans are reviewed",
+        "p": "Our software proposes each plan. An AI system may help check it. The AI system never receives your name, contact details, address or exact field boundaries; it sees only de-identified case data. A named person then approves, changes or rejects every number before you see it: either our human agronomist or a CloverProof administrator who is not an agronomist. Your plan and its proof PDF show which of the two approved it and their name; we never call an administrator approval an agronomist review. An AI check alone never approves a plan. You make the final decision about what you apply."
+      },
+      {
+        "h": "Improving the engine",
+        "p": "If you agree, we keep a de-identified copy of pilot results (the engine's proposal vs the human agronomist's final numbers) to make the engine more accurate. We use only plans approved by our human agronomist, not plans approved by an administrator. Names, contact details, farm and field names and exact locations are removed. You can say no and still take part."
+      },
+      {
+        "h": "Who sees it",
+        "p": "Only the CloverProof team members who need it, our human agronomist, our Canadian hosting provider, which will store pilot data in Canada, and Railway, a US company that hosts our website and, until Canadian hosting is live, stores website requests and website measurement data in the United States, as our service providers. No AI provider receives information that identifies you or your farm. We do not sell your information and we do not use advertising trackers or any analytics company."
       },
       {
         "h": "Where it is stored",
-        "p": "Your details are stored in our database provider with access limited to the CloverProof team."
+        "p": "Pilot farm data (contacts, farms, fields, soil tests, plans, reviews and proof PDFs) will be stored in Canada. We do not collect real pilot data into our hosted systems until that Canadian hosting is live. Until Canadian hosting is live, website requests and website measurement data are stored in the United States by our website host, Railway, a US company, where US authorities may be able to access them under US law. When Canadian hosting is live, this data moves to Canada and we will update this notice. We use data-processing contracts to protect your information."
       },
       {
         "h": "How long we keep it",
@@ -274,7 +294,7 @@
       },
       {
         "h": "Your rights",
-        "p": "You can ask to see, correct or delete your data, and withdraw consent at any time."
+        "p": "You can ask to see, correct or delete your information, ask how a number in your plan was produced and who approved it, and withdraw consent at any time. We reply within 30 days. You can complain to the Office of the Privacy Commissioner of Canada (priv.gc.ca) or, if you are in the EU, to your local data-protection authority."
       }
     ]
   },
