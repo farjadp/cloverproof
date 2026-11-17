@@ -295,7 +295,6 @@ crops:
     # Soil tests the Ontario P and K guidance is calibrated for (OMAFA-accredited
     # tests; values in ppm = mg/kg, element form). Declarative only in this
     # version: no P/K rates yet.
-    # TODO(agronomist): confirm these soil tests (method, unit, element form) for the pilot labs.
     # TODO(agronomist): confirm the soil tests this pack assumes (Olsen P, ammonium
     # acetate K, mg/kg, element form); see docs/agronomist-todo.md #17.
     soil_test_methods:

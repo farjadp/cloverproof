@@ -298,3 +298,9 @@ def test_no_manure_is_stated_in_the_rate_explanation(pack: Pack) -> None:
     rec = recommend(_input(), pack)
     assert "assumes no manure applied" in rec.nitrogen.rate.explanation.lower()
     assert rec.input_snapshot["manure_applied"] is False
+
+
+def test_table_rate_explanation_names_price_source_and_date(pack: Pack) -> None:
+    rec = recommend(_input(), pack)
+    table = next(c for c in rec.nitrogen.components if c.name == "table_n_rate")
+    assert "prices: TEST FIXTURE, 2027-01-20" in table.explanation

@@ -124,6 +124,9 @@ class NitrogenYieldPriceTable(NutrientMethod):
                     (table.yield_t_ha[j0], table.yield_t_ha[j1]),
                     (table.price_ratio[i0], table.price_ratio[i1]),
                     [table.rates[i][j] for (i, j) in weights],
+                    prices=(
+                        f"prices: {inputs.n_price.source}, {inputs.n_price.price_date.isoformat()}"
+                    ),
                 ),
                 uses_placeholder=any_placeholder(cells),
             ),

@@ -97,6 +97,6 @@ def test_tag_inferred_value_never_says_read_from() -> None:
 
 def test_tag_derived_value_never_says_read_from() -> None:
     text = explain.tag(_cited("derived", note="Largest test cell."))
-    assert "read from" not in text
-    assert "inferred by the engine from Test Guide, Table 1, not a value stated there" in text
+    assert "read from" not in text and "inferred" not in text
+    assert "derived by the engine from Test Guide, Table 1, not a value stated there" in text
     assert "Largest test cell." in text

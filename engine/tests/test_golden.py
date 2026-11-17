@@ -146,7 +146,9 @@ def test_approved_case_requires_reviewer_and_date(change: dict[str, object]) -> 
         parse_golden_case(_approved_data(**change))
 
 
-@pytest.mark.parametrize("reviewer", ["cp-agronomist", "CP-Agronomist", "  cp-agronomist  "])
+@pytest.mark.parametrize(
+    "reviewer", ["cp-agronomist", "CP-Agronomist", "  cp-agronomist  ", "cp-agronomist (AI)"]
+)
 def test_approved_case_rejects_the_ai_agronomist_as_reviewer(reviewer: str) -> None:
     # CLAUDE.md rule 11: cp-agronomist can never approve.
     with pytest.raises(ValidationError, match="cp-agronomist"):

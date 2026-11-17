@@ -21,8 +21,9 @@ def cited(citation: Citation) -> str:
     """Where a value comes from, by basis: only a `stated` value is "read from" a source."""
     if citation.basis is CitationBasis.STATED:
         return f"read from {citation.short()}"
+    verb = "derived" if citation.basis is CitationBasis.DERIVED else "inferred"
     return (
-        f"inferred by the engine from {citation.short()}, not a value stated there: "
+        f"{verb} by the engine from {citation.short()}, not a value stated there: "
         f"{(citation.note or '').strip()}"
     )
 
@@ -139,11 +140,14 @@ def table_n_rate(
     bracket_yield: tuple[float, float],
     bracket_ratio: tuple[float, float],
     corners: list[float],
+    prices: str | None = None,
 ) -> str:
     where = (
         f"expected yield {num(target_yield)} t/ha and N:grain price ratio {num(ratio)} "
         "(kg grain per kg N)"
     )
+    if prices:
+        where += f" ({prices})"
     if len(corners) == 1:
         return f"Table N rate = {num(rate)} kg N/ha: the pack table cell at {where} {tag(cell)}."
     return (

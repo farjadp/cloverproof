@@ -120,7 +120,7 @@ class ExpectedCase(_Frozen):
         ]
         if missing:
             raise ValueError(f"agronomist_approved case needs non-empty: {', '.join(missing)}")
-        if (self.reviewer or "").strip().lower() == AI_AGRONOMIST:
+        if AI_AGRONOMIST in (self.reviewer or "").lower():
             raise ValueError(
                 f"{AI_AGRONOMIST} (AI) can never approve: an agronomist_approved case needs "
                 "a human reviewer (CLAUDE.md rule 11); use kind ai_reviewed"
@@ -266,7 +266,7 @@ class ExternalReferenceCase(_Frozen):
 
     @model_validator(mode="after")
     def _check_author(self) -> Self:
-        is_ai = self.entered_by.strip().lower() == AI_AGRONOMIST
+        is_ai = AI_AGRONOMIST in self.entered_by.lower()
         if self.kind == GoldenKind.AI_REVIEWED and not is_ai:
             raise ValueError(f"an ai_reviewed case is entered by {AI_AGRONOMIST}")
         if self.kind == GoldenKind.EXTERNAL_REFERENCE and is_ai:
