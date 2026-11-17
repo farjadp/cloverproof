@@ -1,0 +1,39 @@
+# Runbook — website admin (`/admin`)
+
+ADR 0012 (auth), 0013 (secrets), 0014 (system log). Plan: `docs/plans/website-admin.md`.
+**Nothing here is done yet in production.** Each step needs Farjad Iranmehr's go and happens with his DB setup (after the DB switch).
+
+## 1. Environment variables (website service)
+Names only — values go in Railway variables, never in git. `.env.example` must list these names with empty values (to add: the env example files are not editable by agents).
+
+| Name | Value |
+|---|---|
+| `ADMIN_DATABASE_URL` | URL for the `cp_website_admin_login` role (not the public site's `DATABASE_URL`) |
+| `WEBSITE_SECRETS_KEK` | 32 random bytes, base64: `openssl rand -base64 32` |
+| `WEBSITE_SECRETS_KEK_ID` | short id for that key, e.g. `k2026a` |
+| `WEBSITE_ADMIN_HMAC_KEY` | 32 random bytes, base64 (rate-limit keys, CSRF, recovery codes) |
+| `WEBSITE_SECRETS_KEK_PREVIOUS`, `WEBSITE_SECRETS_KEK_PREVIOUS_ID` | only during a KEK rotation |
+
+Keep a copy of `WEBSITE_SECRETS_KEK` in Farjad Iranmehr's password manager. Losing it means every enrolled two-step sign-in (and later every API key) must be set up again.
+Without these variables `/admin` shows "Admin not configured" and the public site is unaffected.
+
+## 2. Database login (operator, once, after migration 0024)
+```sql
+create role cp_website_admin_login login password '<generated>' connection limit 10 in role cp_website_admin;
+alter role cp_website_admin_login set statement_timeout = '10s';
+alter role cp_website_admin_login set lock_timeout = '2s';
+alter role cp_website_admin_login set idle_in_transaction_session_timeout = '30s';
+```
+
+## 3. First admin (Farjad Iranmehr only, decided 2026-11-17)
+In the website service shell:
+```bash
+npm run admin:create -- --email <his email> --name "Farjad Iranmehr"
+```
+It prints a one-time link (72 h; the token is in the `#fragment`, so it never reaches server logs). Open it, set a password (≥ 12 characters), sign in, scan the QR code, save the 10 recovery codes.
+The CLI refuses a second admin unless `--additional` is given; later users are invited from the admin.
+
+## 4. Lost phone / locked out
+- Use a recovery code on the two-step screen (each works once).
+- Another admin can issue an MFA reset or password reset link (users page, PR 3).
+- Last resort (only admin, no recovery codes): operator clears MFA in the database for that user (`update website_user set mfa_secret_enc = null, mfa_enabled_at = null where email = ...`) and issues a new link with the CLI; log the action.
