@@ -44,6 +44,7 @@ Table classes are listed in `db/rls_tables.yaml`; every `public` table must appe
 | tenant | `farmer`, `farm`, `field`, `season`, `field_geometry_version`, `soil_test`, `soil_test_value`, `crop_plan`, `recommendation`, `review`, `application_log`, `proof_document`, `access_grant` | `ENABLE` + `FORCE`. `T_org_boundary`: RESTRICTIVE, FOR ALL, TO `cp_app`, `org = (select app_ctx_org())` in USING and WITH CHECK. Permissive `T_select/_insert/_update/_delete`, one per granted command, same predicate; INSERT also binds the author column (`created_by`, `reviewer_id`, `granted_by`) to `app_ctx_user()`. Index led by the org column on every table. |
 | identity | `organisation`, `app_user`, `user_session`, `membership`, `admin_event` | Grants + SECURITY DEFINER functions (ADR 0007). **RLS disabled until v1 (S3)**; the catalog test pins that state so a half-done change shows. |
 | website | `pilot_request`, `site_event` | `ENABLE` (not FORCE; global tables, the owner is the operator). One INSERT policy TO `cp_website` each; no SELECT policy. |
+| website_admin | `website_user`, `website_user_recovery_code`, `website_session`, `website_one_time_token`, `website_rate_limit`, `website_log`, `website_job_run` (migration 0024) | Grants to `cp_website_admin` only + SECURITY DEFINER `website_log_purge()`. RLS disabled; never organisation-scoped, not part of identity RLS v1 (ADR 0012, 0014). |
 | global | `schema_migrations`, `spatial_ref_sys` | No RLS. |
 
 Special cases:

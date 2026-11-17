@@ -11,6 +11,8 @@
 
 from __future__ import annotations
 
+import threading
+import time
 from collections.abc import Iterator
 from typing import Any
 from uuid import UUID
@@ -19,7 +21,7 @@ import psycopg
 import pytest
 from psycopg import errors
 
-from .conftest import as_owner, as_role
+from .conftest import MigratedDb, as_owner, as_role
 
 pytestmark = pytest.mark.db
 
@@ -213,6 +215,32 @@ def test_delete_means_pseudonymised(admin_db: psycopg.Connection) -> None:
         " password_hash = null where id = %s",
         (editor,),
     )
+    # Deleted stays deleted: no undelete, no renaming.
+    for query in (
+        "update website_user set deleted_at = null where id = %s",
+        "update website_user set display_name = 'back' where id = %s",
+    ):
+        with pytest.raises(errors.InsufficientPrivilege), admin_db.transaction():
+            admin_db.execute(query, (editor,))
+
+
+def test_history_columns_cannot_be_rewritten(admin_db: psycopg.Connection) -> None:
+    user = add_user(admin_db, "h@example.com")
+    for column, value in (
+        ("id", "00000000-0000-0000-0000-000000000001"),
+        ("created_at", "1900-01-01"),
+        ("created_by", None),
+    ):
+        with pytest.raises(errors.InsufficientPrivilege), admin_db.transaction():
+            admin_db.execute(f"update website_user set {column} = %s where id = %s", (value, user))
+
+
+def test_recovery_codes_can_be_removed(admin_db: psycopg.Connection) -> None:
+    user = add_user(admin_db, "r@example.com")
+    admin_db.execute(
+        "insert into website_user_recovery_code (user_id, code_hash) values (%s, %s)", (user, HASH)
+    )
+    admin_db.execute("delete from website_user_recovery_code where user_id = %s", (user,))
 
 
 def test_user_checks(admin_db: psycopg.Connection) -> None:
@@ -248,3 +276,61 @@ def test_tokens_store_hashes_only_and_links_expire_within_72h(admin_db: psycopg.
         " values (%s, 'invite', %s, now() + interval '72 hours')",
         (user, HASH),
     )
+
+
+@pytest.mark.parametrize("isolation", ["read committed", "repeatable read", "serializable"])
+def test_last_admin_guard_holds_under_concurrency(migrated_db: MigratedDb, isolation: str) -> None:
+    """Two admins disabled at the same time from two connections: one must fail."""
+    with psycopg.connect(migrated_db.url, autocommit=True) as setup:
+        ids = [
+            setup.execute(
+                "insert into website_user (email, display_name, role) values (%s, 'race', 'admin')"
+                " returning id",
+                (f"race-{isolation.replace(' ', '-')}-{n}@example.com",),
+            ).fetchone()[0]  # type: ignore[index]
+            for n in (1, 2)
+        ]
+    errors_seen: list[BaseException] = []
+    try:
+        with (
+            psycopg.connect(migrated_db.url) as first,
+            psycopg.connect(migrated_db.url) as second,
+        ):
+            for conn in (first, second):
+                conn.execute(f"set transaction isolation level {isolation}")
+                conn.execute("set local role cp_website_admin")
+            # Both transactions take their snapshot before either change commits.
+            first.execute("select count(*) from website_user").fetchone()
+            second.execute("select count(*) from website_user").fetchone()
+            first.execute("update website_user set disabled_at = now() where id = %s", (ids[0],))
+
+            def disable_second() -> None:
+                try:
+                    second.execute(
+                        "update website_user set disabled_at = now() where id = %s", (ids[1],)
+                    )
+                    second.commit()
+                except psycopg.Error as error:
+                    errors_seen.append(error)
+                    second.rollback()
+
+            worker = threading.Thread(target=disable_second)
+            worker.start()
+            time.sleep(0.5)  # second is now waiting on the advisory lock
+            first.commit()
+            worker.join(timeout=10)
+        assert len(errors_seen) == 1
+        assert isinstance(errors_seen[0], (errors.CheckViolation, errors.SerializationFailure)), (
+            errors_seen[0]
+        )
+        with psycopg.connect(migrated_db.url) as check:
+            active = check.execute(
+                "select count(*) from website_user where id = any(%s) and disabled_at is null",
+                (ids,),
+            ).fetchone()
+        assert active == (1,)
+    finally:
+        with psycopg.connect(migrated_db.url, autocommit=True) as cleanup:
+            # Superuser cleanup only: users are never deleted by any app role.
+            cleanup.execute("set session_replication_role = replica")
+            cleanup.execute("delete from website_user where id = any(%s)", (ids,))

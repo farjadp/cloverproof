@@ -6,10 +6,15 @@
 -- It gets grants on the website_* tables below and nothing else: no pilot_request, site_event
 -- or web-app table (CLAUDE.md rule 12; least privilege). The public pages keep cp_website, which
 -- gets nothing here. Login created outside git by the operator:
---   create role cp_website_admin_login login password '...' in role cp_website_admin;
+--   create role cp_website_admin_login login password '...' connection limit 10
+--     in role cp_website_admin;
+--   alter role cp_website_admin_login set statement_timeout = '10s';
+--   alter role cp_website_admin_login set lock_timeout = '2s';
+--   alter role cp_website_admin_login set idle_in_transaction_session_timeout = '30s';
+-- (Role-level settings apply only to the role that logs in, so they go on the login role.)
 --
--- RLS class (db/rls_tables.yaml): identity — protected by grants and a SECURITY DEFINER purge
--- function, RLS disabled (ADR 0008 §3).
+-- RLS class (db/rls_tables.yaml): website_admin — grants + SECURITY DEFINER purge, RLS
+-- disabled, never organisation-scoped (ADR 0008 §3).
 
 do $$
 begin
@@ -18,10 +23,6 @@ begin
   end if;
 end
 $$;
-
-alter role cp_website_admin set statement_timeout = '10s';
-alter role cp_website_admin set lock_timeout = '2s';
-alter role cp_website_admin set idle_in_transaction_session_timeout = '30s';
 
 grant usage on schema public to cp_website_admin;
 
@@ -147,11 +148,13 @@ begin
   if old.role = 'admin' and old.disabled_at is null and old.deleted_at is null
      and not (new.role = 'admin' and new.disabled_at is null and new.deleted_at is null) then
     -- Serialise concurrent demotions so two admins can't remove each other at once.
+    -- FOR UPDATE reads the latest committed rows (also under REPEATABLE READ / SERIALIZABLE,
+    -- where a concurrent change then fails with a serialization error instead of passing).
     perform pg_advisory_xact_lock(hashtext('website_user_keep_one_admin'));
-    if not exists (
-      select 1 from public.website_user u
+    perform 1 from public.website_user u
       where u.id <> old.id and u.role = 'admin' and u.disabled_at is null and u.deleted_at is null
-    ) then
+      for update;
+    if not found then
       raise exception 'the last active admin cannot be demoted, disabled or deleted'
         using errcode = 'check_violation';
     end if;
@@ -160,6 +163,20 @@ begin
 end
 $$;
 
+-- A deleted (pseudonymised) user stays deleted.
+create function website_user_stay_deleted() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if old.deleted_at is not null then
+    raise exception 'website_user % is deleted and cannot change', old.id
+      using errcode = 'insufficient_privilege';
+  end if;
+  return new;
+end
+$$;
+
+create trigger website_user_stay_deleted before update on website_user
+  for each row execute function website_user_stay_deleted();
 create trigger website_user_keep_one_admin before update on website_user
   for each row execute function website_user_keep_one_admin();
 create trigger website_user_no_delete before delete or truncate on website_user
@@ -185,9 +202,17 @@ $$;
 
 revoke all on function website_log_purge() from public;
 revoke all on function website_user_keep_one_admin() from public;
+revoke all on function website_user_stay_deleted() from public;
 
-grant select, insert, update on website_user, website_user_recovery_code, website_session,
-  website_one_time_token, website_job_run to cp_website_admin;
+grant select, insert on website_user to cp_website_admin;
+-- No UPDATE of id, created_at, created_by: history can't be rewritten.
+grant update (email, display_name, role, password_hash, password_changed_at, mfa_secret_enc,
+              mfa_enabled_at, failed_logins, locked_until, disabled_at, deleted_at)
+  on website_user to cp_website_admin;
+grant select, insert, update on website_session, website_one_time_token, website_job_run
+  to cp_website_admin;
+-- Recovery codes are secret material, not an audit record: removed on delete / MFA reset.
+grant select, insert, update, delete on website_user_recovery_code to cp_website_admin;
 grant select, insert, update, delete on website_rate_limit to cp_website_admin;
 grant select, insert on website_log to cp_website_admin;
 grant execute on function website_log_purge() to cp_website_admin;
@@ -198,5 +223,11 @@ comment on table website_user is
 comment on table website_log is
   'Website system log (ADR 0014): auth, admin, content, secret, error, job. Append-only;'
   ' deleted after 60 days by website_log_purge(). PII: actor id, IP prefix, browser family.';
+comment on table website_user_recovery_code is 'MFA recovery codes (sha256 only), single use.';
+comment on table website_session is
+  'Website admin sessions: sha256 of the cookie token only; IP prefix (/24, /48) + browser family.';
+comment on table website_one_time_token is 'Invite / reset links (sha256 only), at most 72 h.';
+comment on table website_rate_limit is 'Login throttling keyed by HMAC; purged after 1 day.';
+comment on table website_job_run is 'Health of website background jobs (e.g. log purge).';
 comment on function website_log_purge() is
   'Deletes website_log rows older than 60 days and expired sessions/links/rate-limit windows.';

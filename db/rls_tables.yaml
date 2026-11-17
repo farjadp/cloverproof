@@ -10,6 +10,9 @@
 #             half-done change is visible in the catalog test.
 #   website   written by cp_website only; RLS enabled (not forced) with an INSERT policy to
 #             cp_website (migration 0022).
+#   website_admin  website staff accounts, sessions and system log (migration 0024, ADR 0012/0014).
+#             Grants to cp_website_admin + SECURITY DEFINER purge; RLS disabled; never
+#             organisation-scoped (not part of identity RLS v1).
 #   global    no tenant data, no RLS: migration bookkeeping and PostGIS.
 #
 # organisation_column is the column the boundary policy compares with app_ctx_org().
@@ -35,7 +38,12 @@ identity:
   - user_session
   - membership
   - admin_event
-  # Website admin (migration 0024, ADR 0012/0014): grants + SECURITY DEFINER purge, RLS off.
+
+website:
+  - pilot_request
+  - site_event
+
+website_admin:
   - website_user
   - website_user_recovery_code
   - website_session
@@ -43,11 +51,6 @@ identity:
   - website_rate_limit
   - website_log
   - website_job_run
-
-website:
-  - pilot_request
-  - site_event
-
 global:
   - schema_migrations
   - spatial_ref_sys
