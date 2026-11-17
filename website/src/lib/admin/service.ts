@@ -311,10 +311,9 @@ export async function login(
     return fail("unknown_or_unset");
   }
   const valid = await verifyPassword(user.password_hash, input.password);
-  if (!valid) {
-    await recordFailure(db, user.id, meta, now, false);
-    return fail("bad_credentials", user.id);
-  }
+  // A-S1: a wrong password only counts toward the per-e-mail throttle above (5 per 15-min window).
+  // It never locks the account, so someone who knows an admin's e-mail can't keep them out for days.
+  if (!valid) return fail("bad_credentials", user.id);
   if (isLocked(user, now) || user.disabled_at) return fail(user.disabled_at ? "disabled" : "locked", user.id);
   // A successful password doesn't use up the rate-limit budget. Failure counters reset only
   // after the second factor succeeds, so password + guessed codes can't reset them.
@@ -333,10 +332,11 @@ function isLocked(user: Pick<User, "locked_until">, now: Date): boolean {
 }
 
 /**
- * One failed password, TOTP or recovery code for this account (atomic). From the 5th failure the
- * account locks for 15 min, doubling up to 24 h; a lock caused by codes also ends every session.
+ * One failed TOTP or recovery code for this account (atomic; second factor only — wrong passwords
+ * are throttled per e-mail instead, A-S1). From the 5th failure the account locks for 15 min,
+ * doubling up to 24 h, and every session ends. Only someone who knows the password gets here.
  */
-async function recordFailure(db: Db, userId: string, meta: RequestMeta, now: Date, secondFactor: boolean): Promise<boolean> {
+async function recordFailure(db: Db, userId: string, meta: RequestMeta, now: Date): Promise<boolean> {
   const { rows } = await db.query<{ failed_logins: number; locked: boolean }>(
     `update website_user
         set failed_logins = failed_logins + 1,
@@ -349,7 +349,7 @@ async function recordFailure(db: Db, userId: string, meta: RequestMeta, now: Dat
   );
   const locked = Boolean(rows[0]?.locked);
   if (locked) {
-    if (secondFactor) await revokeAllSessions(db, userId, now);
+    await revokeAllSessions(db, userId, now);
     await writeLog(db, { actor: userId, kind: "auth", action: "account.lock", outcome: "ok", meta, detail: { count: rows[0].failed_logins } });
   }
   return locked;
@@ -437,7 +437,7 @@ export async function completeMfa(
   const enrolling = !user.mfa_enabled_at;
   if (await refuseIfLocked(db, user, meta, now)) return { ok: false, error: TOO_MANY };
   if (!(await checkCode(db, config, user, code, now))) {
-    const locked = await recordFailure(db, user.id, meta, now, true);
+    const locked = await recordFailure(db, user.id, meta, now);
     await writeLog(db, { actor: user.id, kind: "auth", action: enrolling ? "mfa.enrol" : "mfa", outcome: "failed", meta });
     return { ok: false, error: locked ? TOO_MANY : "That code is not valid. Check the time on your phone and try the newest code." };
   }
@@ -475,7 +475,7 @@ export async function redeemRecoveryCode(
     [user.id, recoveryHash(config, code), now],
   );
   if (rowCount !== 1) {
-    const locked = await recordFailure(db, user.id, meta, now, true);
+    const locked = await recordFailure(db, user.id, meta, now);
     await writeLog(db, { actor: user.id, kind: "auth", action: "mfa.recovery", outcome: "failed", meta });
     return { ok: false, error: locked ? TOO_MANY : "That recovery code is not valid or was already used." };
   }
@@ -502,7 +502,7 @@ export async function stepUp(
     await clearFailures(db, user.id);
     await db.query("update website_session set step_up_at = $2 where id = $1", [current.session.id, now]);
   } else {
-    await recordFailure(db, user.id, meta, now, true);
+    await recordFailure(db, user.id, meta, now);
   }
   await writeLog(db, { actor: user.id, kind: "auth", action: "mfa.step_up", outcome: ok ? "ok" : "failed", meta });
   return ok;
