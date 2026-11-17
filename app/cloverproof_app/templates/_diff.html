@@ -1,0 +1,51 @@
+{# Engine output vs the version on screen, line by line (docs/design/review-queue.md §4.4).
+   Needs `line_diff` (cloverproof_app.line_diff.LineDiff). Read-only. #}
+{% from "_macros.html" import explained, share, confidence, num %}
+{% macro side(cell, value) -%}
+{% if cell.kind == "number" %}{{ explained(value) }}
+{% elif cell.kind == "share" %}{{ share(value) }}
+{% elif cell.kind == "confidence" %}{{ confidence(value) }}
+{% else %}<p class="diff-text">{{ value }}</p>{% endif %}
+{%- endmacro %}
+{% macro was(cell) -%}
+{% if cell.engine is none %}nothing{% elif cell.kind == "number" %}{{ num(cell.engine.value) }} {{ cell.engine.unit }}{% elif cell.kind == "share" %}{{ num(cell.engine.value * 100, 0) }}%{% else %}{{ cell.engine }}{% endif %}
+{%- endmacro %}
+{% set d = line_diff %}
+<section aria-labelledby="diff-h" class="diff-section" id="diff">
+  <h2 id="diff-h">Engine vs latest version</h2>
+  {% if d.edit_depth == 0 %}
+  <p class="muted">No edits. v{{ d.final_number }} has the engine's numbers.</p>
+  {% else %}
+  <p class="muted">Engine (v1) compared with v{{ d.final_number }}: {{ d.changed_count }} of {{ d.lines | length }} lines changed. Rates in kg/ha with the nutrient form written out.</p>
+  {% for e in d.edits %}
+  <blockquote class="reason"><p>v{{ e.number }}, edited by {{ e.author }} on {{ e.created_at.strftime("%Y-%m-%d %H:%M") }}: “{{ e.reason }}”</p></blockquote>
+  {% endfor %}
+  <table class="stack diff">
+    <caption class="sr-only">Each plan line, the engine value and the value in v{{ d.final_number }}</caption>
+    <thead><tr><th scope="col">Line</th><th scope="col">Engine (v1)</th><th scope="col">v{{ d.final_number }} (latest)</th><th scope="col">Change</th></tr></thead>
+    <tbody>
+    {% for line in d.lines %}
+      <tr>
+        <th scope="row">{{ line.title }}{% if line.detail %}<span class="diff-detail">{{ line.detail }}</span>{% endif %}
+          <span class="sr-only">{% if line.changed %}, changed: {{ line.changed | join(", ") }}{% else %}, no change{% endif %}</span></th>
+        <td data-label="Engine (v1)">
+          {% if line.only_in == "final" %}<p class="muted">Not in the engine version</p>
+          {% else %}{% for cell in line.cells %}<div class="diff-attr"><span class="diff-label">{{ cell.label }}</span>{{ side(cell, cell.engine) }}</div>{% endfor %}{% endif %}
+        </td>
+        <td data-label="v{{ d.final_number }} (latest)"{% if line.changed %} class="changed"{% endif %}>
+          {% if line.only_in == "engine" %}<p class="muted">Not in v{{ d.final_number }}</p>
+          {% else %}{% for cell in line.cells %}<div class="diff-attr"><span class="diff-label">{{ cell.label }}</span>{% if cell.changed %} <span class="tag-changed">Changed</span><span class="sr-only">, was {{ was(cell) }}</span>{% endif %}{{ side(cell, cell.final) }}</div>{% endfor %}{% endif %}
+        </td>
+        <td data-label="Change">
+          {% if line.only_in == "engine" %}<strong>Removed in v{{ d.final_number }}</strong>
+          {% elif line.only_in == "final" %}<strong>Only in v{{ d.final_number }}</strong>
+          {% elif line.changed %}<strong>Changed: {{ line.changed | join(", ") }}</strong>
+          {% else %}<span class="muted">No change</span>{% endif %}
+          {% if line.rule_line %}<p class="hint">Set by rule, not editable: no P or K rate without a soil test. Get a soil test for P and K.</p>{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>

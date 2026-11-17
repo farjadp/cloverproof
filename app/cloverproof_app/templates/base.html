@@ -26,9 +26,14 @@
       {% if user and org_context %}<span class="org-name">{{ org_context.org.name }}</span>{% endif %}
     </div>
     {% if user %}
+    {# Display only; /review re-checks the same rule server-side (plan_web.is_agronomist). #}
+    {% set may_review = org_context and user.is_human and ("agronomist" in org_context.roles or user.is_superadmin) %}
+    <div class="header-side">
+    {% if may_review %}<a class="nav-link" href="/review"{% if request.url.path == "/review" %} aria-current="page"{% endif %}>Review queue</a>{% endif %}
     <details class="user-menu">
       <summary>{{ user.display_name }}{% if org_context and org_context.roles %} · {{ org_context.roles | map("capitalize") | join(", ") }}{% endif %}</summary>
       <div class="menu">
+        {% if may_review %}<a href="/review">Review queue</a>{% endif %}
         <a href="/farmers">Farmers</a>
         <a href="/account">My account</a>
         {% if org_context and "org_admin" in org_context.roles %}<a href="/admin/users">Users</a>{% endif %}
@@ -39,6 +44,7 @@
         </form>
       </div>
     </details>
+    </div>
     {% endif %}
   </header>
   {% block breadcrumb %}{% endblock %}

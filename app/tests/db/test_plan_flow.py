@@ -113,7 +113,7 @@ def test_happy_path_engine_edit_approve(db: psycopg.Connection, org_a: Org) -> N
     )  # fmt: skip
     assert r.status_code == 303, r.text
     page = client.get(plan_url).text
-    assert "Engine vs final" in page and "Set by agronomist: Local trial history" in page
+    assert "Engine vs latest version" in page and "Set by agronomist: Local trial history" in page
     assert "Plan v2" in page
 
     final_rec = latest_rec(client, plan_url)

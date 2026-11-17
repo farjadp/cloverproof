@@ -50,20 +50,7 @@
 </div>
 {% endif %}
 
-{% if comparison %}
-<section aria-labelledby="cmp-h" class="compare">
-  <h2 id="cmp-h">Engine vs final</h2>
-  <table class="stack">
-    <thead><tr><th scope="col">Item</th><th scope="col">Engine</th><th scope="col">Final (v{{ v.number }})</th></tr></thead>
-    <tbody>
-    {% for row in comparison %}
-      <tr><th scope="row">{{ row.item }}</th><td data-label="Engine">{{ explained(row.engine) }}</td><td data-label="Final" class="changed">{{ explained(row.final) }}</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% for e in v.edits %}<blockquote class="reason"><p>v{{ e.number }}, {{ e.rec.created_by_name }}: “{{ e.rec.reason }}”</p></blockquote>{% endfor %}
-</section>
-{% endif %}
+{% if line_diff %}{% include "_diff.html" %}{% endif %}
 
 <section aria-labelledby="n-h">
   <h2 id="n-h">Nitrogen</h2>
