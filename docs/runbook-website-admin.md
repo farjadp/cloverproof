@@ -37,7 +37,8 @@ The CLI refuses a second admin unless `--additional` is given; later users are i
 - Use a recovery code on the two-step screen (each works once).
 - Editors and authors: an admin uses Users → "Reset two-step sign-in" and/or "Password reset link".
 - Admins: only the operator CLI below (the admin UI never lets one admin reset another admin's sign-in).
-- Locked after 5 wrong passwords or codes: the lock lifts by itself (15 min, doubling up to 24 h); every session ends when codes lock it.
+- 5 wrong passwords in 15 minutes: that e-mail is throttled until the 15-minute window ends; the account is not locked.
+- 5 wrong two-step codes (or recovery codes): the account locks (15 min, doubling up to 24 h) and every session ends. The lock lifts by itself.
 - Last resort (only admin, no recovery codes), operator in the website shell:
   ```bash
   npm run admin:reset -- --email <email> --mfa

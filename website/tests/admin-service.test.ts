@@ -93,7 +93,7 @@ test("links: single use, expire, wrong kind refused", { skip }, () =>
     assert.equal((await redeemLink(db, mfaReset, PASSWORD, meta, at(21))).ok, false, "mfa_reset can't set a password");
   }));
 
-test("login: same error for unknown user and wrong password; lockout after 5 failures", { skip }, () =>
+test("login: same error for unknown user and wrong password; 5 wrong passwords throttle the e-mail for the window only", { skip }, () =>
   withDb(async (db) => {
     await adminWithPassword(db);
     const unknown = await login(db, config, { email: "nobody@example.com", password: PASSWORD }, meta, at(5));
@@ -102,13 +102,31 @@ test("login: same error for unknown user and wrong password; lockout after 5 fai
       const wrong = await login(db, config, { email: "a@example.com", password: "wrong password!!" }, { ...meta, ipPrefix: null }, at(10 + i));
       assert.deepEqual(wrong, { ok: false, error: LOGIN_FAILED });
     }
+    // A-S1: wrong passwords never lock the account itself.
     const { rows } = await db.query("select failed_logins, locked_until from website_user");
-    assert.equal(rows[0].failed_logins, 5);
-    assert.ok(rows[0].locked_until > at(20));
+    assert.deepEqual(rows[0], { failed_logins: 0, locked_until: null });
     const right = await login(db, config, { email: "a@example.com", password: PASSWORD }, { ...meta, ipPrefix: null }, at(20));
-    assert.deepEqual(right, { ok: false, error: LOGIN_FAILED }, "locked even with the right password");
-    const later = await login(db, config, { email: "a@example.com", password: PASSWORD }, { ...meta, ipPrefix: null }, at(3600));
-    assert.equal(later.ok, true, "lock and window expire");
+    assert.deepEqual(right, { ok: false, error: LOGIN_FAILED }, "throttled for the rest of the window, even with the right password");
+    const later = await login(db, config, { email: "a@example.com", password: PASSWORD }, { ...meta, ipPrefix: null }, at(15 * 60));
+    assert.equal(later.ok, true, "the next window is open again");
+  }));
+
+test("login: an attacker repeating wrong passwords for days can't extend a lock (A-S1)", { skip }, () =>
+  withDb(async (db) => {
+    await enrolled(db);
+    for (let day = 0; day < 3; day++) {
+      for (let i = 0; i < 6; i++) {
+        await login(db, config, { email: "a@example.com", password: "wrong password!!" }, { ...meta, ipPrefix: null }, at(day * 86400 + 100 + i));
+      }
+    }
+    const { rows } = await db.query("select failed_logins, locked_until from website_user");
+    assert.deepEqual(rows[0], { failed_logins: 0, locked_until: null }, "no account lock, no doubling");
+    const { rows: revoked } = await db.query("select count(*)::int as n from website_session where revoked_at is not null");
+    assert.equal(revoked[0].n, 0, "wrong passwords don't end the admin's sessions");
+    const next = await login(db, config, { email: "a@example.com", password: PASSWORD }, { ...meta, ipPrefix: null }, at(2 * 86400 + 100 + 15 * 60));
+    assert.equal(next.ok, true, "right password works as soon as the throttle window ends");
+    const { rows: log } = await db.query("select count(*)::int as n from website_log where action = 'account.lock'");
+    assert.equal(log[0].n, 0, "no account.lock from passwords");
   }));
 
 test("login: 20 failures from one IP prefix block that prefix", { skip }, () =>
