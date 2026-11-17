@@ -19,7 +19,7 @@ from cloverproof_app.main import create_app
 from cloverproof_app.repo import users
 
 from ..support.fakes import make_settings
-from .conftest import Org, insert
+from .conftest import Org, as_owner, insert
 
 pytestmark = pytest.mark.db
 
@@ -59,7 +59,9 @@ def build_client(db: psycopg.Connection, **overrides: object) -> TestClient:
 
 
 def with_password(db: psycopg.Connection, user_id: UUID) -> None:
-    users.set_password_hash(db, user_id, security.hash_password(PASSWORD))
+    # Operator setup: cp_app cannot set another approver's password (0014, ciso NB1).
+    with as_owner(db):
+        users.set_password_hash(db, user_id, security.hash_password(PASSWORD))
 
 
 def email_of(db: psycopg.Connection, user_id: UUID) -> str:

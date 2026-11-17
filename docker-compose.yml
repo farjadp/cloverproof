@@ -2,7 +2,7 @@
 # Credentials come from .env; the defaults below are for local use only and are not secrets.
 services:
   db:
-    image: postgis/postgis:18-3.6
+    image: postgis/postgis:18-3.7
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}

@@ -11,7 +11,7 @@ server if missing.
 
 Tests run inside one transaction per test (rolled back), acting as `cp_app` unless they
 switch with `as_owner` / `as_role`. `insert()` writes `organisation` and `membership` as the
-superuser (operator setup): cp_app has no write grant there (ADR 0006).
+superuser (operator setup): cp_app has no write grant there (ADR 0007).
 """
 
 from __future__ import annotations

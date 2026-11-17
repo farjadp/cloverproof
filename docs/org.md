@@ -44,9 +44,10 @@ Farjad Iranmehr
 | Security Engineer | `security-engineer` (G) |
 | Web-app delivery lead | `cloverproof-lead` (P) |
 | Agronomy integrity reviewer | `cp-agronomy-guard` (P) |
+| AI agronomist (stand-in, `ai_reviewed` only) | `cp-agronomist` (P) |
 | Proof PDF | `cp-pdf` (P) |
 | MVP auditor | `cp-auditor` (P) |
-| Git, PRs, merges, releases | `release-manager` (G) |
+| Git, PRs, merges, releases, CI, Dependabot | `release-manager` (P) — merge policy in `.claude/agents/release-manager.md` |
 
 ### Mobile Engineering — Head of Mobile: `head-of-mobile` (P)
 | Role | Agent |

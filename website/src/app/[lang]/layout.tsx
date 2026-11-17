@@ -1,14 +1,33 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Source_Sans_3, Source_Serif_4 } from "next/font/google";
+import {
+  IBM_Plex_Sans_Arabic,
+  Noto_Naskh_Arabic,
+  Noto_Sans_Hebrew,
+  Noto_Serif_Hebrew,
+  Source_Sans_3,
+  Source_Serif_4,
+} from "next/font/google";
 import { enabledLocales, isEnabledLocale, localeMeta } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
+import { languageAlternates, ogLocale, siteUrl } from "@/lib/site";
 import "../globals.css";
 
-// Latin-ext covers French, Italian, Spanish, Finnish, Turkish; Cyrillic covers Bulgarian.
-// Arabic gets its own font when the `ar` locale is enabled (ADR 0003).
-const serif = Source_Serif_4({ subsets: ["latin", "latin-ext", "cyrillic"], variable: "--font-source-serif" });
-const sans = Source_Sans_3({ subsets: ["latin", "latin-ext", "cyrillic"], variable: "--font-source-sans" });
+// `subsets` only controls which files are preloaded (LCP). Every subset stays declared via
+// unicode-range, so latin-ext (fr, it, es, fi, tr) and cyrillic (bg) glyphs load on demand.
+// Arabic: Noto Naskh Arabic (headings) + IBM Plex Sans Arabic (body); Hebrew: Noto Serif Hebrew +
+// Noto Sans Hebrew. Each pair is attached only to its own <html lang>, never preloaded elsewhere.
+const serif = Source_Serif_4({ subsets: ["latin"], variable: "--font-source-serif" });
+const sans = Source_Sans_3({ subsets: ["latin"], variable: "--font-source-sans" });
+const arabicSerif = Noto_Naskh_Arabic({ subsets: ["arabic"], variable: "--font-arabic-serif", preload: false });
+const arabicSans = IBM_Plex_Sans_Arabic({ subsets: ["arabic"], weight: ["400", "600", "700"], variable: "--font-arabic-sans", preload: false });
+const hebrewSerif = Noto_Serif_Hebrew({ subsets: ["hebrew"], variable: "--font-hebrew-serif", preload: false });
+const hebrewSans = Noto_Sans_Hebrew({ subsets: ["hebrew"], variable: "--font-hebrew-sans", preload: false });
+
+const scriptFonts: Partial<Record<string, string>> = {
+  ar: `${arabicSerif.variable} ${arabicSans.variable}`,
+  he: `${hebrewSerif.variable} ${hebrewSans.variable}`,
+};
 
 export function generateStaticParams() {
   return enabledLocales.map((lang) => ({ lang }));
@@ -21,11 +40,20 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
   if (!isEnabledLocale(lang)) return {};
   const t = await getDictionary(lang);
   return {
+    metadataBase: new URL(siteUrl),
     title: t.meta.title,
     description: t.meta.description,
-    alternates: {
-      languages: Object.fromEntries(enabledLocales.map((l) => [l, `/${l}`])),
+    applicationName: "CloverProof",
+    alternates: { canonical: `/${lang}`, languages: languageAlternates() },
+    openGraph: {
+      type: "website",
+      siteName: "CloverProof",
+      locale: ogLocale[lang],
+      url: `/${lang}`,
+      title: t.meta.title,
+      description: t.meta.description,
     },
+    twitter: { card: "summary_large_image", title: t.meta.title, description: t.meta.description },
   };
 }
 
@@ -34,7 +62,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
   if (!isEnabledLocale(lang)) notFound();
 
   return (
-    <html lang={lang} dir={localeMeta[lang].dir} className={`${serif.variable} ${sans.variable}`}>
+    <html lang={lang} dir={localeMeta[lang].dir} className={`${serif.variable} ${sans.variable} ${scriptFonts[lang] ?? ""}`}>
       <body className="min-h-screen">{children}</body>
     </html>
   );

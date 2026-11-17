@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from cloverproof_app import account, cli, security
 from cloverproof_app.repo import admin_users
 
-from .conftest import Org, as_role, insert
+from .conftest import Org, as_owner, as_role, insert
 from .test_account import NEW_PASSWORD, change, client, signed_in
 from .test_web_auth import PASSWORD, email_of, login, page_csrf, with_password
 
@@ -302,7 +302,8 @@ def test_last_owner_cannot_disable_self(db: psycopg.Connection, org_a: Org, owne
 
 def test_disabled_owner_does_not_count(db: psycopg.Connection, org_a: Org, owner: UUID) -> None:
     insert(db, "membership", organisation_id=org_a.id, user_id=org_a.staff, role="owner")
-    db.execute("update app_user set disabled_at = now() where id = %s", (org_a.staff,))
+    with as_owner(db):  # operator setup; cp_app cannot disable approvers (0014)
+        db.execute("update app_user set disabled_at = now() where id = %s", (org_a.staff,))
     disable = post(owner_client(db), f"/admin/users/{owner}/disable")
     assert disable.status_code == 409 and "last owner" in disable.text
 
@@ -332,7 +333,7 @@ def test_cli_reset_password_sets_flag_and_revokes(db: psycopg.Connection, org_a:
     with_password(db, org_a.agronomist)
     agro_email = email_of(db, org_a.agronomist)
     signed = signed_in(db, agro_email)
-    with as_role(db, "cp_admin"):  # the CLI logs in as cp_admin_login (ADR 0006)
+    with as_role(db, "cp_admin"):  # the CLI logs in as cp_admin_login (ADR 0007)
         result = cli.user_create(
             db, email=agro_email, org=str(org_a.id), role="agronomist", display_name=None,
             create_org=False, reset_password=True, read_password=lambda: "temporary password 1",

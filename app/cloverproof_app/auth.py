@@ -61,6 +61,17 @@ class CurrentUser:
     display_name: str
     session_id: UUID
     token_sha256: str
+    actor_kind: str = "human"
+    platform_role: str | None = None  # None | 'superadmin' (set by the CLI only)
+
+    @property
+    def is_human(self) -> bool:
+        return self.actor_kind == "human"
+
+    @property
+    def is_superadmin(self) -> bool:
+        """A human superadmin (decision 2026-11-16). Service accounts never count."""
+        return self.is_human and self.platform_role == "superadmin"
 
 
 @dataclass(frozen=True)
@@ -102,7 +113,16 @@ def optional_user(request: Request, conn: Conn, settings: SettingsDep) -> Curren
         return None
     if datetime.now(UTC) - live.last_seen_at > TOUCH_EVERY:
         sessions.touch_session(conn, live.session_id)
-    user = CurrentUser(live.user_id, live.email, live.display_name, live.session_id, token_hash)
+    user = CurrentUser(
+        live.user_id,
+        live.email,
+        live.display_name,
+        live.session_id,
+        token_hash,
+        live.actor_kind,
+        live.platform_role,
+    )
+    users.set_actor(conn, user.id)  # F2: admin_event records this user for the request
     request.state.user = user
     request.state.csrf_token = security.csrf_token(settings.session_secret, token_hash)
     return user

@@ -1,4 +1,4 @@
--- Least-privilege roles (ADR 0006; security review S2 findings S5 and A1, threat T-W3).
+-- Least-privilege roles (ADR 0007; security review S2 findings S5 and A1, threat T-W3).
 --
 -- The review gate in the database (0007) trusts `membership`. Until now cp_app could write
 -- it, so any app bug could make a staff user an agronomist. After this file:
@@ -117,6 +117,6 @@ grant execute on function web_grant_member_role(uuid, uuid, uuid, membership_rol
   to cp_app;
 
 comment on function web_grant_member_role(uuid, uuid, uuid, membership_role) is
-  'Owner page: grant staff/farmer. agronomist/owner are CLI-only (cp_admin). ADR 0006.';
+  'Owner page: grant staff/farmer. agronomist/owner are CLI-only (cp_admin). ADR 0007.';
 comment on function web_revoke_member_role(uuid, uuid, uuid, membership_role) is
-  'Owner page: remove staff/farmer. agronomist/owner are CLI-only (cp_admin). ADR 0006.';
+  'Owner page: remove staff/farmer. agronomist/owner are CLI-only (cp_admin). ADR 0007.';

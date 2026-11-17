@@ -1,5 +1,7 @@
 # Sprint 1 — Nov 16–27, 2026
 
+> Superseded for scheduling by [roadmap.md](roadmap.md). This file keeps the original Sprint 1 step descriptions.
+
 Run in order. One session per step. Plan mode first for each step. Owner agent in brackets; `cloverproof-lead` dispatches.
 
 | # | Step | Owner | Exit |

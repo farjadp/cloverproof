@@ -68,6 +68,7 @@ class ReviewRow:
     id: UUID
     recommendation_id: UUID
     decision: str
+    review_kind: str  # agronomist_approved | superadmin_approved | ai_reviewed (rule 11)
     reason: str | None
     reviewer_name: str
     minutes_spent: int
@@ -164,6 +165,16 @@ def get_plan(conn: psycopg.Connection, org_id: UUID, plan_id: UUID) -> PlanRow |
         ).fetchone()
 
 
+def lock_plan(conn: psycopg.Connection, org_id: UUID, plan_id: UUID) -> bool:
+    """Row-lock the plan until commit (F1): edits and reviews of one plan run one at a time,
+    so the version read after this is still the latest when the new row is inserted."""
+    row = conn.execute(
+        "select id from crop_plan where organisation_id = %s and id = %s for update",
+        (org_id, plan_id),
+    ).fetchone()
+    return row is not None
+
+
 def insert_recommendation(conn: psycopg.Connection, org_id: UUID, *, crop_plan_id: UUID,
                           result: dict[str, Any], user_id: UUID, parent_id: UUID | None = None,
                           reason: str | None = None) -> UUID:  # fmt: skip
@@ -198,7 +209,7 @@ def recommendations(conn: psycopg.Connection, org_id: UUID, plan_id: UUID) -> li
 def reviews(conn: psycopg.Connection, org_id: UUID, plan_id: UUID) -> list[ReviewRow]:
     with conn.cursor(row_factory=class_row(ReviewRow)) as cur:
         return cur.execute(
-            "select v.id, v.recommendation_id, v.decision::text, v.reason,"
+            "select v.id, v.recommendation_id, v.decision::text, v.review_kind, v.reason,"
             " u.display_name as reviewer_name, v.minutes_spent,"
             " v.resulting_recommendation_id, v.created_at"
             " from review v join recommendation r"
@@ -211,14 +222,15 @@ def reviews(conn: psycopg.Connection, org_id: UUID, plan_id: UUID) -> list[Revie
 
 
 def insert_review(conn: psycopg.Connection, org_id: UUID, *, recommendation_id: UUID,
-                  decision: str, reason: str | None, reviewer_id: UUID, minutes_spent: int,
+                  decision: str, review_kind: str, reason: str | None, reviewer_id: UUID,
+                  minutes_spent: int, started_at: datetime | None = None,
                   resulting_recommendation_id: UUID | None = None) -> UUID:  # fmt: skip
     row = conn.execute(
-        "insert into review (organisation_id, recommendation_id, decision, reason, reviewer_id,"
-        " minutes_spent, resulting_recommendation_id) values (%s, %s, %s, %s, %s, %s, %s)"
-        " returning id",
-        (org_id, recommendation_id, decision, reason, reviewer_id, minutes_spent,
-         resulting_recommendation_id),
+        "insert into review (organisation_id, recommendation_id, decision, review_kind, reason,"
+        " reviewer_id, minutes_spent, started_at, resulting_recommendation_id)"
+        " values (%s, %s, %s, %s, %s, %s, %s, %s, %s) returning id",
+        (org_id, recommendation_id, decision, review_kind, reason, reviewer_id, minutes_spent,
+         started_at, resulting_recommendation_id),
     ).fetchone()  # fmt: skip
     assert row is not None
     return row[0]
@@ -267,6 +279,8 @@ def last_plan_per_field(conn: psycopg.Connection, org_id: UUID) -> dict[UUID, Pl
 
 
 # Status of a plan = review state of its latest version (the one without a child).
+# Only human (agronomist_approved, superadmin_approved) approve/reject are final; an
+# `ai_reviewed` review (D4, rule 11) leaves the plan in review.
 _SUMMARY = (
     "select p.id, s.label as season_label, p.crop, p.plan_date,"
     " (select count(*) from recommendation r where r.organisation_id = p.organisation_id"
@@ -274,9 +288,9 @@ _SUMMARY = (
     " l.confidence::text as confidence,"
     " case when l.id is null then 'draft'"
     "   when exists (select 1 from review v where v.recommendation_id = l.id"
-    "     and v.decision = 'approve') then 'approved'"
+    "     and v.review_kind <> 'ai_reviewed' and v.decision = 'approve') then 'approved'"
     "   when exists (select 1 from review v where v.recommendation_id = l.id"
-    "     and v.decision = 'reject') then 'rejected'"
+    "     and v.review_kind <> 'ai_reviewed' and v.decision = 'reject') then 'rejected'"
     "   else 'in_review' end as status,"
     " coalesce(greatest(l.created_at, (select max(v.created_at) from review v"
     "   where v.recommendation_id = l.id)), p.created_at) as updated_at"

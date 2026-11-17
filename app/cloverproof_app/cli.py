@@ -8,6 +8,8 @@ logged. Without a terminal it reads one line from stdin (for scripted setup).
 Running it again for an existing email adds the membership; `--reset-password` also
 replaces the password with a temporary one: all the user's sessions are revoked and they
 must choose a new password at next sign-in (owners can also reset in /admin/users).
+Accounts created here are human (actor_kind = 'human'); service accounts are refused (B1).
+Changes are recorded in admin_event by trigger with the database login as the actor (F2).
 
     ... cli user-unlock --email name@example.org
         Clears the per-account sign-in pause (security review S1) in the running app,
@@ -15,6 +17,12 @@ must choose a new password at next sign-in (owners can also reset in /admin/user
 
     ... cli user-revoke-sessions --email name@example.org
         Signs the user out on every device (security review S3); the password is unchanged.
+
+    ... cli user-create ... --platform-role superadmin
+    ... cli user-set-platform-role --email name@example.org --platform-role superadmin|none
+        Platform role (migration 0012, decision 2026-11-16), human accounts only. A human
+        superadmin may approve, edit and reject in organisations they are a member of
+        (review_kind superadmin_approved, never calibration data). Audited in admin_event.
 """
 
 from __future__ import annotations
@@ -34,6 +42,7 @@ from cloverproof_app.ratelimit import UNLOCK_CHANNEL, account_key
 from cloverproof_app.repo import admin_users, sessions, users
 
 STAFF_ROLES = ("owner", "agronomist", "staff")
+PLATFORM_ROLES = ("superadmin",)  # more (staff) with RK-X11
 
 
 class CliError(RuntimeError):
@@ -79,9 +88,12 @@ def user_create(
     create_org: bool,
     reset_password: bool,
     read_password: Callable[[], str],
+    platform_role: str | None = None,
 ) -> UserCreateResult:
     if role not in STAFF_ROLES:
         raise CliError(f"role must be one of {', '.join(STAFF_ROLES)}")
+    if platform_role is not None and platform_role not in PLATFORM_ROLES:
+        raise CliError(f"platform role must be one of {', '.join(PLATFORM_ROLES)}")
     with conn.transaction():
         org_id, created_org = resolve_org(conn, org, create_org)
         existing = users.get_credentials_by_email(conn, email)
@@ -95,6 +107,10 @@ def user_create(
             created_user = password_set = True
         else:
             user_id, created_user = existing.id, False
+            if existing.actor_kind != "human":
+                # B1/D4: this command manages people. A service account (AI reviewer) gets
+                # no password and no roles from here.
+                raise CliError("that is a service account; this command manages human accounts")
             if existing.disabled_at is not None:
                 raise CliError("that account is disabled; re-enable it in /admin/users first")
             if reset_password:
@@ -103,7 +119,25 @@ def user_create(
                 admin_users.set_temporary_password(conn, user_id, password)
                 password_set = True
         users.add_membership(conn, org_id=org_id, user_id=user_id, role=role)
+        if platform_role is not None:
+            users.set_platform_role(conn, user_id, platform_role)
     return UserCreateResult(user_id, org_id, created_user, created_org, password_set)
+
+
+def user_set_platform_role(
+    conn: psycopg.Connection, *, email: str, platform_role: str | None
+) -> UUID:
+    """Set (or clear with None) a human account's platform role. Audited by trigger (F2)."""
+    if platform_role is not None and platform_role not in PLATFORM_ROLES:
+        raise CliError(f"platform role must be one of {', '.join(PLATFORM_ROLES)}")
+    with conn.transaction():
+        creds = users.get_credentials_by_email(conn, email.strip())
+        if creds is None:
+            raise CliError("no user with that email")
+        if creds.actor_kind != "human":
+            raise CliError("that is a service account; platform roles are for human accounts")
+        users.set_platform_role(conn, creds.id, platform_role)
+        return creds.id
 
 
 def user_unlock(conn: psycopg.Connection, *, email: str) -> None:
@@ -148,6 +182,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="existing user: set a temporary password (must be changed at next sign-in)",
     )
+    create.add_argument(
+        "--platform-role", choices=PLATFORM_ROLES, help="also set this platform role"
+    )
+    platform = commands.add_parser(
+        "user-set-platform-role", help="set or clear a human account's platform role"
+    )
+    platform.add_argument("--email", required=True)
+    platform.add_argument(
+        "--platform-role", required=True, choices=(*PLATFORM_ROLES, "none"),
+        help="'none' clears it",
+    )  # fmt: skip
     unlock = commands.add_parser(
         "user-unlock", help="clear the sign-in pause after too many failed attempts"
     )
@@ -166,6 +211,10 @@ def run_command(conn: psycopg.Connection, args: argparse.Namespace) -> str:
             f"unlock sent for {args.email.strip()} (account {account_key(args.email)[:12]});"
             " the app applies it at the next sign-in attempt"
         )
+    if args.command == "user-set-platform-role":
+        wanted = None if args.platform_role == "none" else args.platform_role
+        user_set_platform_role(conn, email=args.email, platform_role=wanted)
+        return f"platform role of {args.email.strip()}: {args.platform_role}"
     if args.command == "user-revoke-sessions":
         count = user_revoke_sessions(conn, email=args.email)
         return f"revoked {count} active session(s) for {args.email.strip()}"
@@ -178,11 +227,13 @@ def run_command(conn: psycopg.Connection, args: argparse.Namespace) -> str:
         create_org=args.create_org,
         reset_password=args.reset_password,
         read_password=prompt_password,
+        platform_role=args.platform_role,
     )
     return (
         f"{'created' if result.created_user else 'existing'} user {result.user_id};"
         f" {'created' if result.created_org else 'existing'} organisation {result.org_id};"
         f" role {args.role}; password {'set' if result.password_set else 'unchanged'}"
+        + (f"; platform role {args.platform_role}" if args.platform_role else "")
     )
 
 

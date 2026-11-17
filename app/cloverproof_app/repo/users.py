@@ -16,6 +16,16 @@ class UserCredentials:
     email: str
     password_hash: str | None
     disabled_at: datetime | None
+    actor_kind: str  # 'human' | 'service' (migration 0012); only humans sign in (B1)
+    temp_password_expired: bool  # admin-set password past temp_password_expires_at (N11)
+
+    @property
+    def can_sign_in(self) -> bool:
+        return (
+            self.disabled_at is None
+            and self.actor_kind == "human"
+            and not self.temp_password_expired
+        )
 
 
 @dataclass(frozen=True)
@@ -28,18 +38,26 @@ def get_credentials_by_email(conn: psycopg.Connection, email: str) -> UserCreden
     """Auth lookup. Local accounts only; emails compare case-insensitively."""
     with conn.cursor(row_factory=class_row(UserCredentials)) as cur:
         return cur.execute(
-            "select id, email, password_hash, disabled_at from app_user"
+            "select id, email, password_hash, disabled_at, actor_kind,"
+            " coalesce(temp_password_expires_at <= now(), false) as temp_password_expired"
+            " from app_user"
             " where lower(email) = lower(%s) and auth_provider = 'local'",
             (email.strip(),),
         ).fetchone()
 
 
+def set_actor(conn: psycopg.Connection, user_id: UUID) -> None:
+    """`SET LOCAL app.user_id`: the admin_event triggers (0012, F2) record who acted."""
+    conn.execute("select set_config('app.user_id', %s, true)", (str(user_id),))
+
+
 def create_user(
     conn: psycopg.Connection, *, email: str, display_name: str, password_hash: str
 ) -> UUID:
+    """A human account (CLI, runs as cp_admin). Service accounts are never made here (B1)."""
     row = conn.execute(
-        "insert into app_user (email, display_name, password_hash) values (%s, %s, %s)"
-        " returning id",
+        "insert into app_user (email, display_name, password_hash, actor_kind)"
+        " values (%s, %s, %s, 'human') returning id",
         (email.strip(), display_name.strip(), password_hash),
     ).fetchone()
     assert row is not None
@@ -48,6 +66,11 @@ def create_user(
 
 def set_password_hash(conn: psycopg.Connection, user_id: UUID, password_hash: str) -> None:
     conn.execute("update app_user set password_hash = %s where id = %s", (password_hash, user_id))
+
+
+def set_platform_role(conn: psycopg.Connection, user_id: UUID, platform_role: str | None) -> None:
+    """CLI only (cp_admin): cp_app has no grant on platform_role (migration 0012)."""
+    conn.execute("update app_user set platform_role = %s where id = %s", (platform_role, user_id))
 
 
 def find_organisation_by_name(conn: psycopg.Connection, name: str) -> list[Organisation]:

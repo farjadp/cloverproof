@@ -46,7 +46,7 @@ def test_cli_reset_password_kills_a_pre_reset_cookie(db: psycopg.Connection, org
     assert login(attacker, email).status_code == 303
     assert attacker.get("/").status_code == 200
 
-    with as_role(db, "cp_admin"):  # the CLI logs in as cp_admin_login (ADR 0006)
+    with as_role(db, "cp_admin"):  # the CLI logs in as cp_admin_login (ADR 0007)
         cli.user_create(
             db,
             email=email,

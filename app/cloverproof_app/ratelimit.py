@@ -81,19 +81,24 @@ class SlidingWindow:
 
 
 class LoginRateLimiter:
-    """Per (email, client IP) limit; kept as its own class for the unit tests."""
+    """Per (email, client IP) limit; kept as its own class for the unit tests.
+
+    `prefix` keeps another use (password change, N13) on its own keys, so mistyped
+    current passwords never lock sign-in.
+    """
 
     def __init__(
         self,
         max_failures: int,
         window_seconds: float,
         clock: Callable[[], float] = time.monotonic,
+        prefix: str = "",
     ) -> None:
         self._window = SlidingWindow(max_failures, window_seconds, clock)
+        self._prefix = f"{prefix}:" if prefix else ""
 
-    @staticmethod
-    def key(email: str, ip: str) -> str:
-        return f"{account_key(email)}|{ip}"
+    def key(self, email: str, ip: str) -> str:
+        return f"{self._prefix}{account_key(email)}|{ip}"
 
     def is_blocked(self, email: str, ip: str) -> bool:
         return self._window.is_blocked(self.key(email, ip))

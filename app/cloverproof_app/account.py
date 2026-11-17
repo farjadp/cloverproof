@@ -160,7 +160,7 @@ def change_password(
     new_password: Annotated[str, Form(max_length=MAX_PASSWORD)] = "",
     confirm_password: Annotated[str, Form(max_length=MAX_PASSWORD)] = "",
 ) -> Response:
-    limiter: LoginRateLimiter = request.app.state.login_limiter
+    limiter: LoginRateLimiter = request.app.state.password_limiter
     settings = request.app.state.settings
     ip = client_ip(request)
     if limiter.is_blocked(user.email, ip):
@@ -371,7 +371,10 @@ def member_reset_password(
 @router.post("/admin/users/{user_id}/disable")
 def member_disable(request: Request, conn: Conn, context: OwnerOrg, user_id: UUID) -> Response:
     def action() -> None:
-        admin_users.set_disabled(conn, org_id=context.org.id, user_id=user_id, disabled=True)
+        admin_users.set_disabled(
+            conn, actor_id=context.user.id, org_id=context.org.id, user_id=user_id,
+            disabled=True,
+        )  # fmt: skip
 
     response = _apply(request, conn, context, user_id, action, "disabled")
     if user_id == context.user.id and response.status_code == 303:
@@ -382,6 +385,9 @@ def member_disable(request: Request, conn: Conn, context: OwnerOrg, user_id: UUI
 @router.post("/admin/users/{user_id}/enable")
 def member_enable(request: Request, conn: Conn, context: OwnerOrg, user_id: UUID) -> Response:
     def action() -> None:
-        admin_users.set_disabled(conn, org_id=context.org.id, user_id=user_id, disabled=False)
+        admin_users.set_disabled(
+            conn, actor_id=context.user.id, org_id=context.org.id, user_id=user_id,
+            disabled=False,
+        )  # fmt: skip
 
     return _apply(request, conn, context, user_id, action, "enabled")

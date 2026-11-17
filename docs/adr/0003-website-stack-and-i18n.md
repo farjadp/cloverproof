@@ -20,3 +20,33 @@ Farjad Iranmehr changed the build order to website → web app → mobile. The w
 - Slightly more setup now; adding a locale later is content work, not refactoring.
 - Agronomy terms need a glossary per locale before translation.
 - Translation review is a recurring cost to plan for.
+
+## Amendment — 2026-11-16
+Farjad Iranmehr decided to enable all locales with machine translation; native reviews follow per locale.
+- Supersedes "A locale goes live only after native-speaker review" and "a locale is `enabled` only after native review".
+- Every non-English file carries `meta.translationStatus` (`machine — review pending` until a native reviewer signs off, then `reviewed — <name/role>, <date>`).
+- Terms are fixed in `website/src/messages/glossary.md`; reviewers check the glossary first.
+- `npm test` fails if any locale misses a key, changes a `{placeholder}` or translates a logic value.
+- Arabic uses Noto Naskh Arabic (headings) + IBM Plex Sans Arabic (body), loaded only for `lang="ar"`.
+- Risk accepted: wording errors in machine-translated legal text (privacy notice, consent) until review; the privacy notice stays marked "draft".
+
+Review status (open item, owner: `cp-website` with native reviewers via CPO):
+
+| Locale | Status |
+|---|---|
+| en | source |
+| fr | machine — review pending |
+| it | machine — review pending |
+| es | machine — review pending |
+| bg | machine — review pending |
+| fi | machine — review pending |
+| tr | machine — review pending |
+| ar | machine — review pending |
+| he | machine — review pending |
+
+## Amendment — 2026-11-17: Hebrew (`he`)
+Farjad Iranmehr asked to add Hebrew as the 9th locale and the second RTL one, enabled with machine translation under the 2026-11-16 amendment.
+- Fonts: Noto Serif Hebrew (headings) + Noto Sans Hebrew (body), loaded only for `lang="he"`; Latin names, symbols and units keep the Latin faces.
+- Language picker flag: Israel (`il`), following the flag-per-locale decision.
+- Funnel events: none from `he` (consent status for Hebrew/Israel unknown); same gate as fi, bg, ar.
+- Open item: native Hebrew reviewer (glossary first, then privacy notice and consent text).

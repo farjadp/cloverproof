@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isEnabledLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
+import { languageAlternates } from "@/lib/site";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
@@ -9,7 +10,15 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/privacy">)
   const { lang } = await params;
   if (!isEnabledLocale(lang)) return {};
   const t = await getDictionary(lang);
-  return { title: `${t.privacy.title} · CloverProof`, robots: { index: false } };
+  const title = `${t.privacy.title} · CloverProof`;
+  return {
+    title,
+    description: t.privacy.description,
+    // Draft until legal review: keep out of search results.
+    robots: { index: false, follow: true },
+    alternates: { canonical: `/${lang}/privacy`, languages: languageAlternates("/privacy") },
+    openGraph: { type: "website", siteName: "CloverProof", title, description: t.privacy.description, url: `/${lang}/privacy` },
+  };
 }
 
 export default async function Privacy({ params }: PageProps<"/[lang]/privacy">) {

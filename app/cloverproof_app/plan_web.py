@@ -9,16 +9,25 @@ from __future__ import annotations
 
 import math
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated, Any
 from uuid import UUID
 
+import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 
 from cloverproof_app import planning, timer
-from cloverproof_app.auth import INTERNAL_ROLES, Conn, OrgContext, SettingsDep, require_org_role
+from cloverproof_app.auth import (
+    INTERNAL_ROLES,
+    Conn,
+    OrgContext,
+    SettingsDep,
+    require_org_role,
+)
 from cloverproof_app.repo import farms, plans
 from cloverproof_app.web import render
 from cloverproof_engine.pack import Pack
@@ -26,10 +35,36 @@ from cloverproof_engine.pack import Pack
 router = APIRouter()
 
 InternalOrg = Annotated[OrgContext, Depends(require_org_role(*INTERNAL_ROLES))]
-ONLY_AGRONOMIST = "Only the agronomist can review plans."
+ONLY_AGRONOMIST = "Only an agronomist or a superadmin can review plans."
 ALREADY_REVIEWED = "This plan version is already reviewed. Nothing was saved."
 STALE_VERSION = "A newer version of this plan exists. Reload the plan; nothing was saved."
 TIMER_MISSING = "The plan timer is missing. Open the plan again, then review. Nothing was saved."
+FINAL_DECISIONS = frozenset({"approve", "reject"})
+DECISION_LABELS = {"approve": "Approved", "reject": "Rejected", "edit": "Edited"}
+AI_DECISION_LABELS = {"approve": "would approve", "reject": "would reject"}
+# CLAUDE.md rule 11 + decision 2026-11-16: the reviewer fixes the review kind (also
+# enforced by the database trigger review_check_kind). Human reviews (agronomist or
+# superadmin) are final; only agronomist_approved ones are calibration data.
+AGRONOMIST_REVIEW = "agronomist_approved"
+SUPERADMIN_REVIEW = "superadmin_approved"
+AI_REVIEW = "ai_reviewed"
+HUMAN_REVIEWS = frozenset({AGRONOMIST_REVIEW, SUPERADMIN_REVIEW})
+REVIEWER_LABELS = {AGRONOMIST_REVIEW: "agronomist", SUPERADMIN_REVIEW: "superadmin"}
+
+
+def review_kind_for(context: OrgContext) -> str:
+    """review_kind for a review by the signed-in user in this organisation."""
+    user = context.user
+    if user.actor_kind == "service":
+        return AI_REVIEW
+    if user.actor_kind != "human":
+        raise ValueError(f"unknown actor_kind {user.actor_kind!r}")
+    if "agronomist" in context.roles:
+        return AGRONOMIST_REVIEW  # even if also superadmin
+    if user.is_superadmin:
+        return SUPERADMIN_REVIEW
+    raise ValueError("not a reviewer: needs the agronomist role or superadmin")
+
 
 STATUS_LABELS = {
     "draft": "Draft",
@@ -44,7 +79,9 @@ def pack_of(request: Request) -> Pack:
 
 
 def is_agronomist(context: OrgContext) -> bool:
-    return "agronomist" in context.roles
+    """May review: a human agronomist of the org or a human superadmin member of it
+    (B1/D4, decision 2026-11-16). A service account never edits, approves or rejects."""
+    return context.user.is_human and ("agronomist" in context.roles or context.user.is_superadmin)
 
 
 def require_agronomist(context: OrgContext) -> None:
@@ -304,6 +341,20 @@ class PlanView:
     def read_only(self) -> bool:
         return self.final_review is not None
 
+    @property
+    def ai_reviews(self) -> list[plans.ReviewRow]:
+        """AI reviews of the version on screen (D4): shown, never an approval."""
+        return [
+            r for r in self.reviews
+            if r.review_kind == AI_REVIEW and r.recommendation_id == self.latest.id
+        ]  # fmt: skip
+
+    @property
+    def last_review_at(self) -> datetime | None:
+        """When the agronomist last recorded a review on this plan (F4 timer restart)."""
+        return max((r.created_at for r in self.reviews if r.review_kind in HUMAN_REVIEWS),
+                   default=None)  # fmt: skip
+
 
 def by_lineage(rows: list[plans.RecRow]) -> list[plans.RecRow]:
     """Versions in edit order: by depth in the parent chain (timestamps can tie)."""
@@ -332,7 +383,14 @@ def load_plan(conn: Conn, context: OrgContext, plan_id: UUID) -> PlanView:
     latest = leaves[-1]
     reviews = plans.reviews(conn, org, plan_id)
     final = next(
-        (r for r in reviews if r.recommendation_id == latest.id and r.decision != "edit"), None
+        (
+            r
+            for r in reviews
+            if r.recommendation_id == latest.id
+            and r.review_kind in HUMAN_REVIEWS
+            and r.decision in FINAL_DECISIONS
+        ),
+        None,
     )
     status = "in_review" if final is None else ("approved" if final.decision == "approve"
                                                 else "rejected")  # fmt: skip
@@ -373,7 +431,7 @@ def plan_page(request: Request, conn: Conn, context: OrgContext, settings: Setti
     new_start = None
     if started is None and not view.read_only:
         new_start = started = int(time.time())
-    minutes = timer.minutes_since(started) if started is not None else None
+    minutes = shown_minutes(view, settings, started)
     ctx = {
         "v": view,
         "doc": view.doc,
@@ -381,6 +439,9 @@ def plan_page(request: Request, conn: Conn, context: OrgContext, settings: Setti
         "comparison": comparison(view),
         "minutes": minutes,
         "can_review": is_agronomist(context),
+        "decision_labels": DECISION_LABELS,
+        "ai_decision_labels": AI_DECISION_LABELS,
+        "reviewer_labels": REVIEWER_LABELS,
         "errors": errors or {},
         "values": values or {},
         "status_labels": STATUS_LABELS,
@@ -406,8 +467,16 @@ def plan_timer(request: Request, conn: Conn, context: InternalOrg, settings: Set
                plan_id: UUID) -> Response:  # fmt: skip
     view = load_plan(conn, context, plan_id)
     started = timer.plan_start(request, settings, context.user, plan_id)
-    minutes = timer.minutes_since(started) if started is not None else None
+    minutes = shown_minutes(view, settings, started)
     return render(request, "_timer.html", {"v": view, "minutes": minutes})
+
+
+def shown_minutes(view: PlanView, settings: SettingsDep, started: int | None) -> int | None:
+    """What the next review would record (same rule as the stored value)."""
+    if started is None:
+        return None
+    return timer.review_minutes(started, view.last_review_at,
+                                cap=settings.review_minutes_cap).minutes  # fmt: skip
 
 
 def limits_context(request: Request, doc: dict[str, Any], rate: Any) -> dict[str, Any]:
@@ -446,11 +515,60 @@ def plan_edit(request: Request, conn: Conn, context: InternalOrg, plan_id: UUID)
 
 
 def reviewed_minutes(request: Request, settings: SettingsDep, context: OrgContext,
-                     plan_id: UUID) -> int:  # fmt: skip
-    started = timer.plan_start(request, settings, context.user, plan_id)
+                     view: PlanView) -> timer.ReviewMinutes:  # fmt: skip
+    """F4: minutes since the previous review on this plan (or since open), capped."""
+    started = timer.plan_start(request, settings, context.user, view.plan.id)
     if started is None:
         raise HTTPException(400, TIMER_MISSING)
-    return timer.minutes_since(started)
+    return timer.review_minutes(started, view.last_review_at, cap=settings.review_minutes_cap)
+
+
+def with_cap_note(reason: str | None, spent: timer.ReviewMinutes) -> str | None:
+    """A capped review says so in its reason, so the stored minutes are never mistaken."""
+    if not spent.capped:
+        return reason
+    note = f"[timer capped: {spent.measured} minutes measured, {spent.minutes} stored]"
+    return f"{reason}\n{note}" if reason else note
+
+
+def locked_plan(conn: Conn, context: OrgContext, plan_id: UUID) -> PlanView:
+    """The plan, read after taking its row lock (F1): no other edit/review interleaves."""
+    if not plans.lock_plan(conn, context.org.id, plan_id):
+        raise not_found("Plan")
+    return load_plan(conn, context, plan_id)
+
+
+# Database guards against forks and double final reviews (migrations 0007, 0012); each
+# raises SQLSTATE 23505 with one of these names. Should one fire (a request that got past
+# the lock), the user gets the same 409 as from the app's own check, and nothing is saved.
+STALE_CONSTRAINTS = frozenset({"recommendation_one_child_idx", "review_final_after_child"})
+REVIEWED_CONSTRAINTS = frozenset(
+    {"review_one_final_idx", "review_one_approval_idx", "recommendation_child_after_final"}
+)
+
+
+def conflict_message(error: psycopg.Error) -> str | None:
+    diag = error.diag
+    if error.sqlstate != "23505":
+        return None
+    if diag.constraint_name in STALE_CONSTRAINTS:
+        return STALE_VERSION
+    if diag.constraint_name in REVIEWED_CONSTRAINTS:
+        return ALREADY_REVIEWED
+    return None
+
+
+@contextmanager
+def conflicts_as_409(conn: Conn) -> Iterator[None]:
+    """Run the inserts in a savepoint; a version/review conflict becomes 409, nothing saved."""
+    try:
+        with conn.transaction():
+            yield
+    except psycopg.Error as error:
+        message = conflict_message(error)
+        if message is None:
+            raise
+        raise HTTPException(409, message) from error
 
 
 def check_version(view: PlanView, form: Any) -> None:
@@ -464,7 +582,7 @@ def check_version(view: PlanView, form: Any) -> None:
 async def plan_edit_save(request: Request, conn: Conn, context: InternalOrg,
                          settings: SettingsDep, plan_id: UUID) -> Response:  # fmt: skip
     require_agronomist(context)
-    view = load_plan(conn, context, plan_id)
+    view = locked_plan(conn, context, plan_id)
     form = await form_data(request)
     check_version(view, form)
     reason = text(form, "reason").strip()
@@ -474,23 +592,32 @@ async def plan_edit_save(request: Request, conn: Conn, context: InternalOrg,
     if edit is None:
         values = {"n_rate": raw_rate, "splits": raw_splits, "reason": reason}
         return edit_page(request, view, errors, values, 422)
-    minutes = reviewed_minutes(request, settings, context, plan_id)
+    spent = reviewed_minutes(request, settings, context, view)
     org = context.org.id
     document = planning.edited_document(view.doc, edit, reason)
-    new_id = plans.insert_recommendation(conn, org, crop_plan_id=plan_id, result=document,
-                                         user_id=context.user.id, parent_id=view.latest.id,
-                                         reason=reason)  # fmt: skip
-    plans.insert_review(conn, org, recommendation_id=view.latest.id, decision="edit",
-                        reason=reason, reviewer_id=context.user.id, minutes_spent=minutes,
-                        resulting_recommendation_id=new_id)  # fmt: skip
-    return RedirectResponse(f"/plans/{plan_id}#review", status_code=303)
+    with conflicts_as_409(conn):
+        new_id = plans.insert_recommendation(
+            conn, org, crop_plan_id=plan_id, result=document, user_id=context.user.id,
+            parent_id=view.latest.id, reason=reason,
+        )  # fmt: skip
+        plans.insert_review(
+            conn, org, recommendation_id=view.latest.id, decision="edit",
+            review_kind=review_kind_for(context),
+            reason=with_cap_note(reason, spent), reviewer_id=context.user.id,
+            minutes_spent=spent.minutes, started_at=spent.started_at,
+            resulting_recommendation_id=new_id,
+        )  # fmt: skip
+    response = RedirectResponse(f"/plans/{plan_id}#review", status_code=303)
+    # F4: the next review counts from now (the edit's minutes are already stored).
+    timer.set_plan_start(response, settings, context.user, plan_id, int(time.time()))
+    return response
 
 
 @router.post("/plans/{plan_id}/review")
 async def plan_review(request: Request, conn: Conn, context: InternalOrg, settings: SettingsDep,
                       plan_id: UUID) -> Response:  # fmt: skip
     require_agronomist(context)
-    view = load_plan(conn, context, plan_id)
+    view = locked_plan(conn, context, plan_id)
     form = await form_data(request)
     check_version(view, form)
     decision = text(form, "decision", 20)
@@ -504,8 +631,14 @@ async def plan_review(request: Request, conn: Conn, context: InternalOrg, settin
         values = {"decision": decision, "reason": reason}
         return plan_page(request, conn, context, settings, plan_id, errors=errors,
                          values=values, status=422)  # fmt: skip
-    minutes = reviewed_minutes(request, settings, context, plan_id)
-    plans.insert_review(conn, context.org.id, recommendation_id=view.latest.id,
-                        decision=decision, reason=reason or None, reviewer_id=context.user.id,
-                        minutes_spent=minutes)  # fmt: skip
-    return RedirectResponse(f"/plans/{plan_id}", status_code=303)
+    spent = reviewed_minutes(request, settings, context, view)
+    with conflicts_as_409(conn):
+        plans.insert_review(
+            conn, context.org.id, recommendation_id=view.latest.id, decision=decision,
+            review_kind=review_kind_for(context),
+            reason=with_cap_note(reason or None, spent), reviewer_id=context.user.id,
+            minutes_spent=spent.minutes, started_at=spent.started_at,
+        )  # fmt: skip
+    response = RedirectResponse(f"/plans/{plan_id}", status_code=303)
+    timer.clear_plan_start(response, settings, plan_id)  # N14: plan is final, no more timing
+    return response

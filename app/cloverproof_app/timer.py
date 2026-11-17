@@ -5,12 +5,17 @@ and the plan, so it cannot be edited in the browser without detection:
 - the New plan form carries a signed start in a hidden field (data entry counts);
 - once the plan exists the start lives in an HttpOnly cookie scoped to /plans/{id};
 - a plan opened without a valid start begins counting at that moment.
-`minutes_spent` = whole minutes from start to the review submit, computed on the server.
+`minutes_spent` (security review F4) = whole minutes from the later of that start and the
+previous review on the plan, to this review's submit, computed on the server and capped at
+REVIEW_MINUTES_CAP. Summing minutes over a plan's reviews gives the time spent on it once.
+After an edit the start is reset to now; after approve/reject the cookie is deleted (N14).
 """
 
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import Request
@@ -76,6 +81,41 @@ def set_plan_start(response: Response, settings: Settings, user: CurrentUser, pl
         httponly=True,
         secure=settings.cookie_secure,
         samesite="lax",
+    )
+
+
+def clear_plan_start(response: Response, settings: Settings, plan_id: UUID) -> None:
+    response.delete_cookie(
+        cookie_name(plan_id),
+        path=f"/plans/{plan_id}",
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="lax",
+    )
+
+
+@dataclass(frozen=True)
+class ReviewMinutes:
+    minutes: int  # stored in review.minutes_spent (capped)
+    measured: int  # before the cap
+    capped: bool
+    started_at: datetime  # stored in review.started_at
+
+
+def review_minutes(
+    started: int, previous_review_at: datetime | None, *, cap: int, now: float | None = None
+) -> ReviewMinutes:
+    """Minutes for one review: from the signed start or the previous review, whichever is later."""
+    start = float(started)
+    if previous_review_at is not None:
+        start = max(start, previous_review_at.timestamp())
+    now = time.time() if now is None else now
+    measured = max(0, int(now - start) // 60)
+    return ReviewMinutes(
+        minutes=min(measured, cap),
+        measured=measured,
+        capped=measured > cap,
+        started_at=datetime.fromtimestamp(start, UTC),
     )
 
 
