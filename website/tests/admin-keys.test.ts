@@ -112,6 +112,24 @@ test("replaced and revoked keys keep no recoverable ciphertext (tombstone)", { s
     assert.deepEqual(rows, [{ version: 1, tomb: true, revoked: true }, { version: 2, tomb: true, revoked: true }]);
   }));
 
+test("rotation refuses to commit if any active key is not openable with the new KEK alone (D-S2)", { skip }, () =>
+  withDb(async (db, admin) => {
+    await saveKey(db, config, admin, "anthropic", SECRET, meta, now);
+    // The forgotten-id mistake: a NEW key put in under the OLD id. Nothing looks "old", so a
+    // naive rewrap re-seals 0 rows; deleting the real old key would then lose every API key.
+    const sameIdNewKey = { ...config, keks: [{ id: "t1", key: randomBytes(32) }, { id: "t0", key: config.keks[0].key }] };
+    await assert.rejects(rewrapAll(db, sameIdNewKey), /not under the current master key|could not be opened/);
+  }));
+
+test("rotation asserts no active key stays under the old KEK id (D-S2)", { skip }, () =>
+  withDb(async (db, admin) => {
+    await saveKey(db, config, admin, "anthropic", SECRET, meta, now);
+    const rotated = { ...config, keks: [{ id: "t2", key: randomBytes(32) }, ...config.keks] };
+    // A database wrapper that silently drops the re-seal writes.
+    const lossy = { query: (sql: string, params?: unknown[]) => (/^update website_secret set sealed/.test(sql) ? Promise.resolve({ rows: [], rowCount: 0 }) : db.query(sql, params)) };
+    await assert.rejects(rewrapAll(lossy as unknown as pg.Client, rotated), /not under the current master key/);
+  }));
+
 test("master-key rotation re-seals active keys under the new KEK", { skip }, () =>
   withDb(async (db, admin) => {
     await saveKey(db, config, admin, "anthropic", SECRET, meta, now);

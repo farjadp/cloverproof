@@ -205,10 +205,20 @@ export async function testKey(
   return { ok: false, error: `Test failed: ${why}.` };
 }
 
+/** Thrown when a rotation would leave a key the current master key can't open (rolls back). */
+export class RotationIncomplete extends Error {
+  constructor(what: string) {
+    super(what);
+    this.name = "RotationIncomplete";
+  }
+}
+
 /**
  * Master-key rotation (ADR 0013): re-seal every active key under the current KEK (config.keks[0]),
  * opening with any configured KEK (current + previous). Revoked keys hold only a tombstone.
- * Run in one transaction (npm run secrets:rewrap).
+ * Run in one transaction (npm run secrets:rewrap). Before returning it checks (D-S2) that no
+ * active key is still under another KEK id AND that every active key opens with the current KEK
+ * alone; otherwise it throws so the caller rolls back and the previous KEK must not be deleted.
  */
 export async function rewrapAll(db: Db, config: AdminConfig): Promise<number> {
   const current = config.keks[0];
@@ -224,6 +234,22 @@ export async function rewrapAll(db: Db, config: AdminConfig): Promise<number> {
       current.id,
     ]);
   }
+  await assertAllUnderCurrent(db, current);
   await writeLog(db, { kind: "secret", action: "key.rewrap", outcome: "ok", detail: { count: rows.length, via: "cli" } });
   return rows.length;
+}
+
+async function assertAllUnderCurrent(db: Db, current: AdminConfig["keks"][number]): Promise<void> {
+  const { rows } = await db.query<{ provider: Provider; version: number; kek_id: string; sealed: Buffer }>(
+    "select provider, version, kek_id, sealed from website_secret where revoked_at is null",
+  );
+  const stale = rows.filter((r) => r.kek_id !== current.id).length;
+  if (stale > 0) throw new RotationIncomplete(`${stale} active key(s) are not under the current master key`);
+  for (const r of rows) {
+    try {
+      open(r.sealed, aad(r.provider, r.version), [current]);
+    } catch {
+      throw new RotationIncomplete(`the ${r.provider} key could not be opened with the current master key`);
+    }
+  }
 }

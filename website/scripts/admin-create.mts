@@ -1,10 +1,11 @@
 // Create the first website admin (ADR 0012). Run in the Railway website service shell:
 //   npm run admin:create -- --email you@example.com --name "Your Name" [--additional]
-// Needs ADMIN_DATABASE_URL, WEBSITE_SECRETS_KEK, WEBSITE_ADMIN_HMAC_KEY (and SITE_URL for the link).
+// Needs ADMIN_DATABASE_URL, WEBSITE_SECRETS_KEK + WEBSITE_SECRETS_KEK_ID, WEBSITE_ADMIN_HMAC_KEY (and SITE_URL for the link).
 // Prints a one-time setup link (valid 72 h). Nothing secret is written to the log.
 import { parseArgs } from "node:util";
 import pg from "pg";
 import { keyFromBase64 } from "../src/lib/admin/crypto.ts";
+import { kekRingFromEnv } from "../src/lib/admin/kek-env.ts";
 import { createFirstAdmin } from "../src/lib/admin/service.ts";
 
 const { values } = parseArgs({
@@ -16,7 +17,7 @@ async function main(): Promise<void> {
   const url = process.env.ADMIN_DATABASE_URL;
   if (!url) throw new Error("ADMIN_DATABASE_URL is not set");
   const config = {
-    keks: [{ id: process.env.WEBSITE_SECRETS_KEK_ID || "k1", key: keyFromBase64("WEBSITE_SECRETS_KEK", process.env.WEBSITE_SECRETS_KEK) }],
+    keks: kekRingFromEnv(),
     hmacKey: keyFromBase64("WEBSITE_ADMIN_HMAC_KEY", process.env.WEBSITE_ADMIN_HMAC_KEY),
     siteUrl:
       process.env.SITE_URL ??
