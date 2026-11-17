@@ -8,7 +8,15 @@ import { Field, FormError, Submit } from "../ui";
 // The token travels in the URL fragment (#…), which browsers never send to the server,
 // so it can't end up in access logs or Referer headers.
 const subscribe = () => () => {};
-const readFragment = () => window.location.hash.slice(1);
+let fragment: string | null = null;
+function readFragment(): string {
+  if (fragment === null) {
+    fragment = window.location.hash.slice(1);
+    // Drop the token from the address bar and history once read.
+    if (fragment) window.history.replaceState(null, "", window.location.pathname);
+  }
+  return fragment;
+}
 
 export function SetupForm({ pre }: { pre: string }) {
   const token = useSyncExternalStore(subscribe, readFragment, () => "");

@@ -8,9 +8,11 @@ export async function logoutAction(form: FormData): Promise<void> {
   const db = adminDb();
   const config = adminConfig();
   const token = await sessionToken();
-  if (db && config && csrfValid(config, token, form.get("csrf"))) {
+  // Signing out is always honoured (it can only end the caller's own session); CSRF is still
+  // checked so the log says whether it came from our form.
+  if (db && config) {
     const current = await loadSession(db, token, new Date());
-    if (current) await logout(db, current, await requestMeta(), new Date());
+    if (current) await logout(db, current, await requestMeta(), new Date(), csrfValid(config, token, form.get("csrf")));
   }
   await clearSessionCookie();
   redirect("/admin/login");

@@ -30,6 +30,12 @@ test("envelope refuses wrong AAD, wrong KEK and tampering", () => {
   }
 });
 
+test("envelope refuses truncated tags", () => {
+  const parsed = JSON.parse(seal("v", "aad", kek).toString("utf8"));
+  const short = Buffer.from(JSON.stringify({ ...parsed, tag: Buffer.from(parsed.tag, "base64").subarray(0, 4).toString("base64") }));
+  assert.throws(() => open(short, "aad", [kek]), /bad envelope/);
+});
+
 test("envelope rewrap moves a value to a new KEK", () => {
   const moved = rewrap(seal("v", "aad", kek), "aad", [kek], kek2);
   assert.equal(sealedKekId(moved), "k2");

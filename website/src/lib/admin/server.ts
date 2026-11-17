@@ -125,3 +125,19 @@ export async function preValid(form: FormData): Promise<boolean> {
   const sent = form.get("pre");
   return cookie.length >= 32 && typeof sent === "string" && sent === cookie;
 }
+
+/** Run `fn` in one transaction on a dedicated admin connection. */
+export async function inTransaction<T>(db: Pool, fn: (client: import("pg").PoolClient) => Promise<T>): Promise<T> {
+  const client = await db.connect();
+  try {
+    await client.query("begin");
+    const result = await fn(client);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}

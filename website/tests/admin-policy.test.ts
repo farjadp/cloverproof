@@ -36,8 +36,9 @@ test("only IP prefixes leave the request", () => {
   assert.equal(ipPrefix("2001:db8:abcd:12::1"), "2001:db8:abcd::/48");
   assert.equal(ipPrefix("::1"), "0:0:0::/48");
   assert.equal(ipPrefix("not an ip"), null);
-  assert.equal(clientIp("203.0.113.5, 10.0.0.1", null), "203.0.113.5");
-  assert.equal(clientIp(null, "198.51.100.2"), "198.51.100.2");
+  assert.equal(clientIp("6.6.6.6, 203.0.113.5", null), "203.0.113.5", "spoofable first entry ignored");
+  assert.equal(clientIp("6.6.6.6", "198.51.100.2"), "198.51.100.2", "X-Real-IP wins");
+  assert.equal(clientIp(null, null), null);
 });
 
 test("browser family only", () => {

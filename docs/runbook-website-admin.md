@@ -35,5 +35,13 @@ The CLI refuses a second admin unless `--additional` is given; later users are i
 
 ## 4. Lost phone / locked out
 - Use a recovery code on the two-step screen (each works once).
-- Another admin can issue an MFA reset or password reset link (users page, PR 3).
-- Last resort (only admin, no recovery codes): operator clears MFA in the database for that user (`update website_user set mfa_secret_enc = null, mfa_enabled_at = null where email = ...`) and issues a new link with the CLI; log the action.
+- Another admin: Users page → "Reset two-step sign-in" and/or "Password reset link".
+- Locked after 5 wrong passwords or codes: the lock lifts by itself (15 min, doubling up to 24 h); every session ends when codes lock it.
+- Last resort (only admin, no recovery codes), operator in the website shell:
+  ```bash
+  npm run admin:reset -- --email <email> --mfa
+  ```
+  Clears two-step sign-in and recovery codes, unlocks, ends all sessions, prints a 1-hour password link. Logged as `user.reset_mfa` via `cli`.
+
+## 5. Client IP behind Railway
+The log stores only an IP prefix. `X-Real-IP` is used, else the last `X-Forwarded-For` entry. Before relying on the per-IP limit, check on staging that a spoofed `X-Forwarded-For: 6.6.6.6` does not appear as `6.6.6.0/24` in the log.

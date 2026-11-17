@@ -30,10 +30,16 @@ export function ipPrefix(raw: string | null | undefined): string | null {
   return null;
 }
 
-/** First address in X-Forwarded-For (set by Railway's edge), else X-Real-IP. */
+/**
+ * Client address as seen by Railway's edge: X-Real-IP first (the header Railway documents),
+ * else the LAST X-Forwarded-For entry (the one the edge appended). The first XFF entry is
+ * client-controlled and never used. Verify on staging with a spoofed header before relying on it.
+ */
 export function clientIp(forwardedFor: string | null, realIp: string | null): string | null {
-  const first = forwardedFor?.split(",")[0]?.trim();
-  return first || realIp?.trim() || null;
+  const real = realIp?.trim();
+  if (real) return real;
+  const parts = forwardedFor?.split(",").map((x) => x.trim()).filter(Boolean) ?? [];
+  return parts.at(-1) ?? null;
 }
 
 /** Browser family only (no version, OS or device). */

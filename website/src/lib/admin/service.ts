@@ -177,13 +177,12 @@ async function bump(db: Db, key: Buffer, now: Date): Promise<number> {
   return rows[0].count;
 }
 
-async function windowCount(db: Db, key: Buffer, now: Date): Promise<number> {
+async function unbump(db: Db, key: Buffer, now: Date): Promise<void> {
   const windowStart = new Date(Math.floor(now.getTime() / (RATE_WINDOW_SECONDS * 1000)) * RATE_WINDOW_SECONDS * 1000);
-  const { rows } = await db.query<{ count: number }>(
-    "select count from website_rate_limit where key_hash = $1 and window_start = $2",
+  await db.query(
+    "update website_rate_limit set count = greatest(count - 1, 0) where key_hash = $1 and window_start = $2",
     [key, windowStart],
   );
-  return rows[0]?.count ?? 0;
 }
 
 const emailKey = (config: AdminConfig, email: string) => hmac(config.hmacKey, `login-email|${email}`);
@@ -260,9 +259,9 @@ async function rotate(db: Db, sessionId: string): Promise<string> {
   return token;
 }
 
-export async function logout(db: Db, current: Current, meta: RequestMeta, now: Date): Promise<void> {
+export async function logout(db: Db, current: Current, meta: RequestMeta, now: Date, viaForm = true): Promise<void> {
   await db.query("update website_session set revoked_at = $2 where id = $1", [current.session.id, now]);
-  await writeLog(db, { actor: current.user.id, kind: "auth", action: "logout", outcome: "ok", meta });
+  await writeLog(db, { actor: current.user.id, kind: "auth", action: "logout", outcome: "ok", meta, detail: viaForm ? undefined : { via: "no_csrf" } });
 }
 
 // ---------------------------------------------------------------- CSRF
@@ -296,52 +295,68 @@ export async function login(
     await burnPasswordTime(input.password);
     return fail("invalid_input");
   }
+  // Count the attempt first (atomic), then decide: parallel requests can't all slip under the limit.
   const eKey = emailKey(config, email);
   const iKey = meta.ipPrefix ? ipKey(config, meta.ipPrefix) : null;
-  if ((await windowCount(db, eKey, now)) >= MAX_FAILS_PER_ACCOUNT || (iKey && (await windowCount(db, iKey, now)) >= MAX_FAILS_PER_IP)) {
+  const perEmail = await bump(db, eKey, now);
+  const perIp = iKey ? await bump(db, iKey, now) : 0;
+  if (perEmail > MAX_FAILS_PER_ACCOUNT || perIp > MAX_FAILS_PER_IP) {
     await burnPasswordTime(input.password);
     return fail("rate_limited");
   }
-  const { rows } = await db.query<User>(
-    "select * from website_user where email = $1 and deleted_at is null",
-    [email],
-  );
+  const { rows } = await db.query<User>("select * from website_user where email = $1 and deleted_at is null", [email]);
   const user = rows[0];
   if (!user || !user.password_hash) {
     await burnPasswordTime(input.password);
-    await bump(db, eKey, now);
-    if (iKey) await bump(db, iKey, now);
     return fail("unknown_or_unset");
   }
-  const locked = user.locked_until && new Date(user.locked_until) > now;
   const valid = await verifyPassword(user.password_hash, input.password);
-  if (!valid || locked || user.disabled_at) {
-    await bump(db, eKey, now);
-    if (iKey) await bump(db, iKey, now);
-    if (!valid) {
-      const fails = user.failed_logins + 1;
-      const lockSeconds =
-        fails >= MAX_FAILS_PER_ACCOUNT
-          ? Math.min(LOCK_BASE_SECONDS * 2 ** (fails - MAX_FAILS_PER_ACCOUNT), LOCK_MAX_SECONDS)
-          : 0;
-      await db.query("update website_user set failed_logins = $2, locked_until = $3 where id = $1", [
-        user.id,
-        fails,
-        lockSeconds ? new Date(now.getTime() + lockSeconds * 1000) : user.locked_until,
-      ]);
-      if (lockSeconds) {
-        await writeLog(db, { actor: user.id, kind: "auth", action: "account.lock", outcome: "ok", meta, detail: { count: fails } });
-      }
-    }
-    return fail(!valid ? "bad_credentials" : locked ? "locked" : "disabled", user.id);
+  if (!valid) {
+    await recordFailure(db, user.id, meta, now, false);
+    return fail("bad_credentials", user.id);
   }
-  await db.query("update website_user set failed_logins = 0, locked_until = null where id = $1", [user.id]);
+  if (isLocked(user, now) || user.disabled_at) return fail(user.disabled_at ? "disabled" : "locked", user.id);
+  // A successful password doesn't use up the rate-limit budget. Failure counters reset only
+  // after the second factor succeeds, so password + guessed codes can't reset them.
+  await unbump(db, eKey, now);
+  if (iKey) await unbump(db, iKey, now);
   if (needsRehash(user.password_hash)) {
     await db.query("update website_user set password_hash = $2 where id = $1", [user.id, await hashPassword(input.password)]);
   }
   const token = await createSession(db, user.id, meta, now, false);
   await writeLog(db, { actor: user.id, kind: "auth", action: "login.password", outcome: "ok", meta });
   return { ok: true, token };
+}
+
+function isLocked(user: Pick<User, "locked_until">, now: Date): boolean {
+  return Boolean(user.locked_until && new Date(user.locked_until) > now);
+}
+
+/**
+ * One failed password, TOTP or recovery code for this account (atomic). From the 5th failure the
+ * account locks for 15 min, doubling up to 24 h; a lock caused by codes also ends every session.
+ */
+async function recordFailure(db: Db, userId: string, meta: RequestMeta, now: Date, secondFactor: boolean): Promise<boolean> {
+  const { rows } = await db.query<{ failed_logins: number; locked: boolean }>(
+    `update website_user
+        set failed_logins = failed_logins + 1,
+            locked_until = case when failed_logins + 1 >= $3
+              then $2::timestamptz + make_interval(secs => least($4 * power(2, failed_logins + 1 - $3), $5))
+              else locked_until end
+      where id = $1
+      returning failed_logins, failed_logins >= $3 as locked`,
+    [userId, now, MAX_FAILS_PER_ACCOUNT, LOCK_BASE_SECONDS, LOCK_MAX_SECONDS],
+  );
+  const locked = Boolean(rows[0]?.locked);
+  if (locked) {
+    if (secondFactor) await revokeAllSessions(db, userId, now);
+    await writeLog(db, { actor: userId, kind: "auth", action: "account.lock", outcome: "ok", meta, detail: { count: rows[0].failed_logins } });
+  }
+  return locked;
+}
+
+async function clearFailures(db: Db, userId: string): Promise<void> {
+  await db.query("update website_user set failed_logins = 0, locked_until = null where id = $1", [userId]);
 }
 
 // ---------------------------------------------------------------- MFA
@@ -353,15 +368,17 @@ async function userWithSecrets(db: Db, userId: string): Promise<User> {
 
 /** Secret for the enrolment screen. Kept sealed on the user row until the first code is verified. */
 export async function pendingMfaSecret(db: Db, config: AdminConfig, current: Current): Promise<string> {
+  const before = await userWithSecrets(db, current.user.id);
+  if (before.mfa_enabled_at) throw new Error("MFA is already enrolled");
+  if (!before.mfa_secret_enc) {
+    // Only the first of two parallel page loads stores a secret; both then show that one.
+    await db.query(
+      "update website_user set mfa_secret_enc = $2 where id = $1 and mfa_enabled_at is null and mfa_secret_enc is null",
+      [before.id, seal(newTotpSecret(), mfaAad(before.id), config.keks[0])],
+    );
+  }
   const user = await userWithSecrets(db, current.user.id);
-  if (user.mfa_enabled_at) throw new Error("MFA is already enrolled");
-  if (user.mfa_secret_enc) return open(user.mfa_secret_enc, mfaAad(user.id), config.keks);
-  const secret = newTotpSecret();
-  await db.query("update website_user set mfa_secret_enc = $2 where id = $1 and mfa_enabled_at is null", [
-    user.id,
-    seal(secret, mfaAad(user.id), config.keks[0]),
-  ]);
-  return secret;
+  return open(user.mfa_secret_enc as Buffer, mfaAad(user.id), config.keks);
 }
 
 /** Marks a TOTP step as used for this user (replay protection, purged after 1 day). */
@@ -397,6 +414,16 @@ const recoveryHash = (config: AdminConfig, code: string) =>
 
 export type MfaResult = { ok: true; token: string; recoveryCodes?: string[] } | { ok: false; error: string };
 
+const TOO_MANY = "Too many wrong codes. The account is locked for a while; sign in again later.";
+
+/** Locked accounts can't pass a second factor; their sessions end. */
+async function refuseIfLocked(db: Db, user: User, meta: RequestMeta, now: Date): Promise<boolean> {
+  if (!isLocked(user, now) && !user.disabled_at) return false;
+  await revokeAllSessions(db, user.id, now);
+  await writeLog(db, { actor: user.id, kind: "auth", action: "mfa", outcome: "denied", meta, detail: { reason: "locked" } });
+  return true;
+}
+
 /** Enrol (first code) or verify (later logins). On success the session is MFA-verified and rotated. */
 export async function completeMfa(
   db: Db,
@@ -408,16 +435,11 @@ export async function completeMfa(
 ): Promise<MfaResult> {
   const user = await userWithSecrets(db, current.user.id);
   const enrolling = !user.mfa_enabled_at;
-  const attemptsKey = hmac(config.hmacKey, `mfa-attempts|${current.session.id}`);
-  if ((await windowCount(db, attemptsKey, now)) >= MAX_FAILS_PER_ACCOUNT) {
-    await db.query("update website_session set revoked_at = $2 where id = $1", [current.session.id, now]);
-    await writeLog(db, { actor: user.id, kind: "auth", action: "mfa", outcome: "denied", meta, detail: { reason: "too_many_attempts" } });
-    return { ok: false, error: "Too many wrong codes. Sign in again." };
-  }
+  if (await refuseIfLocked(db, user, meta, now)) return { ok: false, error: TOO_MANY };
   if (!(await checkCode(db, config, user, code, now))) {
-    await bump(db, attemptsKey, now);
+    const locked = await recordFailure(db, user.id, meta, now, true);
     await writeLog(db, { actor: user.id, kind: "auth", action: enrolling ? "mfa.enrol" : "mfa", outcome: "failed", meta });
-    return { ok: false, error: "That code is not valid. Check the time on your phone and try the newest code." };
+    return { ok: false, error: locked ? TOO_MANY : "That code is not valid. Check the time on your phone and try the newest code." };
   }
   let recoveryCodes: string[] | undefined;
   if (enrolling) {
@@ -428,7 +450,9 @@ export async function completeMfa(
       await db.query("insert into website_user_recovery_code (user_id, code_hash) values ($1, $2)", [user.id, recoveryHash(config, c)]);
     }
   }
-  await db.query("update website_session set mfa_verified_at = $2, step_up_at = $2 where id = $1", [current.session.id, now]);
+  await clearFailures(db, user.id);
+  // Signing in does not count as a step-up: sensitive pages still ask for a fresh code.
+  await db.query("update website_session set mfa_verified_at = $2 where id = $1", [current.session.id, now]);
   const token = await rotate(db, current.session.id);
   await writeLog(db, { actor: user.id, kind: "auth", action: enrolling ? "mfa.enrol" : "mfa", outcome: "ok", meta });
   return { ok: true, token, recoveryCodes };
@@ -443,28 +467,26 @@ export async function redeemRecoveryCode(
   meta: RequestMeta,
   now: Date,
 ): Promise<MfaResult> {
-  if (!current.user.mfa_enabled_at) return { ok: false, error: "Set up the authenticator app first." };
-  const attemptsKey = hmac(config.hmacKey, `mfa-attempts|${current.session.id}`);
-  if ((await windowCount(db, attemptsKey, now)) >= MAX_FAILS_PER_ACCOUNT) {
-    await db.query("update website_session set revoked_at = $2 where id = $1", [current.session.id, now]);
-    return { ok: false, error: "Too many wrong codes. Sign in again." };
-  }
+  const user = await userWithSecrets(db, current.user.id);
+  if (!user.mfa_enabled_at) return { ok: false, error: "Set up the authenticator app first." };
+  if (await refuseIfLocked(db, user, meta, now)) return { ok: false, error: TOO_MANY };
   const { rowCount } = await db.query(
     "update website_user_recovery_code set used_at = $3 where user_id = $1 and code_hash = $2 and used_at is null",
-    [current.user.id, recoveryHash(config, code), now],
+    [user.id, recoveryHash(config, code), now],
   );
   if (rowCount !== 1) {
-    await bump(db, attemptsKey, now);
-    await writeLog(db, { actor: current.user.id, kind: "auth", action: "mfa.recovery", outcome: "failed", meta });
-    return { ok: false, error: "That recovery code is not valid or was already used." };
+    const locked = await recordFailure(db, user.id, meta, now, true);
+    await writeLog(db, { actor: user.id, kind: "auth", action: "mfa.recovery", outcome: "failed", meta });
+    return { ok: false, error: locked ? TOO_MANY : "That recovery code is not valid or was already used." };
   }
-  await db.query("update website_session set mfa_verified_at = $2, step_up_at = $2 where id = $1", [current.session.id, now]);
+  await clearFailures(db, user.id);
+  await db.query("update website_session set mfa_verified_at = $2 where id = $1", [current.session.id, now]);
   const token = await rotate(db, current.session.id);
-  await writeLog(db, { actor: current.user.id, kind: "auth", action: "mfa.recovery", outcome: "ok", meta });
+  await writeLog(db, { actor: user.id, kind: "auth", action: "mfa.recovery", outcome: "ok", meta });
   return { ok: true, token };
 }
 
-/** Fresh TOTP for sensitive actions (users, keys, log export). */
+/** Fresh TOTP for sensitive actions (users, keys, log export). Failures count toward the lock. */
 export async function stepUp(
   db: Db,
   config: AdminConfig,
@@ -474,8 +496,14 @@ export async function stepUp(
   now: Date,
 ): Promise<boolean> {
   const user = await userWithSecrets(db, current.user.id);
-  const ok = Boolean(user.mfa_enabled_at) && (await checkCode(db, config, user, code, now));
-  if (ok) await db.query("update website_session set step_up_at = $2 where id = $1", [current.session.id, now]);
+  if (!user.mfa_enabled_at || (await refuseIfLocked(db, user, meta, now))) return false;
+  const ok = await checkCode(db, config, user, code, now);
+  if (ok) {
+    await clearFailures(db, user.id);
+    await db.query("update website_session set step_up_at = $2 where id = $1", [current.session.id, now]);
+  } else {
+    await recordFailure(db, user.id, meta, now, true);
+  }
   await writeLog(db, { actor: user.id, kind: "auth", action: "mfa.step_up", outcome: ok ? "ok" : "failed", meta });
   return ok;
 }

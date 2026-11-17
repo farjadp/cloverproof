@@ -162,18 +162,32 @@ test("MFA: secret sealed at rest, enrol rotates the session token, codes can't b
     assert.equal(codes[0].n, 10);
   }));
 
-test("MFA: 5 wrong codes end the session", { skip }, () =>
+test("MFA: wrong codes count per user across sessions, lock the account and end every session", { skip }, () =>
   withDb(async (db) => {
     const { token } = await enrolled(db);
-    const fresh = (await login(db, config, { email: "a@example.com", password: PASSWORD }, meta, at(100))) as { token: string };
+    // Five fresh password sessions, one wrong code each (a new session must not reset the count).
     for (let i = 0; i < 5; i++) {
-      const r = await completeMfa(db, config, await session(db, fresh.token, at(101)), "000000", meta, at(101));
+      const fresh = (await login(db, config, { email: "a@example.com", password: PASSWORD }, meta, at(100 + i))) as { token: string };
+      assert.ok(fresh.token, `login ${i}`);
+      const r = await completeMfa(db, config, await session(db, fresh.token, at(100 + i)), "000000", meta, at(100 + i));
       assert.equal(r.ok, false);
     }
-    const last = await completeMfa(db, config, await session(db, fresh.token, at(101)), "000000", meta, at(101));
-    assert.deepEqual(last, { ok: false, error: "Too many wrong codes. Sign in again." });
-    assert.equal(await loadSession(db, fresh.token, at(102)), null);
-    assert.ok(await loadSession(db, token, at(102)), "other sessions unaffected");
+    const { rows } = await db.query("select failed_logins, locked_until from website_user");
+    assert.equal(rows[0].failed_logins, 5);
+    assert.ok(rows[0].locked_until > at(110));
+    assert.equal(await loadSession(db, token, at(106)), null, "every session ended, including the verified one");
+    const again = await login(db, config, { email: "a@example.com", password: PASSWORD }, meta, at(120));
+    assert.equal(again.ok, false, "locked account can't sign in");
+  }));
+
+test("step-up: not granted by signing in; wrong codes count toward the lock", { skip }, () =>
+  withDb(async (db) => {
+    const { token } = await enrolled(db);
+    const current = await session(db, token, at(3));
+    assert.equal(current.session.step_up_at, null);
+    for (let i = 0; i < 4; i++) assert.equal(await stepUp(db, config, current, "000000", meta, at(10 + i)), false);
+    const { rows } = await db.query("select failed_logins from website_user");
+    assert.equal(rows[0].failed_logins, 4);
   }));
 
 test("CSRF token is bound to the session token", { skip }, () => {
