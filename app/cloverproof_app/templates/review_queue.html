@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Review queue{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Review queue</h1>
+</div>
+<form class="filters" method="get" action="/review" role="search" aria-controls="queue-results"
+      hx-get="/review" hx-target="#queue-results" hx-swap="outerHTML" hx-push-url="true"
+      hx-trigger="change from:select, input changed delay:300ms from:input[type=search], submit">
+  <div class="field">
+    <label for="q">Find farmer, farm or field</label>
+    <input id="q" name="q" type="search" value="{{ f.q }}" maxlength="100" autocomplete="off">
+  </div>
+  <div class="field">
+    <label for="status">Status</label>
+    <select id="status" name="status">{% for value, label in status_options.items() %}<option value="{{ value }}"{% if f.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+  </div>
+  <div class="field">
+    <label for="crop">Crop</label>
+    <select id="crop" name="crop"><option value="any">Any</option>{% for c in crops %}<option value="{{ c }}"{% if f.crop == c %} selected{% endif %}>{{ crop_labels.get(c, c | capitalize) }}</option>{% endfor %}</select>
+  </div>
+  <div class="field">
+    <label for="confidence">Confidence</label>
+    <select id="confidence" name="confidence">{% for value, label in confidence_options.items() %}<option value="{{ value }}"{% if f.confidence == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+  </div>
+  <div class="field">
+    <label for="ai">AI review</label>
+    <select id="ai" name="ai">{% for value, label in ai_options.items() %}<option value="{{ value }}"{% if f.ai == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+  </div>
+  <div class="field">
+    <label for="sort">Sort</label>
+    <select id="sort" name="sort">{% for value, label in sort_options.items() %}<option value="{{ value }}"{% if f.sort == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+  </div>
+  <div class="filter-actions">
+    <button class="button secondary" type="submit">Apply filters</button>
+    {% if active %}<a href="/review">Clear filters</a>{% endif %}
+  </div>
+</form>
+{% include "_review_rows.html" %}
+{% endblock %}

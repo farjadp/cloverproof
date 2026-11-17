@@ -20,7 +20,7 @@ import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 
-from cloverproof_app import planning, timer
+from cloverproof_app import line_diff, planning, timer
 from cloverproof_app.auth import (
     INTERNAL_ROLES,
     Conn,
@@ -408,21 +408,6 @@ def load_plan(conn: Conn, context: OrgContext, plan_id: UUID) -> PlanView:
     return view
 
 
-def comparison(view: PlanView) -> list[dict[str, Any]]:
-    """Engine vs final rows for every number that differs (both documents from the view)."""
-    if view.diff is None or view.diff["edit_depth"] == 0:
-        return []
-    engine, final = view.diff["engine_result"]["nitrogen"], view.diff["final_result"]["nitrogen"]
-    rows = [("N rate", engine["rate"], final["rate"]), ("N total", engine["total"], final["total"])]
-    for e, f in zip(engine["splits"], final["splits"], strict=False):
-        rows.append((f"{e['stage_label']}: rate", e["rate"], f["rate"]))
-    return [
-        {"item": item, "engine": e, "final": f}
-        for item, e, f in rows
-        if not math.isclose(e["value"], f["value"], abs_tol=1e-9)
-    ]
-
-
 def plan_page(request: Request, conn: Conn, context: OrgContext, settings: SettingsDep,
               plan_id: UUID, *, errors: dict[str, str] | None = None,
               values: dict[str, str] | None = None, status: int = 200) -> Response:  # fmt: skip
@@ -436,7 +421,7 @@ def plan_page(request: Request, conn: Conn, context: OrgContext, settings: Setti
         "v": view,
         "doc": view.doc,
         **limits_context(request, view.doc, view.doc["nitrogen"]["rate"]["value"]),
-        "comparison": comparison(view),
+        "line_diff": line_diff.plan_diff(conn, context.org.id, view.latest.id, view.number),
         "minutes": minutes,
         "can_review": is_agronomist(context),
         "decision_labels": DECISION_LABELS,
