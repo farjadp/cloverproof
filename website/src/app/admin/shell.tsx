@@ -7,6 +7,7 @@ const NAV: { href: string; label: string; action: Action }[] = [
   { href: "/admin", label: "Dashboard", action: "dashboard.view" },
   { href: "/admin/users", label: "Users", action: "users.manage" },
   { href: "/admin/log", label: "System log", action: "log.view" },
+  { href: "/admin/keys", label: "API keys", action: "keys.manage" },
 ];
 
 /** Signed-in frame: header with navigation by role, and sign-out (POST + CSRF). */

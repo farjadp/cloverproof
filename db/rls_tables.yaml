@@ -51,6 +51,7 @@ website_admin:
   - website_rate_limit
   - website_log
   - website_job_run
+  - website_secret
 global:
   - schema_migrations
   - spatial_ref_sys
