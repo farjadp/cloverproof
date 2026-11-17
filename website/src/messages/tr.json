@@ -270,7 +270,11 @@
       },
       {
         "h": "Web sitesi ölçümü",
-        "p": "Bu web sitesinin nasıl kullanıldığını, herhangi bir analiz şirketi olmadan ve cihazınızda çerez veya başka bir depolama olmadan kendimiz sayıyoruz. Bunu yalnızca sitenin İngilizce, Fransızca, İspanyolca, İtalyanca ve Türkçe sürümlerinde yapıyoruz; Fince, Bulgarca ve Arapça sürümler hiçbir şey kaydetmez. Her sayfa yüklemesinde sayfayı, dili ve zamanı, tıkladığınız düğmeleri, tarla kontrolü yanıtlarınızı ve sonucunu, formda ulaştığınız adımı ve gönderimin başarılı olup olmadığını, izlediğiniz bağlantının kampanya etiketini, sizi yönlendiren web sitesinin adını (tam adresini değil) ve ekranınızın mobil boyutta mı yoksa masaüstü boyutunda mı olduğunu kaydediyoruz. Yalnızca tarayıcınızın belleğinde tutulan rastgele bir sayı, tek bir sayfa görüntülemesine ait tıklamaları gruplar ve siteden ayrıldığınızda kaybolur. Adınızı, e-postanızı veya yazdığınız hiçbir şeyi kaydetmiyoruz, IP adresinizi saklamıyoruz ve ziyaretleri birbirine ya da size bağlamıyoruz. Ayrıntılı kayıtlar 90 gün saklanır, ardından en fazla 25 ay saklanan günlük toplamlara dönüştürülür. Tarayıcınız Global Privacy Control veya Do Not Track gönderiyorsa hiçbir şey kaydetmiyoruz. Bir pilot talebi gönderirseniz, bağlantının kampanya etiketi, yönlendiren web sitesi ve tarla kontrolü sonucunuz talebinizle birlikte saklanır; böylece bizi nasıl bulduğunuzu biliriz."
+        "p": "Bu web sitesinin nasıl kullanıldığını, herhangi bir analiz şirketi olmadan ve cihazınızda çerez veya başka bir depolama olmadan kendimiz sayıyoruz. Bunu yalnızca sitenin İngilizce, Fransızca, İspanyolca, İtalyanca ve Türkçe sürümlerinde yapıyoruz; Fince, Bulgarca ve Arapça sürümler hiçbir şey kaydetmez. Her sayfa yüklemesinde sayfayı, dili ve zamanı, tıkladığınız düğmeleri, tarla kontrolü yanıtlarınızı ve sonucunu, formda ulaştığınız adımı ve gönderimin başarılı olup olmadığını, izlediğiniz bağlantının kampanya etiketini, sizi yönlendiren web sitesinin adını (tam adresini değil) ve ekranınızın mobil boyutta mı yoksa masaüstü boyutunda mı olduğunu kaydediyoruz. Yalnızca tarayıcınızın belleğinde tutulan rastgele bir sayı, tek bir sayfa görüntülemesine ait tıklamaları gruplar ve siteden ayrıldığınızda kaybolur. Adınızı, e-postanızı veya yazdığınız hiçbir şeyi kaydetmiyoruz, bu ölçüm kayıtları IP adresinizi asla içermez ve ziyaretleri birbirine ya da size bağlamıyoruz. Ayrıntılı kayıtlar 90 gün saklanır, ardından en fazla 25 ay saklanan günlük toplamlara dönüştürülür. Tarayıcınız Global Privacy Control veya Do Not Track gönderiyorsa hiçbir şey kaydetmiyoruz. Bir pilot talebi gönderirseniz, bağlantının kampanya etiketi, yönlendiren web sitesi ve tarla kontrolü sonucunuz talebinizle birlikte saklanır; böylece bizi nasıl bulduğunuzu biliriz."
+      },
+      {
+        "h": "Personel alanımızın güvenlik kaydı",
+        "p": "Web sitemizde CloverProof personeline ayrılmış özel bir alan bulunur. Halktan biri de dahil olmak üzere herhangi biri bu alana giriş yaparsa, giriş yapmayı denerse veya alanı kullanmayı denerse güvenlik kaydımız zamanı, neyin denendiğini ve başarılı olup olmadığını, kısaltılmış bir IP adresini (sonu çıkarılmış) ve tarayıcı türünü (örneğin Firefox) kaydeder. Parolaları, kodları veya bir forma yazılan hiçbir şeyi asla kaydetmez. Parola tahmin denemelerini yavaşlatmak için kısaltılmış IP adresinin ve yazılan e-postanın karıştırılmış (şifrelenmiş) bir biçimine dayanan sayaçlar da tutarız; bunlar iki gün içinde silinir. Bunu yalnızca web sitesini güvende tutmak için kullanırız. Kaydı yalnızca CloverProof yöneticileri görebilir ve kayıt 60 gün sonra otomatik olarak silinir. Kanada'daki barındırma devreye girene kadar kayıt Railway tarafından Amerika Birleşik Devletleri'nde saklanır. Herkese açık sayfalarımıza yapılan olağan ziyaretler bu kayıtta yer almaz. AB'deyseniz, siteyi güvende tutma konusundaki meşru menfaatimize dayanırız ve buna itiraz edebilirsiniz."
       },
       {
         "h": "Planlar nasıl inceleniyor",
@@ -282,7 +286,7 @@
       },
       {
         "h": "Kimler görüyor",
-        "p": "Yalnızca bu bilgilere ihtiyaç duyan CloverProof ekip üyeleri, insan ziraat mühendisimiz ve hizmet sağlayıcılarımız olarak, pilot verilerini Kanada'da saklayacak olan Kanadalı barındırma sağlayıcımız ile web sitemizi barındıran ve Kanada'daki barındırma devreye girene kadar web sitesi taleplerini ve web sitesi ölçüm verilerini Amerika Birleşik Devletleri'nde saklayan ABD merkezli şirket Railway. Hiçbir yapay zekâ sağlayıcısı sizi veya çiftliğinizi tanımlayan bilgi almaz. Bilgilerinizi satmıyoruz ve reklam izleyicileri ya da herhangi bir analiz şirketi kullanmıyoruz."
+        "p": "Yalnızca bu bilgilere ihtiyaç duyan CloverProof ekip üyeleri, insan ziraat mühendisimiz ve hizmet sağlayıcılarımız olarak, pilot verilerini Kanada'da saklayacak olan Kanadalı barındırma sağlayıcımız ile web sitemizi barındıran ve Kanada'daki barındırma devreye girene kadar web sitesi taleplerini, web sitesi ölçüm verilerini ve personel alanının güvenlik kaydını Amerika Birleşik Devletleri'nde saklayan ABD merkezli şirket Railway. Hiçbir yapay zekâ sağlayıcısı sizi veya çiftliğinizi tanımlayan bilgi almaz. Bilgilerinizi satmıyoruz ve reklam izleyicileri ya da herhangi bir analiz şirketi kullanmıyoruz."
       },
       {
         "h": "Nerede saklanıyor",
@@ -290,7 +294,7 @@
       },
       {
         "h": "Ne kadar süre saklıyoruz",
-        "p": "Pilot seçimi tamamlanana kadar veya pilot programa katılırsanız daha uzun süre. Bilgilerinizi istediğiniz zaman silmemizi isteyebilirsiniz."
+        "p": "Pilot seçimi tamamlanana kadar veya pilot programa katılırsanız daha uzun süre. Personel alanının güvenlik kaydı 60 gün sonra, giriş denemelerini sınırlayan sayaçlar ise iki gün içinde otomatik olarak silinir. Bilgilerinizi istediğiniz zaman silmemizi isteyebilirsiniz."
       },
       {
         "h": "Haklarınız",

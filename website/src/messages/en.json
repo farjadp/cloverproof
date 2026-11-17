@@ -270,7 +270,11 @@
       },
       {
         "h": "Website measurement",
-        "p": "We count how this website is used, ourselves, with no analytics company and no cookies or other storage on your device. We do this only on the English, French, Spanish, Italian and Turkish versions of the site; the Finnish, Bulgarian and Arabic versions record nothing. For each page load we record the page, language and time, the buttons you click, your field-check answers and result, the form step you reach and whether sending worked, the campaign tag of the link you followed, the name of the website that sent you (not the full address) and whether your screen is mobile or desktop size. A random number held only in your browser's memory groups the clicks of one page view and disappears when you leave. We do not record your name, email or anything you type, we do not store your IP address, and we do not link visits to each other or to you. Detailed records are kept 90 days, then turned into daily totals kept up to 25 months. If your browser sends Global Privacy Control or Do Not Track, we record nothing. If you send a pilot request, the link's campaign tag, the referring website and your field-check result are stored with your request, so we know how you found us."
+        "p": "We count how this website is used, ourselves, with no analytics company and no cookies or other storage on your device. We do this only on the English, French, Spanish, Italian and Turkish versions of the site; the Finnish, Bulgarian and Arabic versions record nothing. For each page load we record the page, language and time, the buttons you click, your field-check answers and result, the form step you reach and whether sending worked, the campaign tag of the link you followed, the name of the website that sent you (not the full address) and whether your screen is mobile or desktop size. A random number held only in your browser's memory groups the clicks of one page view and disappears when you leave. We do not record your name, email or anything you type, these measurement records never contain your IP address, and we do not link visits to each other or to you. Detailed records are kept 90 days, then turned into daily totals kept up to 25 months. If your browser sends Global Privacy Control or Do Not Track, we record nothing. If you send a pilot request, the link's campaign tag, the referring website and your field-check result are stored with your request, so we know how you found us."
+      },
+      {
+        "h": "Security log of our staff area",
+        "p": "Our website has a private area for CloverProof staff. If anyone, including a member of the public, signs in, tries to sign in or tries to use it, our security log records the time, what was attempted and whether it worked, a shortened IP address (the end of it removed) and the browser type (for example Firefox). It never records passwords, codes or anything typed into a form. To slow down password guessing we also keep counters based on a scrambled form of the shortened IP address and the email typed; they are deleted within two days. We use this only to keep the website secure. Only CloverProof administrators can see the log, and it is deleted automatically after 60 days. Until Canadian hosting is live it is stored in the United States by Railway. Ordinary visits to our public pages are not in this log. If you are in the EU, we rely on our legitimate interest in keeping the site secure, and you can object."
       },
       {
         "h": "How plans are reviewed",
@@ -282,7 +286,7 @@
       },
       {
         "h": "Who sees it",
-        "p": "Only the CloverProof team members who need it, our human agronomist, our Canadian hosting provider, which will store pilot data in Canada, and Railway, a US company that hosts our website and, until Canadian hosting is live, stores website requests and website measurement data in the United States, as our service providers. No AI provider receives information that identifies you or your farm. We do not sell your information and we do not use advertising trackers or any analytics company."
+        "p": "Only the CloverProof team members who need it, our human agronomist, our Canadian hosting provider, which will store pilot data in Canada, and Railway, a US company that hosts our website and, until Canadian hosting is live, stores website requests, website measurement data and the staff-area security log in the United States, as our service providers. No AI provider receives information that identifies you or your farm. We do not sell your information and we do not use advertising trackers or any analytics company."
       },
       {
         "h": "Where it is stored",
@@ -290,7 +294,7 @@
       },
       {
         "h": "How long we keep it",
-        "p": "Until the pilot selection is complete, or longer if you join the pilot. You can ask us to delete your details at any time."
+        "p": "Until the pilot selection is complete, or longer if you join the pilot. The staff-area security log is deleted automatically after 60 days, and the sign-in throttling counters within two days. You can ask us to delete your details at any time."
       },
       {
         "h": "Your rights",
