@@ -1,6 +1,6 @@
 # ADR 0011 — Named licence exception: `pyphen` (used under MPL-1.1) for proof PDFs
 
-- Status: **Proposed** (2026-11-17). Not in force: the licence check stays red until Farjad Iranmehr and `ciso` accept this ADR and a lawyer has reviewed it.
+- Status: **Accepted** by Farjad Iranmehr (2026-11-17), pending `ciso` review and lawyer review (same footing as psycopg / libvips / certifi). The named exception is in the licence job, pinned to pyphen's exact licence string.
 - Decider: Farjad Iranmehr. Author: `cloverproof-lead`. Review: `ciso`, lawyer.
 - Related: ADR 0005 (proof PDF), CLAUDE.md "Licences" (no GPL/AGPL/EUPL; LGPL only by name; any other exception needs an ADR first), `.github/workflows/security.yml` (licence job).
 
