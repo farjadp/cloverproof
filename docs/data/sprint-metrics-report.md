@@ -1,6 +1,6 @@
 # Per-sprint metrics report (design)
 
-Audience: `product-manager` (CPO), who forwards 10 lines to Farjad Iranmehr at the sprint review. Producer: `data-analyst`, reviewed by `head-of-data`. Status: DRAFT v0, 2026-11-16. Metric definitions: `docs/data/metrics.md` (every row below cites its metric id; no metric outside the catalogue appears).
+Audience: `product-manager` (CPO), who forwards 10 lines to Farjad Iranmehr at the sprint review. Producer: `data-analyst`, reviewed by `head-of-data`. Status: DRAFT v0, 2026-11-16; updated 2026-11-16 for the three-value `review_kind`. Metric definitions: `docs/data/metrics.md` (every row below cites its metric id; no metric outside the catalogue appears).
 
 ## When and who
 
@@ -21,23 +21,24 @@ Audience: `product-manager` (CPO), who forwards 10 lines to Farjad Iranmehr at t
 4. **Estimates and proxies are labelled** (`proxy`, `estimate`). Unknowns are written `no data` plus the reason, never filled in.
 5. **No personal or farm-identifying data**: no names, emails, farm or field names, free-text reasons. Plan counts only.
 6. **No agronomic targets.** The report states what happened, not whether a kg N/ha value is good.
-7. **Human vs AI reviews (D4, 2026-11-16).** Sections B-F count **human (`agronomist_approved`) reviews only**. AI sign-offs by `cp-agronomist` (`ai_reviewed`) appear only in section H and are never added to a human count, rate, gate or baseline. If reviewer kind is not yet recorded in the database (G9), sections C-E print "reviewer kind not recorded" instead of numbers. Until a human agronomist is named, expect "0 human-approved plans" — that is the correct output.
-8. **Website funnel (M7).** Denominator is views (`view_id`), not people; reloads are new views; bot filtering is basic. Any split cell below 10 views or 10 requests is suppressed. A2 is views-only; its link to requests is the aggregate pair "events vs rows", never a per-person conversion, and the last stage (first human-approved plan) stays "not a conversion (G2)" until `pilot_request` is linked to a farmer.
+7. **Three review kinds (D4 + superadmin decision, 2026-11-16).** Sections A-F count **`agronomist_approved` reviews only** (a human with the agronomist role). Approvals by a human superadmin (`superadmin_approved`) appear only in section I; sign-offs by `cp-agronomist` (`ai_reviewed`) appear only in section H. H and I are never added to the headline or to each other, and never feed a gate or baseline. A plan whose final numbers a superadmin set or edited goes to section I even if an agronomist approved it afterwards. If review kind is not yet recorded in the database (G9), sections C-E print "review kind not recorded" instead of numbers. Until a human agronomist is named, expect "0 agronomist-approved plans" — that is the correct output, whatever section I shows.
+8. **Website funnel (M7).** Denominator is views (`view_id`), not people; reloads are new views; bot filtering is basic. Any split cell below 10 views or 10 requests is suppressed. A2 is views-only; its link to requests is the aggregate pair "events vs rows", never a per-person conversion, and the last stage (first agronomist-approved plan) stays "not a conversion (G2)" until `pilot_request` is linked to a farmer.
 
 ## Sections (one screen: at most 45 lines, no charts; a table plus one line of reading each)
 
 | Section | Content | Metric |
 |---|---|---|
 | Header | Sprint n, dates, cut-off, run date, who produced | - |
-| A. Pilot funnel | Requests by status this sprint and cumulative; accepted requests; farms with an approved plan. Printed side by side, labelled "not a conversion" while G2 is open | M6 |
+| A. Pilot funnel | Requests by status this sprint and cumulative; accepted requests; farms with an agronomist-approved plan. Printed side by side, labelled "not a conversion" while G2 is open | M6 |
 | A2. Website funnel (views) | Views, check started, check result, CTA clicked, form step 1/2/3, requests sent (`k of n` per stage); check completion rate, form completion rate, form error count by reason; splits by locale, source/medium, device, result type only for cells with n >= 10 views, else "suppressed (n<10)". Unit is views, not people. Beside it: `form_submit_success` events vs new `pilot_request` rows. Before `site_event` is migrated (G10): "no data (G10)" | M7 |
-| B. Plans | Plans created, plans not yet reviewed, plans approved this sprint, plans open (reviewed, not approved) | M1, M3 counts |
+| B. Plans | Plans created, plans not yet reviewed, plans agronomist-approved this sprint, plans open (no agronomist approval yet) | M1, M3 counts |
 | C. Agronomist time | Median and p90 minutes per approved plan; minutes of open plans so far (count and sum only) | M1 |
 | D. Review outcomes | First-pass approval, first-pass edit, first-pass reject (plan-level cohort); plans with a reject; approved after edit; review-level shares as secondary line | M3, M2 |
-| E. Engine vs final | Per nutrient and form from `calibration_delta` (R2, human only): signed bias, median relative delta, lines changed / added / removed, product changes; cuts only if n >= 10 per cell. Before `recommendation_line` is migrated: N rate only, with the fixed line "P/K: no numeric engine output (G1, solved by R2 once migrated)" | M4 |
+| E. Engine vs final | Per nutrient and form from `calibration_delta` (R2, `agronomist_approved` only): signed bias, median relative delta, lines changed / added / removed, product changes; cuts only if n >= 10 per cell. Before `recommendation_line` is migrated: N rate only, with the fixed line "P/K: no numeric engine output (G1, solved by R2 once migrated)" | M4 |
 | F. Data freshness | Query run time, last review timestamp, last pilot request timestamp, plans not yet reviewed, share of zero-minute reviews (M5), open schema gaps that affected this report | M5, q_fresh |
 | G. Flags (max 3 lines) | Anomalies and data gaps, each with a source; "what would change this reading" in one clause | - |
-| H. AI review diagnostics (not agronomist approval) | Counts only: plans signed `ai_reviewed`, AI approve/edit/reject, AI lines added/removed vs engine. Titled so it cannot be read as approval | M2-M4 (ai) |
+| H. AI review diagnostics (not agronomist approval) | Counts only: plans signed `ai_reviewed`, AI approve/edit/reject, AI lines added/removed vs engine. Titled so it cannot be read as approval | M2-M4 (`ai_reviewed`) |
+| I. Superadmin approval diagnostics (not agronomist approval) | Counts only: plans approved by a superadmin and not by an agronomist; superadmin approve/edit/reject; agronomist-approved plans whose numbers a superadmin set/edited (excluded from E); superadmin lines added/removed vs engine; superadmin minutes (never "agronomist minutes"). Titled so it cannot be read as agronomic validation | M1-M6 (`superadmin_approved`) |
 
 Layout per metric row: `metric | this sprint value (n) | last sprint value (n) | flag | note (<= 12 words)`.
 
@@ -70,7 +71,7 @@ Cut-off Thu Feb 25 23:59 Toronto | run Fri Feb 26 08:10 | db: read replica | by 
 A. Pilot funnel (M6)               this sprint (n)   last sprint (n)   flag
  Requests new/contacted/acc/decl   2 / 1 / 1 / 0     3 / 2 / 1 / 1     TSR  (counts only)
  Accepted requests, cumulative     4                 3                 -
- Farms with approved plan, cum.    3                 1                 not a conversion of accepted (G2)
+ Farms w/ agronomist-appr. plan    3                 1                 not a conversion of accepted (G2)
 
 A2. Website funnel (M7, views not people)   this sprint (n)       last sprint (n)   flag
  Views / check started / check result  120 / 41 / 30         90 / 28 / 19     counts
@@ -93,7 +94,7 @@ D. Review outcomes (M3, M2)
  Plans with a reject               1 plan                         last: 0          TSR
  Review-level (approve/edit/rej)   5 / 4 / 1 of 10 reviews        last: 3/2/0 of 5 n=10 shown, last n=5: no comparison
 
-E. Engine vs final (M4), human-approved plans only, descriptive
+E. Engine vs final (M4), agronomist-approved plans only, descriptive
  N total signed delta (final-engine)   n=4: -15, -10, 0, +5   TSR  no bias or median shown
  Share edited / N rate changed        3 of 4 / 3 of 4        TSR
  By crop, confidence, method          suppressed (n<10)
@@ -110,6 +111,9 @@ G. Flags
 
 H. AI review diagnostics (cp-agronomist, ai_reviewed - NOT agronomist approval)
  Plans signed ai_reviewed 5 | AI approve/edit/reject 3 / 2 / 0 | lines added 1, removed 0   counts only
+
+I. Superadmin approval diagnostics (superadmin_approved - NOT agronomist approval, not evidence)
+ Plans superadmin-approved, no agronomist approval 1 | superadmin-edited then agronomist-approved 0   counts only
 ```
 
 Reading note for the CPO (printed under every report): "With 5-10 farms these are counts of what happened, not statistics. Do not draw a trend or change an agronomic constant from them."

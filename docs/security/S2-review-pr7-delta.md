@@ -98,8 +98,8 @@ There is **one BLOCKER, tied to CPO decision D4**: no column or check separates 
 ## Re-review basis (updated after PR #22)
 `CLAUDE.md` rules 8, 11 and 12 now make B1 a hard-rule violation, not only a CPO decision. The #7 re-review will check:
 - (a) the B1 fix, i.e. a human-only approve in the service and in the DB trigger;
-- (b) that no superadmin or owner path can approve without being a human agronomist of that org;
+- (b) **(updated after FI decision)** approvals are human-only: AI and service accounts never approve. Approval is allowed for a human agronomist of the org (`agronomist_approved`) or a human superadmin (`superadmin_approved`). The DB derives and enforces `review_kind`, and owner/staff can't approve;
 - (c) that `ai_reviewed` is kept out of `recommendation_diff`;
 - (d) S1, S2, S4–S8 and F1–F4.
 
-Criteria and tests: `docs/security/adr-0006-rls-review-criteria.md` §5.4 and §7. Status at 85814b6: no fix commits yet.
+Criteria and tests: `docs/security/adr-0008-rls-review-criteria.md` §5.4 and §7. Status at 85814b6: no fix commits yet.

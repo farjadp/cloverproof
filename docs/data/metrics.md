@@ -1,6 +1,6 @@
 # CloverProof metric catalogue
 
-Owner: `head-of-data`. Written by `data-analyst`. Status: DRAFT v0, 2026-11-16 (Sprint 2); updated 2026-11-16 for D4 + R2 and M7 (website funnel). Single catalogue: a metric without an entry here is not reported.
+Owner: `head-of-data`. Written by `data-analyst`. Status: DRAFT v0, 2026-11-16 (Sprint 2); updated 2026-11-16 for D4 + R2, M7 (website funnel) and the three-value `review_kind` (superadmin decision). Single catalogue: a metric without an entry here is not reported.
 
 ## Read this first
 
@@ -10,25 +10,29 @@ Owner: `head-of-data`. Written by `data-analyst`. Status: DRAFT v0, 2026-11-16 (
 - **"n at which it starts to mean anything"** below is a reporting convention proposed by data, not a statistical power calculation. At n below that, report the raw count and the plain rows. CPO to confirm (open question 3 in the hand-off).
 - Source: Postgres schema `db/migrations/0001`-`0009` and `engine/cloverproof_engine/results.py` as of branch `myca/data-s2-693748`, 2026-11-16. Queries were run against a throwaway local PostGIS (migrations 0001-0009 applied, 5 invented plans) to check that they execute and return the expected shape. They have NOT been run on real data (none exists yet).
 
-## D4 / R2 update (2026-11-16) — applies to M1–M6 (M7 is views-based and has its own rules)
+## D4 / R2 update (2026-11-16; three review kinds) — applies to M1–M6 (M7 is views-based; its last stage follows the same rule)
 
-Source: `docs/plans/backend-plan-reconciliation.md` D4 + R2; `docs/plans/backend-plan.md` §6.4.
+Source: `docs/plans/backend-plan-reconciliation.md` D4 + R2; `docs/plans/backend-plan.md` §6.4; superadmin decision (Farjad Iranmehr via CPO, 2026-11-16).
 
-- **Two reviewer kinds.** For now the reviewer is the AI agent `cp-agronomist`; its sign-off is `ai_reviewed`. Later a human with the `agronomist` role signs `agronomist_approved`. The kind is stamped on each review row: `review.reviewer_kind` (`ai` / `human`) — **target schema (§6.4 + D4 flag from cp-database, migrations 0011+), not yet migrated**; the column name is data's proposal.
-- **Every metric is segmented by reviewer kind.** Headline numbers use **human reviews only**. AI reviews are shown in a separate block "AI review diagnostics (not agronomist approval)" and are never added to a human numerator or denominator. Mechanically: each query below gets one extra predicate on its review rows, `and rv.reviewer_kind = :'reviewer_kind'`, and is run twice (`human` for the headline, `ai` for diagnostics). Until the column exists the kind cannot be read from the database: the CPO report prints "reviewer kind not recorded (G9)" and publishes no headline rate, unless the CPO confirms in writing that every review in the window was by a human.
-- **What AI reviews never count toward:** the 90 % agreement gate, the calibration baseline, constant-change proposals, the approval / review-gate rates (M2, M3), the key metric "agronomist minutes per plan" (M1), and "farms with an approved plan" (M6). Under D4 an AI sign-off cannot make a real-farm plan `approved`; it stays `in_review`.
-- **Baseline needs human cases.** No baseline number is published until human-approved cases exist (OQ-04). Until then the report line is "no human-approved cases yet".
-- **The 90 % agreement gate is not defined** (unit, tolerance per nutrient = agronomist-todo #10, treatment of added/removed lines, population). Open question; data does not invent it.
+- **Three review kinds.** Each review row carries `review.review_kind`, stamped at insert — **target schema (§6.4 + D4 flag from cp-database, migrations 0011+), not yet migrated**; the column name is data's proposal (replaces the earlier `review.reviewer_kind` `ai` / `human`, withdrawn):
+  - `agronomist_approved` — a human with the `agronomist` role;
+  - `superadmin_approved` — a human superadmin;
+  - `ai_reviewed` — the AI agent `cp-agronomist`.
+- **Headline rule.** Headline numbers use **`agronomist_approved` only**. `superadmin_approved` and `ai_reviewed` are each shown in their own block — "Superadmin approval diagnostics (not agronomist approval)" and "AI review diagnostics (not agronomist approval)" — never added to the headline numerator or denominator and **never pooled with each other**. Mechanically: each query below gets one extra predicate on its review rows, `and rv.review_kind = :'review_kind'`, and is run three times (`agronomist_approved` for the headline, then once per diagnostic). A plan that carries reviews of more than one kind appears in each run with only that kind's reviews. Until the column exists the kind cannot be read from the database: the CPO report prints "review kind not recorded (G9)" and publishes no headline rate, unless the CPO confirms in writing that every review in the window was by a human agronomist.
+- **What only `agronomist_approved` counts toward:** the 90 % agreement gate, the calibration baseline, constant-change proposals, the approval / review-gate rates (M2, M3), the key metric "agronomist minutes per plan" (M1), and "farms with an agronomist-approved plan" (M6, M7 last stage). `superadmin_approved` and `ai_reviewed` count toward none of them. Under D4 an AI sign-off cannot make a real-farm plan `approved`. Whether a superadmin approval sets `status = 'approved'` is not settled in these docs (CLAUDE.md rule 8 vs the superadmin decision; CPO); the metrics do not depend on it because they filter on `review_kind`, not on status alone.
+- **Superadmin-set numbers.** A plan whose final numbers were set or edited by a superadmin (or the AI) is reported in that diagnostic even if an agronomist approved it afterwards; it is not in the M4 headline or the calibration set (`calibration_delta` excludes it, `calibration-delta-spec.md` §3).
+- **Baseline needs agronomist cases.** No baseline number is published until `agronomist_approved` cases exist (OQ-04). Until then the report line is "no agronomist-approved cases yet".
+- **The 90 % agreement gate is not defined** (unit, tolerance per nutrient = agronomist-todo #10, treatment of added/removed lines, population — `agronomist_approved` only). Open question; data does not invent it.
 - **Per metric:**
 
-| Metric | Headline (human only) | AI diagnostic (separate block) |
-|---|---|---|
-| M1 minutes per plan | Sum of human `minutes_spent` per plan approved by a human. With §6.4, also report measured `finished_at − started_at` beside typed minutes (closes G7 partly) | AI review count per plan; AI minutes are agent run time, not agronomist time — never shown as "agronomist minutes" |
-| M2 review outcome shares | Human reviews | AI approve / edit / reject counts |
-| M3 plan approval / first-pass rates (review gate) | Plan "approved" = human approval with `status = 'approved'`; first pass among human reviews | Share of plans the AI signed off unchanged (`ai_reviewed`); AI-vs-human agreement on the same plan once both exist |
-| M4 engine vs final | Per `recommendation_line` from `calibration_delta` where `counts_toward_calibration` (see M4 below) | Same columns for `reviewer_kind = 'ai'` |
-| M5 zero-minute check | Human reviews | Not applicable (AI minutes are not timed by a person) |
-| M6 funnel | Farms with a human-approved plan | Farms with an AI-reviewed plan still awaiting a human (count only) |
+| Metric | Headline (`agronomist_approved` only) | Superadmin diagnostic (`superadmin_approved`, own block) | AI diagnostic (`ai_reviewed`, own block) |
+|---|---|---|---|
+| M1 minutes per plan | Sum of agronomist `minutes_spent` per plan approved by an agronomist. With §6.4, also report measured `finished_at − started_at` beside typed minutes (closes G7 partly) | Superadmin review minutes per plan, labelled "superadmin minutes" — never shown as "agronomist minutes" | AI review count per plan; AI minutes are agent run time — never shown as "agronomist minutes" |
+| M2 review outcome shares | Agronomist reviews | Superadmin approve / edit / reject counts | AI approve / edit / reject counts |
+| M3 plan approval / first-pass rates (review gate) | Plan "approved" = `agronomist_approved` approval with `status = 'approved'`; first pass among agronomist reviews | Plans approved by a superadmin and not (yet) by an agronomist; share approved unchanged | Share of plans the AI signed off unchanged; AI-vs-agronomist agreement on the same plan once both exist |
+| M4 engine vs final | Per `recommendation_line` from `calibration_delta` (see M4 below) | `signoff_delta` where `review_kind = 'superadmin_approved'`, plus agronomist-approved finals with superadmin-set numbers (`non_agronomist_edit_in_chain`) | `signoff_delta` where `review_kind = 'ai_reviewed'` (synthetic / de-identified / `external_reference` cases only, D-7) |
+| M5 zero-minute check | Agronomist reviews | Superadmin reviews, separate count | Not applicable (AI minutes are not timed by a person) |
+| M6 funnel | Farms with an agronomist-approved plan | Farms with a superadmin-approved plan and no agronomist approval (count only) | Farms with an AI-reviewed plan still awaiting an agronomist (count only) |
 
 ## Conventions shared by all queries
 
@@ -202,7 +206,7 @@ where first_review_at >= t0 and first_review_at < t1;   -- cohort: plans first r
 
 ## M4. Engine vs final difference (calibration signal)
 
-> **Superseded for the target schema by R2.** Once `recommendation_line` (§6.4) is migrated, M4 is computed **per line** from the view `calibration_delta` (`docs/data/calibration-delta-spec.md`): one row per nutrient + explicit form + split, engine root vs final, `diff_kg_ha = final − engine`, `abs_diff_kg_ha`, `rel_diff` (NULL when the engine value is 0, explained by `rel_diff_status`), `match_status` (`matched` / `added` / `removed` — added and removed lines are reported as add / removal rates, never as a zero delta), `product_changed`, timing shifts, `reviewer_kind`. Headline = `counts_toward_calibration = true` (human). Summaries per nutrient (and form) with the same cuts as below (crop, confidence, soil-test method, pack version). The P/K gap G1 is **SOLVED BY R2**. The text and SQL below describe today's schema (migrations 0001–0009, N only) and stay valid for plans created before the migration.
+> **Superseded for the target schema by R2.** Once `recommendation_line` (§6.4) is migrated, M4 is computed **per line** from the view `calibration_delta` (`docs/data/calibration-delta-spec.md`): one row per nutrient + explicit form + split, engine root vs final, `diff_kg_ha = final − engine`, `abs_diff_kg_ha`, `rel_diff` (NULL when the engine value is 0, explained by `rel_diff_status`), `match_status` (`matched` / `added` / `removed` — added and removed lines are reported as add / removal rates, never as a zero delta), `product_changed`, timing shifts, `review_kind`. Headline = the view `calibration_delta` (`review_kind = 'agronomist_approved'`, no superadmin/AI-set numbers in the chain); the two diagnostics read `signoff_delta`, one `review_kind` each. Summaries per nutrient (and form) with the same cuts as below (crop, confidence, soil-test method, pack version). The P/K gap G1 is **SOLVED BY R2**. The text and SQL below describe today's schema (migrations 0001–0009, N only) and stay valid for plans created before the migration.
 >
 > Target-schema query (not yet migrated):
 > ```sql
@@ -217,9 +221,10 @@ where first_review_at >= t0 and first_review_at < t1;   -- cohort: plans first r
 >        count(rel_diff)                                                     as n_with_relative,
 >        percentile_cont(0.5) within group (order by rel_diff)               as median_rel_diff,
 >        count(*) filter (where product_changed)                             as n_product_changed
-> from calibration_delta
-> where reviewer_kind = :'reviewer_kind'        -- 'human' headline; 'ai' diagnostics
->   and signed_at >= :'sprint_start'::timestamptz and signed_at < :'sprint_end'::timestamptz
+> from calibration_delta                          -- headline. Diagnostics: from signoff_delta
+>                                                -- where review_kind = :'review_kind'
+>                                                -- ('superadmin_approved' or 'ai_reviewed', one per run)
+> where signed_at >= :'sprint_start'::timestamptz and signed_at < :'sprint_end'::timestamptz
 >   and not inputs_changed and not pack_changed
 > group by nutrient, nutrient_form, pack_id, pack_version
 > order by 1, 2, 3, 4;
@@ -442,7 +447,7 @@ where rv.created_at >= t0 and rv.created_at < t1
 - **Stages and definitions:**
   1. **Requests** = `pilot_request` rows with `deleted_at is null`, by **current** `status` (`new`, `contacted`, `accepted`, `declined`), windowed on `created_at`.
   2. **Contacted-or-later** = `contacted + accepted + declined` (assumes a request cannot reach `accepted` or `declined` without having been contacted; the schema does not enforce the order, so this is an assumption). **Accepted** = `status = 'accepted'`. **Decline rate** = declined / (accepted + declined) among decided requests; do not divide by `new`.
-  3. **Farms with an approved plan** = distinct `farm.id` whose plans have an approving review (`review -> recommendation -> crop_plan -> field -> farm`), windowed on the first approval, plus the median days from `farm.created_at` to first approval.
+  3. **Farms with an approved plan** = distinct `farm.id` whose plans have an approving review with `review_kind = 'agronomist_approved'` once that column exists (D4 update above; superadmin and AI approvals are separate diagnostic counts) (`review -> recommendation -> crop_plan -> field -> farm`), windowed on the first approval, plus the median days from `farm.created_at` to first approval.
 - **The funnel is not joinable end to end.** `pilot_request` has no column linking to `organisation`, `farmer` or `farm` (gap G2). Stage 3 cannot be stated as a conversion of stage 2: the report shows the two counts side by side ("12 accepted requests; 4 farms with an approved plan") and labels it NOT a conversion rate, unless a person matches them by hand and records it (still not in the database).
 - **Deleted rows:** a deletion request sets `deleted_at` and a later job purges the row. All queries exclude `deleted_at is not null`. Consequence: history shrinks silently when someone asks to be deleted or the purge runs; a past sprint's counts re-computed later can be lower. Snapshot the stage counts at each sprint report (see the report design) so a report is reproducible.
 - **Unit:** requests, farms, days (median).
@@ -517,7 +522,7 @@ select (select count(*) from pilot_request where deleted_at is null)            
 
 The stages are **not strictly nested**: the form can be reached without the check or a CTA click (anchor, scrolling). So each rate below names its own numerator and denominator, and "of which came through the check" is a split, not an assumption. A step-1 view with no stage-3 event is counted as "reached the form without a CTA click", not an error.
 
-After the request (aggregate only, never per view; see "Joining to requests"): requests by current `status` `new` -> `contacted` -> `accepted` (+ `declined`), then farms with a human-approved plan.
+After the request (aggregate only, never per view; see "Joining to requests"): requests by current `status` `new` -> `contacted` -> `accepted` (+ `declined`), then farms with an agronomist-approved plan.
 
 ### Rates (exact numerator / denominator; always printed as `k of n`)
 
@@ -633,11 +638,11 @@ group by 1 having count(distinct e.view_id) >= 10 order by 2 desc;   -- below 10
 
 - **No per-view join.** `pilot_request` carries no `view_id` (privacy design, `pilot-funnel.md` §4.2). The two sources meet only at the aggregate: per week, and per attribution value that exists on both sides (`utm_source`, `utm_medium`, `utm_campaign`, `check_scope` on the request; the same on the events). Report "N requests (pilot_request) beside M `form_submit_success` events"; they should be equal (acceptance 6).
 - **Request stages after submission** reuse M6 (current `status` only; no status history, G3): `new` -> `contacted` -> `accepted` (+ `declined`; `qualified` / `withdrawn` if the status model is adopted). Counts per cohort week of `created_at`, `is_test = false`, `deleted_at is null` (M6 rule; deleted rows shrink history, snapshot at each report).
-- **First human-approved plan.** Today (G2) there is no `pilot_request` -> farmer/farm link: the last stage is printed beside the request counts as "farms with a human-approved plan (M6)", labelled "not a conversion". **Existing gap, unchanged by M7.** After the DB switch and a `farmer.pilot_request_id` column (target) it becomes a join:
+- **First agronomist-approved plan.** Today (G2) there is no `pilot_request` -> farmer/farm link: the last stage is printed beside the request counts as "farms with an agronomist-approved plan (M6)" (superadmin approvals are not this stage; they are in the M6 superadmin diagnostic), labelled "not a conversion". **Existing gap, unchanged by M7.** After the DB switch and a `farmer.pilot_request_id` column (target) it becomes a join:
 
 ```sql
 -- target schema, not yet migrated (cto / ADR; needs runbook-db-switch). Not run.
--- Requests by attribution and how far each got; human reviews only (D4).
+-- Requests by attribution and how far each got; agronomist approvals only (D4 + superadmin decision).
 select coalesce(pr.utm_source, 'none') as utm_source,
        coalesce(pr.check_scope, 'none') as check_scope,
        count(*)                                           as n_requests,
@@ -651,7 +656,7 @@ select coalesce(pr.utm_source, 'none') as utm_source,
               join recommendation r on r.crop_plan_id = cp.id
               join review rv on rv.recommendation_id = r.id
               where fa.pilot_request_id = pr.id
-                and rv.decision = 'approve' and rv.reviewer_kind = 'human'))   as n_with_human_approved_plan
+                and rv.decision = 'approve' and rv.review_kind = 'agronomist_approved')) as n_with_agronomist_approved_plan
 from pilot_request pr
 where pr.deleted_at is null and pr.is_test = false
   and pr.created_at >= :'sprint_start'::timestamptz and pr.created_at < :'sprint_end'::timestamptz
@@ -683,7 +688,7 @@ having count(*) >= 10;                                     -- min-n rule; smalle
 | G6 | No acquisition channel on `pilot_request`; `country`, `main_crop`, `farm_size_text` are free text | No funnel by channel, region or size | Optional `source` (utm or referrer); normalised crop and country; numeric `farm_size_ha` entered by the concierge. Needs `legal-compliance-specialist` check for any new personal-data field. |
 | G7 | Timer semantics and `minutes_spent` provenance not stored | Cannot tell a measured from a typed-in value | Add `minutes_source` (`timer` / `manual`) to `review`, or document the app behaviour in an ADR. |
 | G8 | `recommendation_diff` collapses an edit chain to engine vs final and exposes only N rate | Intermediate edits and split changes are only in jsonb | Optional second view with N splits flattened (`nitrogen.splits[]`) per stage, once calibration needs it. |
-| G9 | No reviewer kind on `review` (D4) | `ai_reviewed` and human approvals cannot be separated; every metric would mix them | `review.reviewer_kind` (`ai` / `human`) stamped at insert — cp-database, migrations 0011+ (REC-D4) |
+| G9 | No review kind on `review` (D4 + superadmin decision) | `agronomist_approved`, `superadmin_approved` and `ai_reviewed` cannot be separated; every metric would mix them | `review.review_kind` (`agronomist_approved` / `superadmin_approved` / `ai_reviewed`) stamped at insert, plus `recommendation.author_kind` for who set each version's numbers — cp-database, migrations 0011+ (REC-D4) |
 | G10 | `site_event` table, collector and `is_test` flag do not exist (CPO decision 2026-11-16: first-party events, Option A) | M7 stages 0-5 cannot be computed; funnel before the request is `no data` | `cto` / `cp-database`: migration + ADR; table per `landing-tracking-brief.md` §5 plus `props jsonb`, `is_test`; website role INSERT only; read via `analytics.*` |
 | G11 | `pilot_request` lacks `check_scope`, `utm_*`, `referrer_host`, `is_test`; no `view_id` on the row (deliberate) | No per-channel or per-check-result request counts; views and requests join only at the aggregate | `pilot-funnel.md` §4.2 columns (new migration, not an edit of 0001); P2 class for the new columns |
 | G12 | Server-side `form_submit_success` may not carry `view_id` (OQ-M7-1); `site_event` has no PII class or retention yet | Stage 5 and form completion rate per view not computable; no deletion rule | Confirm the event carries the posted `view_id` (not stored on `pilot_request`); governance adopts P1 + retention in `pii-and-retention.md` |

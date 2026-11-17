@@ -253,7 +253,7 @@ Purpose: pointer + hash of a proof PDF for an approved recommendation. Owner AGR
 | created_by, created_at | | | no | P1 / P2 | |
 
 ## recommendation_diff (view, 0009)
-> **To be replaced (R2, DM-16):** per-line view `calibration_delta` over §6.4 `recommendation_line`, with `reviewer_kind` (D4). Target schema, not yet migrated; spec and column list in `docs/data/calibration-delta-spec.md`.
+> **To be replaced (R2, DM-16):** per-line views `signoff_delta` (all review kinds, for diagnostics) and `calibration_delta` (`review_kind = 'agronomist_approved'` only, no superadmin/AI-set numbers in the chain) over §6.4 `recommendation_line`, with `review_kind` (`agronomist_approved` / `superadmin_approved` / `ai_reviewed`; proposed `review.review_kind` and `recommendation.author_kind`, stamped at insert; replaces the earlier `reviewer_kind` `ai` / `human`). Target schema, not yet migrated; spec and column list in `docs/data/calibration-delta-spec.md`.
 
 Purpose: calibration dataset, engine vs final per version. `security_invoker`. Dataset = `where approved_at is not null`. Columns: organisation_id, crop_plan_id, engine_recommendation_id, final_recommendation_id, edited_from_id, final_kind, edit_depth, engine_version, pack_id, pack_version, pack_status, pack_sha256, engine_n_rate_kg_ha, final_n_rate_kg_ha, n_rate_delta_kg_ha (kg N/ha), engine_confidence, final_confidence, edit_reason (P2 free text), final_created_by (P2), final_created_at, approved_by (P2), approved_at, approval_minutes_spent, engine_result, final_result (jsonb, P2). Data-science exports should drop `*_created_by`, `approved_by`, `edit_reason` and use pseudonymous ids.
 

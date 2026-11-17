@@ -11,6 +11,8 @@ Sources: `docs/operations/pilot-sop.md` (statuses, steps, targets), `docs/operat
 - No agronomic numbers: no rates, thresholds, yields, depths or dates of growth stages. Plans reach the farmer only as the approved PDF (gate G1).
 - Sent only to the email on file. Signer: Farjad Iranmehr, as founder of CloverProof (not as the agronomist).
 - Reviewer honesty (D4, 2026-11-16): software and an AI assistant help prepare the plan; a named human agronomist, `[HUMAN AGRONOMIST NAME, CREDENTIALS]` (not yet named; fill before any send), checks and approves every number. Never write "reviewed by an agronomist" unless a human did.
+- Approval kinds (decision by Farjad Iranmehr, 2026-11-16; CLAUDE.md rule 8): a plan is approved either by the human agronomist (`agronomist_approved`) or by `[SUPERADMIN NAME, ROLE]`, a human superadmin who is not an agronomist (`superadmin_approved`). Messages sent before a plan exists (2, 7) describe both possibilities; messages about a specific plan (8, 9) use the variant for that plan's stored approval kind. For `superadmin_approved` never write "reviewed/approved by an agronomist", "agronomist review" or "carefully reviewed" (`docs/operations/legal/proof-pdf-wording.md` B2, J).
+- Residency (OQ-06, 2026-11-16): real farmer data is stored in Canada. Until Canadian hosting is live (SOP gate G9), do not enter farmer replies into any hosted environment.
 - Pilot scope: Ontario (Canada) farms, launch crop winter wheat.
 - All time targets are `PROPOSED — validate in S3 workload model` (business days, Eastern time), taken from the SOP.
 - Log the send date on the case. Use the request id in notes, never the farmer's name or contact details in repo files.
@@ -69,7 +71,7 @@ Hi [NAME],
 
 Good news: we would like to include [FARM NAME] in the CloverProof pilot. Thank you for taking part.
 
-What happens: you send us some details about one field. Our software and an AI assistant help prepare a fertilizer plan. A human agronomist, [HUMAN AGRONOMIST NAME, CREDENTIALS], checks and approves every number before you see it. You then receive a PDF with the plan, the reasons, and how it was made. You keep the final decision on what you do in your field.
+What happens: you send us some details about one field. Our software and an AI assistant help prepare a fertilizer plan. A named person approves every number before you see it: our human agronomist, [HUMAN AGRONOMIST NAME, CREDENTIALS], or [SUPERADMIN NAME, ROLE], who is not an agronomist. The plan says which, and says so plainly if no agronomist reviewed it; you can ask us to send only plans our agronomist has reviewed. You then receive a PDF with the plan, the reasons, and how it was made. You keep the final decision on what you do in your field.
 
 This is a pilot. Please read the terms here: [PILOT TERMS LINK]
 
@@ -87,11 +89,11 @@ To start, please reply with answers to these questions. Short answers are fine, 
 10. Do you have a recent soil test report for this field? Yes or no.
 11. If yes, please send the whole report: a PDF or clear photos of every page. If no, that is fine. We can plan nitrogen only, and we will recommend a lab test so we can also advise on phosphorus and potassium.
 12. If you have a report, do you know the date the soil was sampled?
-13. [CONSENT WORDING APPROVED BY COO: you agree we may use this information to prepare your plan and that our agronomist will review it. Reply "yes" to confirm.]
+13. [CONSENT WORDING APPROVED BY COO — must match `docs/operations/legal/consent-wording.md` §2 v0.3: you agree we may use this information to prepare your plan, and that it will be approved by a named person (our agronomist, or [SUPERADMIN NAME, ROLE], who is not an agronomist). Reply "yes" to confirm.]
 
 You do not need to tell us the sampling depth, the lab method, or how the lab reports phosphorus and potassium. We read those from the report. If something is missing there, we ask the lab.
 
-Why we ask: each answer is used in your plan, or helps the agronomist check it. If you are unsure why we need something, ask us.
+Why we ask: each answer is used in your plan, or helps the person who approves it check it. If you are unsure why we need something, ask us.
 
 [STANDARD FOOTER]
 ```
@@ -230,7 +232,7 @@ Thank you. We now have the details we need to prepare the plan for [FIELD NAME].
 
 What happens next:
 1. We prepare the plan.
-2. A human agronomist, [HUMAN AGRONOMIST NAME, CREDENTIALS], checks it and approves each number. An AI assistant helps check the logic, but it does not approve anything. Nothing is sent to you before the agronomist has approved it.
+2. A named person approves each number: our human agronomist, [HUMAN AGRONOMIST NAME, CREDENTIALS], or [SUPERADMIN NAME, ROLE], who is not an agronomist. An AI assistant helps check the logic, but it does not approve anything. Nothing is sent to you before it has been approved, and the plan says who approved it.
 3. We email you a PDF with the plan, the reasons behind it, and how it was made.
 
 We cannot give a firm date, because the review comes first. If we need anything else, we will write to you. If something changes in the meantime, for example a new soil test or a change of crop, tell us and we will add it.
@@ -246,10 +248,12 @@ We cannot give a firm date, because the review comes first. If we need anything 
 - Follow-up timing (PROPOSED): send within 1 business day after approval. First application-log ask within 7 days after delivery (message 10).
 - Attach: the approved proof PDF for the exact recommendation id. No other file; no screenshots or engine output.
 - Wording status: the pilot and low-confidence wording is subject to Farjad Iranmehr approval and review by `legal-compliance-specialist` (SOP open decision 3). Do not change it without that.
-- Cover-note alignment: reviewer line matches `docs/operations/legal/proof-pdf-wording.md` Block B (checked by coo, 2026-11-16). Keep the PDF and cover note identical on this point; copy the disclaimer once counsel fixes it (OQ-07).
-- Send gate: only when a human agronomist's approve row exists for this recommendation id (an `ai_reviewed` sign-off alone is not enough).
+- Cover note by approval kind (decision 2026-11-16): **8A** for `agronomist_approved` (matches `proof-pdf-wording.md` Block B); **8B** for `superadmin_approved` (matches Block B2). Read the approval kind from the review row; never choose by habit. Keep the PDF and cover note identical on this point; copy the disclaimer once counsel fixes it (OQ-07). 8B is `[COUNSEL]`-held with B2 (`oq-07-decision-pack.md` Q17); liability flag: `ontario-agronomist-credentials.md` §3.6.
+- Send gate: only when a human approve row (`agronomist_approved` or `superadmin_approved`) exists for this recommendation id (an `ai_reviewed` sign-off alone is not enough). 8B only for an Ontario farm that has not asked for agronomist-only plans.
 - If no soil test: add the extra paragraph (in brackets).
 - Related macros: M5, M7, M8, M12.
+
+### 8A. `agronomist_approved`
 
 **Subject:** Your CloverProof plan for [FIELD NAME] (version [VERSION])
 
@@ -271,6 +275,30 @@ Questions about the plan are welcome. Reply to this email. We do not give amount
 [STANDARD FOOTER]
 ```
 
+### 8B. `superadmin_approved` — not reviewed by an agronomist `[COUNSEL]`
+
+**Subject:** Your CloverProof plan for [FIELD NAME] (version [VERSION]) — not reviewed by an agronomist
+
+```
+Hi [NAME],
+
+Your plan for [FIELD NAME] is attached as a PDF (version [VERSION]).
+
+Please read this first:
+- This plan was prepared with CloverProof and approved by [SUPERADMIN NAME, ROLE] at [LEGAL ENTITY] on [DATE]. It was not reviewed by an agronomist. [SUPERADMIN NAME] is not an agronomist. Please get advice from a qualified agronomist or crop adviser before you rely on it.
+- This is a pilot. The calculation constants behind the tool are still being validated, so the confidence label on your plan may show low. Low does not mean the plan is wrong. It means treat it as a starting point, and tell us how it goes.
+- Software and an AI assistant helped prepare it; the AI check is not a review by an agronomist and cannot approve a plan.
+- You keep the final decision on what you do in your field. The plan is a recommendation.
+- The PDF records how the plan was made: the inputs you gave us, the reasons for each number, and which version it is. It is not endorsed or approved by any lender, certifier or regulator, and we have not agreed anything with them.
+- If you would rather receive only plans our agronomist has reviewed, reply and tell us. It may take longer, and we will tell you if we cannot.
+
+[IF NO SOIL TEST: This plan covers nitrogen only because there is no soil test. For phosphorus and potassium we recommend a laboratory soil test. Send us the result and we will update the plan as a new version.]
+
+Questions about the plan are welcome. Reply to this email. We do not give amounts in messages; they are in the PDF only. If you think a detail is wrong, tell us and we will review it.
+
+[STANDARD FOOTER]
+```
+
 ---
 
 ## 9. Corrected version
@@ -279,6 +307,7 @@ Questions about the plan are welcome. Reply to this email. We do not give amount
 - Follow-up timing (PROPOSED): notify within 1 business day after approval of the new version.
 - Attach: the new approved PDF. The old PDF is kept and never deleted; do not attach it.
 - Related macros: M6 (change request), M15 (correct my details).
+- Approval line by kind: use variant 9A line for `agronomist_approved`, 9B line for `superadmin_approved` (same rules as 8A/8B).
 - If the correction fixes a number that went out without approval (G1 breach), the Founder and `coo` are told the same day; wording of that message goes to the Founder, not this template.
 
 **Subject:** Updated plan for [FIELD NAME]: version [NEW VERSION] replaces [OLD VERSION]
@@ -290,7 +319,10 @@ We have issued a new version of your plan for [FIELD NAME]. Version [NEW VERSION
 
 What changed: [WHAT CHANGED, in plain words and the reason, without repeating any number].
 
-A human agronomist, [HUMAN AGRONOMIST NAME, CREDENTIALS], has reviewed and approved this version on [DATE]. The earlier version stays on file with us, so there is a record of both. It does not change the points in our first note: this is a pilot, the confidence label may show low, you keep the final decision, and the PDF is not endorsed by any lender, certifier or regulator.
+[9A — agronomist_approved: A human agronomist, [HUMAN AGRONOMIST NAME, CREDENTIALS], has reviewed and approved this version on [DATE].]
+[9B — superadmin_approved: This version was approved by [SUPERADMIN NAME, ROLE] on [DATE]. It was not reviewed by an agronomist; please get advice from a qualified agronomist or crop adviser before you rely on it.]
+
+The earlier version stays on file with us, so there is a record of both. It does not change the points in our first note: this is a pilot, the confidence label may show low, you keep the final decision, and the PDF is not endorsed by any lender, certifier or regulator.
 
 If anything is still wrong, tell us.
 
@@ -370,7 +402,7 @@ Maps farm-level SOP statuses to the stages `data-analyst` measures. Stage record
 | 3 | Collecting data | `intake_open` | Checklist sent | `intake_complete` (ready for plan, checklist section 10) | Farmer / CloverProof, see split below | Chase every 3 business days, max 3 | 4, 5, 6 |
 | 4 | Paused | `paused` (ops label) | Third chase with no reply | Farmer replies (returns to stage 3) | Farmer | Not counted against any target | 4 (variant C) |
 | 5 | Plan in progress | `intake_complete`, `plan_drafted` | `intake_complete` | Engine recommendation saved | CloverProof | Same day | 7 |
-| 6 | In review | `in_review` | `plan_drafted` | `approved` (or `reject`, back to stage 3) | CloverProof (Agronomist) | 3 business days | none |
+| 6 | In review | `in_review` | `plan_drafted` | `approved` (or `reject`, back to stage 3) | CloverProof (approver: agronomist or superadmin) | 3 business days | none |
 | 7 | Delivery | `approved` | Review approve row saved | `delivered` (email sent) | CloverProof | 1 business day | 8 |
 | 8 | Logging | `delivered`, `logging` | `delivered` | Log complete, or farmer marked non-responsive | Farmer | First ask within 7 days; reminder every 14 days; final entry by May 7 | 10 |
 | 9 | Feedback | log complete | Log complete | `closed` | CloverProof (Founder) | 14 days | 11 |
@@ -385,7 +417,7 @@ Maps farm-level SOP statuses to the stages `data-analyst` measures. Stage record
 - **Reject loop:** a reject returns the farm to stage 3. Keep the first stage 6 time, start a new stage 3 count, and report how many loops each farm had.
 - **Pause:** time in `paused` is excluded from lead-time totals. Report it separately.
 - **Corrections** are a loop, not a new stage count: measure notify time from approval of the new version.
-- **Reported metrics:** median and maximum time per stage; percentage of farms within target per stage; days from request to delivered (secondary metric in the SOP); number of chases before reply; farms per stage today versus the 10-farm cap; share of intakes by path (A with soil test, B no soil test). Primary SOP metric (agronomist `minutes_spent` per plan) stays with the review table, not this document.
+- **Reported metrics:** median and maximum time per stage; percentage of farms within target per stage; days from request to delivered (secondary metric in the SOP); number of chases before reply; farms per stage today versus the 10-farm cap; share of intakes by path (A with soil test, B no soil test). Primary SOP metric (agronomist `minutes_spent` per plan) stays with the review table, not this document. Report deliveries by approval kind (`agronomist_approved` vs `superadmin_approved`).
 - Targets are PROPOSED. Report actuals; do not tune targets from fewer than the pilot's first few farms.
 
 ---
@@ -394,7 +426,7 @@ Maps farm-level SOP statuses to the stages `data-analyst` measures. Stage record
 
 1. Does the pilot request form capture a marketing / keep-in-touch opt-in? Message 3 depends on it. `support-macros.md` M16 keeps the request unless the farmer objects; this file is stricter (only if opted in). Align both. `legal-compliance-specialist` to confirm CASL wording and the footer.
 2. Approve the consent wording for question 13 and the retention statement in message 11 (SOP open decision 4).
-3. Approve the pilot / low-confidence cover-note wording in message 8 (SOP open decision 3); legal review. Re-align message 8 with `docs/operations/legal/proof-pdf-wording.md` once it exists.
-6. Name the human agronomist (`[HUMAN AGRONOMIST NAME, CREDENTIALS]`) before any message 2, 7, 8 or 9 is sent; none can go out with the placeholder.
+3. Approve the pilot / low-confidence cover-note wording in message 8A and 8B (SOP open decision 3); 8B and 9B are counsel-held with PDF Block B2.
+6. Name the human agronomist (`[HUMAN AGRONOMIST NAME, CREDENTIALS]`) and the superadmin approver (`[SUPERADMIN NAME, ROLE]`) before any message 2, 7, 8 or 9 is sent; none can go out with a placeholder. If no agronomist will be named for the pilot, messages 2 and 7 must drop the agronomist alternative rather than imply one exists.
 4. Confirm the "reply stop" opt-out line is honoured within the CASL time limit (see M10) and that someone owns the inbox.
 5. `[LEGAL ENTITY]`, `[CONTACT EMAIL]`, `[PRIVACY NOTICE LINK]`, `[PILOT TERMS LINK]` must be filled before any send. Stage 3 chase wording relies on the "paused" label, which is not yet a stored status (SOP open decision 1).

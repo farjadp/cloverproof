@@ -2,15 +2,26 @@
 
 > **This is not legal advice; a licensed Ontario lawyer should review before use.**
 > Prepared by `legal-compliance-specialist` (not a lawyer) for the CloverProof COO and the CISO, 2026-11-16.
-> **Decision owner: Farjad Iranmehr (OQ-06 / SC-08 / AR-17 / RK-X14).** Due before the first real farmer data (S5; decision date in `backend-distribution.md`: Dec 23).
+> **Decision owner: Farjad Iranmehr (OQ-06 / SC-08 / AR-17 / RK-X14).**
 > Nothing was purchased, signed, submitted or sent. No vendor was contacted.
+
+## OQ-06 — DECIDED 2026-11-16: real farmer data is stored in Canada
+- **Decision (Farjad Iranmehr, 2026-11-16; source: `git diff origin/main origin/cpo-decisions-sa-fe-residency -- CLAUDE.md`, "Launch market + residency"):** real farmer data must be stored in Canada. Railway has no Canadian region, so a hosting ADR (owner `cto` + `devops-engineer`, with `ciso`) chooses the Canadian option: `[CANADIAN HOSTING PROVIDER, REGION]`. Until Canadian hosting is live, **only synthetic or de-identified data** in hosted environments.
+- **My recommendation (Option A, Railway US) was not chosen.** §§1–6 below are kept as the analysis history; their option comparison and Railway-specific findings still help the hosting ADR (Options B/C, the Railway DPA checklist if the website stays on Railway).
+- **Not decided by OQ-06:** where the website pilot-request form data lives — `[WEBSITE FORM DATA LOCATION — confirm in hosting ADR]`. Flag: those rows hold farmers' names and contact details. Leaving them in the US is lawful under PIPEDA with notice (L1–L3), but then no public text may say "your data is stored in Canada" without saying the request form is not (Competition Act general impression — `proof-pdf-wording.md` S6).
+- **Legal points the decision does not settle (input to the hosting ADR):**
+  1. "Stored in Canada" is not "out of reach of foreign law" if the provider is US-owned (S9). The notice must not imply otherwise; pilot-terms §7.6 and consent §2 carry a qualifier placeholder.
+  2. Processing must also be in Canada for the claim "stored and processed in Canada" — Option B (app on Railway, DB in Canada) would store in Canada but process in the US; under the decision's wording ("stored") B may satisfy it, but the notice must then say "processed in the United States". ADR owners to choose consciously.
+  3. Backups, logs, error tracking (Sentry), email delivery and the proof-PDF bucket must all be in scope of "stored in Canada", or listed as exceptions in the notice.
+  4. The AI reviewer receives de-identified data only (D-7) and may be outside Canada. That fits the decision only while de-identification holds (counsel item 6).
+  5. A Canadian-host DPA / terms replace the Railway DPA for farmer data; counsel review before Farjad signs.
 
 Facts from the repo: ADR 0004 (Railway project `cloverproof`, services `Postgres` + `website`, "Railway has no Canadian region. The default region is used"); ADR 0005 (proof PDFs in a Railway bucket); `privacy-notice.md` §6–7 (Railway US disclosed; `[RAILWAY REGION]`, `[RESIDENCY DECISION]`, `[AI PROVIDER]` open). Launch = Ontario winter wheat, 5–10 farms, Feb–Apr 2027 (CLAUDE.md).
 
 ## 1. Short answer
 1. **No law found that requires a private Ontario business to keep farm data in Canada.** PIPEDA regulates transfers through accountability + contract + notice, not location (S1, S4). Ontario's public-sector laws don't mandate residency either, and they don't bind us (S6). Quebec Law 25 adds a mandatory **privacy impact assessment** before data collected in Quebec leaves Quebec (S7) — not triggered while the pilot is Ontario-only.
 2. **"Stored in Canada" does not mean "out of reach of US law."** Railway, AWS and DigitalOcean are US companies. The US CLOUD Act requires US providers to disclose data in their "possession, custody, or control" wherever it is stored (S9). Only a Canadian-owned provider changes that. I did not research Canadian-owned providers.
-3. **Recommendation: Option A for the 2027 pilot** (Railway US East + signed DPA + plain disclosure + no identifiers sent to the AI provider). Keep Option B ready as the exit if a co-op, lender or farmer makes Canadian storage a condition. Reasons are in §5.
+3. *(History — not chosen; see OQ-06 DECIDED above.)* **Recommendation: Option A for the 2027 pilot** (Railway US East + signed DPA + plain disclosure + no identifiers sent to the AI provider). Keep Option B ready as the exit if a co-op, lender or farmer makes Canadian storage a condition. Reasons are in §5.
 
 ## 2. What the law requires (cross-border processing)
 
@@ -81,7 +92,7 @@ Source: Railway Data Processing Addendum, https://railway.com/legal/dpa (S10), f
 | D11 | Liability | No cap in the DPA; claims subject to the main Agreement's exclusions and limits (preamble) | Counsel to read the Terms of Service limits alongside the DPA. |
 | D12 | Execution | Becomes binding on Railway's countersignature of the DocuSign form (§14) | Farjad signs, not an agent. Keep the countersigned copy in the company records. |
 
-## 5. Recommendation
+## 5. Recommendation *(history — not chosen 2026-11-16)*
 **A for the 2027 pilot, with three conditions; revisit at S13 or the first partner contract.**
 1. Legal fit is the same as B under PIPEDA (L1–L3); B's gain is a sales/contract argument, and B still processes in the US.
 2. Pilot size (5–10 Ontario farms, mostly pseudonymous agronomic data after ER-design) doesn't justify the C schedule risk to Feb 2027.
@@ -89,12 +100,12 @@ Source: Railway Data Processing Addendum, https://railway.com/legal/dpa (S10), f
 4. Switch to B if any of: a co-op/lender/grant contract requires Canadian storage; a Quebec farm is accepted; Railway can't answer D3/D6/D7 satisfactorily. Do the B ADR only then.
 
 ## 6. Must be decided before the first real farmer data (owner: Farjad unless stated)
-1. OQ-06: A, B or C — and record it in an ADR (CISO + `cp-platform`).
-2. Railway region for Postgres, bucket and app (bucket region is permanent once created, S18) — `cp-platform` confirms in the dashboard; fills `[RAILWAY REGION]`.
-3. Railway DPA: counsel review of §4, then Farjad signs.
+1. ~~OQ-06: A, B or C~~ — DECIDED 2026-11-16: Canada. Hosting ADR picks B or C and the provider (`cto` + `devops-engineer`, with `ciso`); fills `[CANADIAN HOSTING PROVIDER, REGION]`.
+2. Website form data location — `[WEBSITE FORM DATA LOCATION — confirm in hosting ADR]`. If it stays on Railway, choose the region (bucket region is permanent once created, S18).
+3. Canadian host's DPA / data terms: counsel review, then Farjad signs. Railway DPA (§4): needed only for whatever stays on Railway (website, synthetic/de-identified environments).
 4. AI provider: which one, its data terms, what fields it receives (D-7 decided: de-identified only; a change needs a DPA + notice, Farjad Iranmehr decides).
 5. Pilot eligibility stays Ontario-only (keeps Quebec PIA and GDPR out).
-6. Privacy notice §7: keep one option, delete the other.
+6. Privacy notice §7: delete the US option for farmer data; owner of `privacy-notice.md` (not edited here).
 7. Ask the first partner co-ops/lenders whether they require Canadian storage (COO, before contracts).
 
 ## Sources (checked 2026-11-16)
@@ -119,7 +130,8 @@ priv.gc.ca, laws-lois.justice.gc.ca and legisquebec.gouv.qc.ca refused connectio
 - S20 Railway logs — https://docs.railway.com/guides/logs *(fetched)*
 
 ## Needs licensed counsel
-1. Confirm PIPEDA needs no separate consent for transfer to a US processor (L2) and that our notice wording meets L3.
+1. Confirm PIPEDA needs no separate consent for transfer to a US processor (L2) and that our notice wording meets L3 — now relevant only to website form data and any non-Canadian sub-processor.
+1a. Wording of the Canadian-storage commitment if the Canadian host is US-owned, and whether "stored in Canada" is misleading if the app processes in the US (Option B).
 2. Railway DPA (§4) and Railway Terms of Service liability limits — before Farjad signs.
 3. AI provider's data terms (retention, training, sub-processors, location).
 4. Quebec s. 17 scope (does hosting in another province count?) if Quebec is ever opened.

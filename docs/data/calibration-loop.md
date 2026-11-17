@@ -1,6 +1,6 @@
 # Calibration loop — how each reviewed plan becomes evidence
 
-Owner: `data-scientist` (reports to `head-of-data`). Status: DRAFT spec, S2 (2026-11-16); updated 2026-11-16 for D4 + R2.
+Owner: `data-scientist` (reports to `head-of-data`). Status: DRAFT spec, S2 (2026-11-16); updated 2026-11-16 for D4 + R2 and the three-value `review_kind` (superadmin decision).
 Applies to: engine `0.2.0`, pack `placeholder` `v0`, migrations `0001`–`0009` in `db/migrations/`.
 
 This spec defines the calibration dataset (engine output vs agronomist final + reason), how it is
@@ -9,25 +9,29 @@ agronomic constant values**. Every value in examples is a symbolic placeholder (
 `<PROPOSED>`, `<TOLERANCE>`). The data team never edits `engine/` or `packs/`, and nothing in this
 loop produces a number that reaches a farmer.
 
-## Update 2026-11-16 — D4 (AI reviewer) and R2 (per-line storage)
+## Update 2026-11-16 — D4 (AI reviewer), superadmin approvals, and R2 (per-line storage)
 
-Source: `docs/plans/backend-plan-reconciliation.md` (D4, R2) and `docs/plans/backend-plan.md` §6.4.
+Source: `docs/plans/backend-plan-reconciliation.md` (D4, R2), `docs/plans/backend-plan.md` §6.4, and the
+superadmin decision (Farjad Iranmehr via CPO, 2026-11-16: a human superadmin may approve plans).
 These rules override anything below that conflicts with them.
 
-1. **Two kinds of sign-off.** Until a human agronomist is named, the reviewer is the AI agent
-   `cp-agronomist`; its sign-off is **`ai_reviewed`**. A human user with the `agronomist` role gives
-   **`agronomist_approved`**. `ai_reviewed` rows exist only on synthetic, de-identified or
-   `external_reference` cases (item 7); real pilot plans stay `in_review` until the human
-   agronomist approves them. The kind is stamped on each `review` row (`review.reviewer_kind`,
-   proposed name; cp-database flag in migrations 0011+).
-2. **Only human-approved units are calibration evidence.** `ai_reviewed` units never count toward:
-   the 90 % agreement gate, the calibration baseline, Tier 1 flags, Tier 2 constant-change
-   proposals (§4.1), or the approval / review-gate rates. They may be reported in a separate block
-   "AI review diagnostics (not agronomist approval)" and are never pooled with human units
-   (added to §5.2).
-3. **No baseline without human cases** (traceability NB-DAT-03, OQ-04). Until human-approved
-   units exist, the S3 deliverable is the baseline **method** plus the line "no human-approved
-   cases yet" (§7).
+1. **Three kinds of sign-off** (`review.review_kind`, stamped on each `review` row at insert;
+   proposed name, cp-database flag in migrations 0011+; replaces data's earlier `reviewer_kind`
+   `ai` / `human`):
+   - **`agronomist_approved`** — a human user with the `agronomist` role;
+   - **`superadmin_approved`** — a human superadmin;
+   - **`ai_reviewed`** — the AI agent `cp-agronomist`. `ai_reviewed` rows exist only on synthetic,
+     de-identified or `external_reference` cases (item 7); real pilot plans stay `in_review` until a
+     human approves them.
+2. **Only `agronomist_approved` units are calibration evidence.** `superadmin_approved` and
+   `ai_reviewed` units never count toward: the calibration dataset, the 90 % agreement gate, the
+   calibration baseline, Tier 1 flags, Tier 2 constant-change proposals (§4.1), or the approval /
+   review-gate rates. Each is reported in its own block — "Superadmin approval diagnostics (not
+   agronomist approval)" and "AI review diagnostics (not agronomist approval)" — and is never pooled
+   with agronomist units or with the other diagnostic (added to §5.2).
+3. **No baseline without agronomist cases** (traceability NB-DAT-03, OQ-04). Until
+   `agronomist_approved` units exist, the S3 deliverable is the baseline **method** plus the line
+   "no agronomist-approved cases yet" (§7).
 4. **Per-line evidence (R2).** The engine-vs-final delta is computed per `recommendation_line`
    (nutrient + explicit form + split, with product and timing as attributes), not on P/K columns
    of `recommendation`. The view is specified in `docs/data/calibration-delta-spec.md` (DM-16).
@@ -46,6 +50,16 @@ These rules override anything below that conflicts with them.
    `cp-agronomist` never receives it and comments only on method and published sources, and its
    `ai_reviewed` / `external_reference` cases stay separate and never enter the calibration dataset.
    Wherever this file says "the agronomist" for a real case, it means the human agronomist.
+8. **A superadmin approval is not agronomic validation.** It records that a human superadmin
+   released the plan; it does not record an agronomist's judgement of the numbers. Therefore a plan
+   whose **final numbers were set or edited by a superadmin** (any version between the engine root
+   and the final with `author_kind = 'superadmin'`, proposed column) is a **diagnostic, not
+   evidence** — even if a human agronomist approves it afterwards, because the agronomist then
+   judged numbers anchored on someone else's edit. The same holds for numbers set by the AI. In
+   `calibration_delta` these finals are excluded (`non_agronomist_edit_in_chain`); they are counted
+   in the superadmin (or AI) diagnostic. Whether a superadmin approval may move a plan to
+   `approved` at all is a product/rule question the CPO is resolving (CLAUDE.md rule 8); this file
+   holds either way because evidence is selected by `review_kind`, not by status.
 
 ---
 
@@ -86,13 +100,14 @@ of its `parent_id` chain**, deduplicated to one unit per field × season × crop
 - **Approved without edits** (`edit_depth = 0`, Δ = 0) is evidence: agreement is data. Leaving
   these out would bias every statistic away from zero.
 - Unapproved versions (drafts, edits not yet approved, superseded intermediates) are **not** units.
-- **D4/R2 (target schema):** the unit becomes one *human-approved* final per season, read as a set
-  of line pairs from `calibration_delta` (`counts_toward_calibration = true`). Line matching
+- **D4/R2 (target schema):** the unit becomes one *agronomist-approved* final per season
+  (`review_kind = 'agronomist_approved'`, no superadmin- or AI-set numbers in the chain), read as a
+  set of line pairs from `calibration_delta` (that filter is built into the view). Line matching
   (key `nutrient` + `nutrient_form` + `split_no`; added/removed lines are separate signals, never a
   zero delta; product and timing changes are attributes) is defined in
   `calibration-delta-spec.md` §2. Statistics are computed per nutrient on matched lines and on the
-  per-nutrient total (spec §6.2), with add and removal rates reported beside them. An
-  `ai_reviewed` final is never a unit.
+  per-nutrient total (spec §6.2), with add and removal rates reported beside them. A
+  `superadmin_approved` or `ai_reviewed` final is never a unit.
 
 ### 1.2 Multi-step edits
 
@@ -108,7 +123,8 @@ Chain `engine → A1 → A2 (approved)`:
 
 `review.decision = 'reject'` has no resulting numbers, so a reject is **never a numeric unit**.
 - Counted per stratum as **reject rate** = rejects / (rejects + approvals) on engine roots,
-  human reviews only (D4); AI rejects (non-real cases only, D-7) are a diagnostic.
+  `agronomist_approved`-kind reviews only (D4); superadmin rejects and AI rejects (non-real cases
+  only, D-7) are two separate diagnostics.
 - Its reason is tagged with the same taxonomy (§3). A reject tagged `ENGINE_BUG` goes to the bug
   list in the same sprint.
 - If the crop plan is later re-run (a new engine root) and approved, the approved re-run is the
@@ -150,6 +166,15 @@ underlying tables. Do not select PII columns (`farmer.display_name`, `farmer.not
 database; reports quote codes or paraphrases, never raw text into git.
 
 Tolerance for "agree" is TODO(agronomist) #10. In psql: `\set tol_kg_n_ha <TOLERANCE>`.
+
+**Review-kind filter (D4 + superadmin decision).** Today's schema has no `review_kind`, and
+`recommendation_diff.approved_at` comes from **any** approving review. Once `review.review_kind`
+exists: Q1's `approved` CTE keeps only finals whose latest approving review is
+`agronomist_approved` and whose chain has no superadmin/AI-authored version (simplest: switch to
+`calibration_delta`); Q4 and Q5 add `and rv.review_kind = :'review_kind'` and are run once for
+`agronomist_approved` (evidence) and once per diagnostic kind (`superadmin_approved`,
+`ai_reviewed`), never in one run. Until the column exists, Q1–Q6 cannot separate kinds: every
+output is labelled "review kind not recorded (G11)" and no Tier 1/2 output is produced from it.
 
 Checked 2026-11-16: every query below ran without error on a throwaway PostGIS 17 container with
 migrations 0002–0009, `db/seeds/dev.sql` and fictional rows (two engine roots, two-step edit
@@ -466,9 +491,11 @@ Notes:
 | **1 — Direction flag** | "Consistent direction" flag + a question to the agronomist; **no value** | n_plans ≥ 5 from ≥ 3 farms, ≥ 80% of non-agreeing units in one direction | Five same-sign cases are the smallest set that is even suggestive; exact two-sided sign test with 5/5 is p = 0.0625, so it **cannot** exclude chance. A flag, not evidence |
 | **2 — Constant-change proposal** | Evidence memo with an estimate and interval | **n_plans ≥ 20 from ≥ 10 farms**, one `pack_sha256`, one crop, one nutrient, one season/region stratum; AND farm-bootstrap 95% CI of mean Δ excludes 0 and \|mean Δ\| > tolerance; AND direction consistency ≥ 15/20 (Wilson lower bound > 0.5); AND ≥ 60% of edits carry a primary code pointing at the same constant, confirmed by the agronomist | t-interval half-width on the mean is 1.24 SD at n = 5, 0.72 SD at n = 10, 0.47 SD at n = 20. If fields cluster fully by farm, n_eff = farms, so ≥ 10 farms keeps the worst case near 0.72 SD; below 10 clusters a cluster bootstrap is unreliable. 15/20 is the smallest count whose Wilson lower bound is above 0.5 (0.531; 14/20 gives 0.481). The code rule is needed because the rate cannot identify which constant is off |
 
-**Human-only (D4).** Every tier counts only `agronomist_approved` units. `ai_reviewed` units
-(synthetic / de-identified / `external_reference` only, D-7) can feed Tier 0 (a bug report is a bug
-whoever finds it) but never Tier 1 or Tier 2, and never appear in a proposal memo's evidence numbers.
+**Agronomist-only (D4 + superadmin decision).** Every tier counts only `agronomist_approved` units
+without superadmin- or AI-set numbers in the chain. `superadmin_approved` units and `ai_reviewed`
+units (synthetic / de-identified / `external_reference` only, D-7) can feed Tier 0 (a bug report is
+a bug whoever finds it) but never Tier 1 or Tier 2, and never appear in a proposal memo's evidence
+numbers.
 
 **Plainly:** the 5 Dec 18 wheat cases and a 5–10-farm season are **anecdotes**. They can support
 bug finding, consistent-direction flags (Tier 1) and a list of questions for the agronomist. They
@@ -503,8 +530,9 @@ engine confidence, country/region.
 - **Pack status:** `placeholder` and validated packs are never pooled.
 - **Crops, nutrients:** never pooled.
 - **Blind (golden cases) vs anchored (tool reviews):** never pooled.
-- **`ai_reviewed` vs `agronomist_approved` (D4):** never pooled; AI units are excluded from every
-  calibration statistic and shown only as diagnostics.
+- **`agronomist_approved` vs `superadmin_approved` vs `ai_reviewed`:** never pooled, in any pair.
+  Superadmin and AI units are excluded from every calibration statistic and each is shown only in
+  its own diagnostic block.
 - **Seasons / regions:** stratify; pooled totals are descriptive only.
 
 ### 5.3 Replay (the legitimate way to pool across versions)
@@ -595,16 +623,19 @@ Follow-up: golden case <id> (cp-engine), pack <id> <new version>, guard review <
 
 ## 7. S3 plan — calibration baseline from the 5 real wheat cases (due Dec 18)
 
-**Revised after D4 (2026-11-16).** A baseline number is produced **only from human-approved cases**.
+**Revised after D4 and the superadmin decision (2026-11-16).** A baseline number is produced **only
+from `agronomist_approved` cases** (a human with the agronomist role). Cases approved, set or edited
+by a superadmin are not agronomist judgement and are not a baseline; if any exist they go to a
+separate appendix "Superadmin approval diagnostics", never pooled with the AI appendix.
 If no human agronomist has supplied cases by the S3 cut-off, the S3 output is:
 (a) this baseline **method** (items 1–8 below, applied per `recommendation_line` once R2 is
-migrated), and (b) the line **"no human-approved cases yet — no baseline produced"**. Reference
+migrated), and (b) the line **"no agronomist-approved cases yet — no baseline produced"**. Reference
 cases drafted by `cp-agronomist` from published sources (`external_reference`, `ai_reviewed`) may be
 tabulated in a separate appendix "AI review diagnostics" for bug finding only; they are not a
 baseline, not agronomist judgement, not pooled, and never enter the calibration dataset (rule 11).
 The 5 real cases and their baseline are never shared with `cp-agronomist` (D-7).
 
-The plan below applies when the human cases arrive.
+The plan below applies when the agronomist-approved cases arrive.
 
 Input: 5 cases from Farjad Iranmehr (agronomist-todo #1), given **blind** (input → his rate,
 splits, confidence, reason). Expected mix: ≥ 1 without soil test, ≥ 1 after a legume.
@@ -644,10 +675,14 @@ Run in week 2 of each field-season sprint; output `docs/data/calibration-review-
 `head-of-data` before the Friday review.
 
 - [ ] Freeze the snapshot: query timestamp, migration level, row counts per table.
-- [ ] Split every unit by `reviewer_kind` (D4); statistics below use human-approved units only;
-      AI units (synthetic / de-identified / `external_reference` only) go to a separate "AI review
-      diagnostics" block (counts, add/remove rates). Check no real pilot plan carries an
-      `ai_reviewed` review; if one does, report it to `head-of-data` as a D-7 breach.
+- [ ] Split every unit by `review_kind`; statistics below use `agronomist_approved` units only
+      (`calibration_delta`). Two separate diagnostic blocks, never pooled: "Superadmin approval
+      diagnostics" (`superadmin_approved` units, plus agronomist-approved finals whose numbers a
+      superadmin set/edited; counts, add/remove rates) and "AI review diagnostics" (`ai_reviewed`;
+      synthetic / de-identified / `external_reference` only). Check no real pilot plan carries an
+      `ai_reviewed` review; if one does, report it to `head-of-data` as a D-7 breach. If the share
+      of real plans released by superadmin approval only is non-zero, state it — it shrinks the
+      evidence base.
 - [ ] Apply exclusions (§1.5); list excluded units by reason (counts only).
 - [ ] Run Q6 data-quality checks; open tickets for inconsistent splits/totals, changed inputs,
       pack mismatch, duplicate approvals.
@@ -675,7 +710,7 @@ gaps still open, recommendation for the 2028 sample size.
 | # | Gap | Impact | Suggested direction (needs ADR) |
 |---|---|---|---|
 | G1 | ~~No P/K numbers in `result`~~ **SOLVED BY R2**: `recommendation_line` per nutrient with explicit form (§6.4) | Closed once cp-database migrates `recommendation_line` and the engine writes P/K lines; verify before Feb 1 | Track in `calibration-delta-spec.md` (DM-16) |
-| G11 | No reviewer kind (D4): cannot separate `ai_reviewed` from `agronomist_approved` | AI sign-offs would contaminate calibration and gates | `review.reviewer_kind` stamped at insert (cp-database, migrations 0011+, REC-D4) |
+| G11 | No review kind (D4 + superadmin decision): cannot separate `agronomist_approved`, `superadmin_approved`, `ai_reviewed`; no record of who set each version's numbers | Superadmin and AI sign-offs would contaminate calibration and gates | `review.review_kind` (three values) and `recommendation.author_kind` stamped at insert (cp-database, migrations 0011+, REC-D4); spec in `calibration-delta-spec.md` |
 | G2 | No reason code; two free-text reasons (`recommendation.reason`, `review.reason`) | Tagging is manual and after the fact | Coded `reason_code` on edits/rejects, picked at review time |
 | G3 | No test/demo flag on `organisation` | Exclusion by name pattern is fragile | Boolean flag or org kind |
 | G4 | `recommendation` has no `field_id` / `soil_test_id`; `crop_plan` is mutable | Farm/region join goes through a mutable row; snapshot soil test has no id | Store field/soil-test ids at insert time |
