@@ -46,12 +46,15 @@ begin
       using errcode = 'object_not_in_prerequisite_state', constraint = 'soil_test_locked';
   end if;
   -- A value moved to another (unlocked) test: the target must not be locked either.
-  if tg_table_name = 'soil_test_value' and tg_op = 'UPDATE'
-     and new.soil_test_id is distinct from old.soil_test_id
-     and public.soil_test_is_locked(new.organisation_id, new.soil_test_id) then
-    raise exception 'soil test % was used by a recommendation and is locked; enter a new soil test instead',
-      new.soil_test_id
-      using errcode = 'object_not_in_prerequisite_state', constraint = 'soil_test_locked';
+  -- Nested IFs: PL/pgSQL does not short-circuit AND, and new.soil_test_id does not exist
+  -- on a soil_test row.
+  if tg_table_name = 'soil_test_value' and tg_op = 'UPDATE' then
+    if new.soil_test_id is distinct from old.soil_test_id
+       and public.soil_test_is_locked(new.organisation_id, new.soil_test_id) then
+      raise exception 'soil test % was used by a recommendation and is locked; enter a new soil test instead',
+        new.soil_test_id
+        using errcode = 'object_not_in_prerequisite_state', constraint = 'soil_test_locked';
+    end if;
   end if;
   if tg_op = 'DELETE' then
     return old;
