@@ -5,6 +5,13 @@
 {% block content %}
 <h1>New plan for {{ field.name }}</h1>
 {{ error_summary(errors, "running the engine") }}
+{% if refusal %}
+<div class="notice error" role="alert" id="engine-refusal" tabindex="-1">
+  <p class="notice-title">No plan was made. Nothing was saved.</p>
+  <p>{{ refusal }}</p>
+  <p>Change the inputs below if they were wrong. If they are right, this case is outside what the country pack covers: plan it by hand.</p>
+</div>
+{% endif %}
 <form class="form plan-form" method="post" action="/fields/{{ field.id }}/plans" novalidate
       hx-disabled-elt="find button[type=submit]">
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -45,6 +52,65 @@
       {{ error(errors, "plan_date") }}
     </div>
   </fieldset>
+
+  {% if needs.any %}
+  <fieldset class="pack-inputs">
+    <legend>Inputs this country pack needs</legend>
+    {% if needs.wheat_class %}
+    <div class="field">
+      <label for="wheat_class">Wheat class</label>
+      <select id="wheat_class" name="wheat_class"{{ invalid(errors, "wheat_class") }}>
+        <option value="">Choose…</option>
+        {% for code, label in planning.WHEAT_CLASS_LABELS.items() %}<option value="{{ code }}"{% if f.wheat_class == code %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      {{ error(errors, "wheat_class") }}
+    </div>
+    {% endif %}
+    {% if needs.manure %}
+    <div class="field" role="radiogroup" aria-labelledby="manure_applied-label" id="manure_applied">
+      <p class="label" id="manure_applied-label">Manure applied for this crop?</p>
+      <label class="choice"><input type="radio" name="manure_applied" value="no"{% if f.manure_applied == "no" %} checked{% endif %}> No</label>
+      <label class="choice"><input type="radio" name="manure_applied" value="yes"{% if f.manure_applied == "yes" %} checked{% endif %}> Yes</label>
+      <p class="hint">Includes other organic amendments.</p>
+      {{ error(errors, "manure_applied") }}
+    </div>
+    {% endif %}
+    {% if needs.n_price %}
+    <div class="field-row">
+      <div class="field">
+        <label for="n_price">N price</label>
+        <div class="suffixed"><input id="n_price" name="n_price" type="text" inputmode="decimal" value="{{ f.n_price }}"{{ invalid(errors, "n_price") }}><span class="suffix">per kg N</span></div>
+        <p class="hint">Per kg of nitrogen, not per kg of product.</p>
+        {{ error(errors, "n_price") }}
+      </div>
+      <div class="field">
+        <label for="grain_price">Wheat price</label>
+        <div class="suffixed"><input id="grain_price" name="grain_price" type="text" inputmode="decimal" value="{{ f.grain_price }}"{{ invalid(errors, "grain_price") }}><span class="suffix">per kg</span></div>
+        <p class="hint">Per kg of grain (price per tonne ÷ 1000).</p>
+        {{ error(errors, "grain_price") }}
+      </div>
+      <div class="field">
+        <label for="currency">Currency</label>
+        <input id="currency" name="currency" type="text" maxlength="3" size="4" value="{{ f.currency }}"{{ invalid(errors, "currency") }}>
+        {{ error(errors, "currency") }}
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="price_source">Price source</label>
+        <input id="price_source" name="price_source" type="text" maxlength="200" value="{{ f.price_source }}"{{ invalid(errors, "price_source") }}>
+        <p class="hint">E.g. supplier quote, elevator bid.</p>
+        {{ error(errors, "price_source") }}
+      </div>
+      <div class="field">
+        <label for="price_date">Price date</label>
+        <input id="price_date" name="price_date" type="date" value="{{ f.price_date }}"{{ invalid(errors, "price_date") }}>
+        {{ error(errors, "price_date") }}
+      </div>
+    </div>
+    {% endif %}
+  </fieldset>
+  {% endif %}
 
   <fieldset class="soil">
     <legend>Soil test (optional)</legend>

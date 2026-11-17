@@ -18,18 +18,26 @@ from typing import Any
 from pydantic import ValidationError
 
 from cloverproof_engine import recommend
+from cloverproof_engine.methods import MissingInputError, OutOfScopeError
+from cloverproof_engine.methods._shared import (
+    OutsideTableError,
+    PackValueNotSetError,
+    UnknownPreviousCropError,
+)
 from cloverproof_engine.models import (
     ConcentrationUnit,
     Crop,
     ExtractionMethod,
+    NPrice,
     NutrientForm,
     RecommendationInput,
     SoilTest,
     SoilTestSource,
     SoilTestValue,
+    WheatClass,
     nutrient_of,
 )
-from cloverproof_engine.pack import Pack, PackConstant
+from cloverproof_engine.pack import Pack, PackConstant, YieldPriceTableNitrogen
 
 FORM_LABELS = {"P": "P", "P2O5": "P₂O₅", "K": "K", "K2O": "K₂O", "NO3-N": "NO₃-N", "N": "N"}
 VALUE_FORMS = ("P", "P2O5", "K", "K2O", "NO3-N")
@@ -42,6 +50,20 @@ METHOD_LABELS = {
     "other": "Other",
 }
 CROP_LABELS = {"wheat": "Wheat"}
+WHEAT_CLASS_LABELS = {
+    WheatClass.PASTRY.value: "Pastry (soft red or soft white)",
+    WheatClass.HARD.value: "Hard (hard red or hard white)",
+}
+DEFAULT_CURRENCY = "CAD"
+# The engine's refusals: the case is outside what the pack covers, or an input it needs
+# is missing. Shown on the form as the engine's own reason; nothing is saved.
+ENGINE_REFUSALS: tuple[type[ValueError], ...] = (
+    MissingInputError,
+    OutOfScopeError,
+    OutsideTableError,
+    PackValueNotSetError,
+    UnknownPreviousCropError,
+)
 VALUE_ROWS = 3  # empty value rows on a fresh form; blank rows are ignored
 
 SAMPLE_AFTER_PLAN = "Sample date is after the plan date."
@@ -56,6 +78,31 @@ REJECT_REASON_MISSING = "Add a reason for rejecting."
 def previous_crop_choices(pack: Pack, crop: str = "wheat") -> list[tuple[str, str]]:
     cfg = pack.crops[Crop(crop)]
     return [(key, pc.label) for key, pc in cfg.nitrogen.previous_crop_credits.items()]
+
+
+@dataclass(frozen=True)
+class PackInputs:
+    """Which extra inputs the loaded pack's crop needs (read from the pack, never by id)."""
+
+    wheat_class: bool = False  # pack scope.wheat_class is set
+    manure: bool = False  # pack scope.manure is set
+    n_price: bool = False  # the N method looks the rate up by N:grain price ratio
+
+    @property
+    def any(self) -> bool:
+        return self.wheat_class or self.manure or self.n_price
+
+
+def pack_inputs(pack: Pack, crop: str = "wheat") -> PackInputs:
+    cfg = pack.crops.get(Crop(crop)) if crop in CROP_LABELS else None
+    if cfg is None:
+        return PackInputs()
+    scope = cfg.scope
+    return PackInputs(
+        wheat_class=scope is not None and scope.wheat_class is not None,
+        manure=scope is not None and scope.manure is not None,
+        n_price=isinstance(cfg.nitrogen, YieldPriceTableNitrogen),
+    )
 
 
 def _number(raw: str | None) -> float | None:
@@ -108,6 +155,14 @@ class PlanForm:
     source: str = "lab"
     lab: str = ""
     values: list[ValueRow] = field(default_factory=list)
+    # Pack inputs (only read when the loaded pack needs them; see `pack_inputs`).
+    wheat_class: str = ""
+    manure_applied: str = ""  # "yes" | "no"
+    n_price: str = ""  # per kg N
+    grain_price: str = ""  # per kg grain
+    currency: str = DEFAULT_CURRENCY
+    price_source: str = ""
+    price_date: str = ""
 
     @classmethod
     def from_form(cls, form: Mapping[str, Any], getlist: Any) -> PlanForm:
@@ -130,6 +185,13 @@ class PlanForm:
             source=get("source") or "lab",
             lab=get("lab"),
             values=rows,
+            wheat_class=get("wheat_class"),
+            manure_applied=get("manure_applied"),
+            n_price=get("n_price"),
+            grain_price=get("grain_price"),
+            currency=get("currency").strip().upper() or DEFAULT_CURRENCY,
+            price_source=get("price_source"),
+            price_date=get("price_date"),
         )
 
 
@@ -179,6 +241,8 @@ def validate_plan_form(f: PlanForm, pack: Pack) -> tuple[ParsedPlan | None, dict
     elif f.has_soil == "yes":
         soil = _validate_soil(f, plan_date, errors)
 
+    extra = _validate_pack_inputs(f, pack_inputs(pack, f.crop), errors)
+
     if errors:
         return None, errors
     assert target is not None and area is not None and plan_date is not None
@@ -190,10 +254,85 @@ def validate_plan_form(f: PlanForm, pack: Pack) -> tuple[ParsedPlan | None, dict
             area_ha=area,
             plan_date=plan_date,
             soil_test=soil,
+            **extra,
         )
     except ValidationError as error:  # should not happen after the checks above; never hide it
         return None, {"form": f"The engine rejected the inputs: {error.errors()[0]['msg']}"}
     return ParsedPlan(inputs), {}
+
+
+def _validate_pack_inputs(f: PlanForm, needs: PackInputs, errors: dict[str, str]) -> dict[str, Any]:
+    """Wheat class, manure and prices: only when the pack needs them, else left out."""
+    extra: dict[str, Any] = {}
+    if needs.wheat_class:
+        if f.wheat_class not in WHEAT_CLASS_LABELS:
+            errors["wheat_class"] = "Choose the wheat class (pastry or hard)."
+        else:
+            extra["wheat_class"] = WheatClass(f.wheat_class)
+    if needs.manure:
+        if f.manure_applied not in {"yes", "no"}:
+            errors["manure_applied"] = "Say whether manure was applied for this crop."
+        else:
+            extra["manure_applied"] = f.manure_applied == "yes"
+    if needs.n_price:
+        price = _validate_price(f, errors)
+        if price is not None:
+            extra["n_price"] = price
+    return extra
+
+
+PRICE_FIELDS = ("n_price", "grain_price", "currency", "price_source", "price_date")
+
+
+def _validate_price(f: PlanForm, errors: dict[str, str]) -> NPrice | None:
+    currency = f.currency.strip().upper()
+    unit_currency = currency or "currency"
+    prices: dict[str, float] = {}
+    for name, label, per in (
+        ("n_price", "the N price", "kg N"),
+        ("grain_price", "the wheat price", "kg grain"),
+    ):
+        unit = f"{unit_currency} per {per}"
+        try:
+            value = _number(getattr(f, name))
+        except ValueError:
+            errors[name] = f"Enter {label} as a number ({unit})."
+            continue
+        if value is None:
+            errors[name] = f"Enter {label} ({unit})."
+        elif value <= 0:
+            errors[name] = f"Enter {label} greater than zero ({unit})."
+        else:
+            prices[name] = value
+    if len(currency) != 3 or not currency.isascii() or not currency.isalpha():
+        errors["currency"] = "Enter the currency as a 3-letter code, e.g. CAD."
+    source = f.price_source.strip()
+    if not source:
+        errors["price_source"] = (
+            "Say where the prices come from (e.g. supplier quote, elevator bid)."
+        )
+    elif len(source) > 200:
+        errors["price_source"] = "Price source is too long (200 characters at most)."
+    price_date = None
+    try:
+        price_date = _date(f.price_date)
+        if price_date is None:
+            errors["price_date"] = "Enter the date of the prices."
+    except ValueError:
+        errors["price_date"] = "Enter the price date as a date (YYYY-MM-DD)."
+    if any(k in errors for k in PRICE_FIELDS) or price_date is None:
+        return None
+    try:
+        return NPrice(
+            n_price_per_kg_n=prices["n_price"],
+            grain_price_per_kg=prices["grain_price"],
+            currency=currency,
+            source=source,
+            price_date=price_date,
+        )
+    except ValidationError as error:  # should not happen after the checks above; never hide it
+        errors["n_price"] = f"The engine rejected the prices: {error.errors()[0]['msg']}"
+        return None
 
 
 def _validate_soil(f: PlanForm, plan_date: date | None, errors: dict[str, str]) -> SoilTest | None:
@@ -285,8 +424,16 @@ def _validate_soil(f: PlanForm, plan_date: date | None, errors: dict[str, str]) 
 
 
 def run_engine(inputs: RecommendationInput, pack: Pack) -> dict[str, Any]:
-    """The stored `result` document: the engine output, untouched."""
+    """The stored `result` document: the engine output, untouched.
+
+    Raises one of `ENGINE_REFUSALS` when the engine gives no number for this case.
+    """
     return recommend(inputs, pack).model_dump(mode="json")
+
+
+def refusal_message(error: ValueError) -> str:
+    """The engine's reason, as shown on the form."""
+    return f"The engine gave no number for this plan: {error}"
 
 
 # --- agronomist edit -----------------------------------------------------------------

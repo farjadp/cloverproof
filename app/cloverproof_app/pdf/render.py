@@ -18,6 +18,7 @@ from urllib.parse import unquote, urlparse
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
+from cloverproof_app import planning
 from cloverproof_app.pdf.model import (
     HASH_STATEMENT,
     NO_SOIL_TEST,
@@ -40,7 +41,8 @@ ALLOWED_ASSETS = frozenset(
     }
 )
 FORM_LABELS = {"N": "N", "NO3-N": "NO3-N", "P": "P", "P2O5": "P2O5", "K": "K", "K2O": "K2O"}
-METHOD_LABELS = {"olsen": "Olsen", "bray-1": "Bray-1", "mehlich-3": "Mehlich-3", "other": "Other"}
+# One source for extraction-method labels (the app and the PDF must never drift: S1-exit D2).
+METHOD_LABELS = planning.METHOD_LABELS
 
 
 # fontTools (WeasyPrint's variable-font instancing and woff2 decoding) stamps the embedded

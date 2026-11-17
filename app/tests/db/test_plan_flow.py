@@ -190,7 +190,7 @@ def test_staff_cannot_approve_or_edit(db: psycopg.Connection, org_a: Org) -> Non
     client, csrf = signed_in(db, org_a.staff)
     plan_url = f"/plans/{org_a.crop_plan}"
     page = client.get(plan_url)
-    assert page.status_code == 200 and "Waiting for agronomist review." in page.text
+    assert page.status_code == 200 and "Waiting for a human review." in page.text
     data = {"csrf_token": csrf, "recommendation_id": str(org_a.engine_rec), "decision": "approve"}
     r = client.post(plan_url + "/review", data=data)
     assert r.status_code == 403 and plan_web.ONLY_AGRONOMIST in r.text
