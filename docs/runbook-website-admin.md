@@ -35,7 +35,8 @@ The CLI refuses a second admin unless `--additional` is given; later users are i
 
 ## 4. Lost phone / locked out
 - Use a recovery code on the two-step screen (each works once).
-- Another admin: Users page → "Reset two-step sign-in" and/or "Password reset link".
+- Editors and authors: an admin uses Users → "Reset two-step sign-in" and/or "Password reset link".
+- Admins: only the operator CLI below (the admin UI never lets one admin reset another admin's sign-in).
 - Locked after 5 wrong passwords or codes: the lock lifts by itself (15 min, doubling up to 24 h); every session ends when codes lock it.
 - Last resort (only admin, no recovery codes), operator in the website shell:
   ```bash

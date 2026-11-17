@@ -37,6 +37,10 @@ export async function listUsers(db: Db, now: Date): Promise<UserRow[]> {
   }));
 }
 
+// An admin can't take over another admin's account through a reset link: that would make the
+// target's later actions unattributable. Admin resets go through the operator CLI (runbook §4).
+const ADMIN_RESET = "Admins can't reset another admin's sign-in here. Use the operator reset (runbook §4).";
+
 export type Result = { ok: true; message: string; link?: string } | { ok: false; error: string };
 
 type Target = { id: string; email: string | null; role: WebsiteRole; disabled_at: Date | null };
@@ -108,7 +112,11 @@ export async function setDisabled(db: Db, actor: Current, id: string, disabled: 
     if (r) return r;
     throw error;
   }
-  if (disabled) await revokeAllSessions(db, id, now);
+  if (disabled) {
+    await revokeAllSessions(db, id, now);
+    // Pending invite/reset links die too, so re-enabling never revives a leaked link.
+    await db.query("update website_one_time_token set used_at = $2 where user_id = $1 and used_at is null", [id, now]);
+  }
   await writeLog(db, { actor: actor.user.id, kind: "admin", action: disabled ? "user.disable" : "user.enable", outcome: "ok", targetType: "website_user", targetId: id, meta });
   return { ok: true, message: disabled ? "Account disabled and signed out everywhere." : "Account enabled." };
 }
@@ -117,6 +125,7 @@ export async function resetPassword(db: Db, config: AdminConfig, actor: Current,
   const user = await target(db, id);
   if (!user) return { ok: false, error: "User not found." };
   if (user.disabled_at) return { ok: false, error: "Enable the account first." };
+  if (user.role === "admin" && id !== actor.user.id) return { ok: false, error: ADMIN_RESET };
   const token = await issueLink(db, id, "password_reset", actor.user.id, now);
   await writeLog(db, { actor: actor.user.id, kind: "admin", action: "user.reset_link", outcome: "ok", targetType: "website_user", targetId: id, meta });
   return { ok: true, message: "Send this link to the user (valid 1 hour, works once). Their current password keeps working until they use it.", link: linkUrl(config, token) };
@@ -126,7 +135,8 @@ export async function resetPassword(db: Db, config: AdminConfig, actor: Current,
 export async function resetMfa(db: Db, actor: Current, id: string, meta: RequestMeta, now: Date): Promise<Result> {
   const user = await target(db, id);
   if (!user) return { ok: false, error: "User not found." };
-  if (id === actor.user.id) return { ok: false, error: "Ask another admin to reset your own two-step sign-in." };
+  if (id === actor.user.id) return { ok: false, error: "Ask the operator to reset your own two-step sign-in (runbook)." };
+  if (user.role === "admin") return { ok: false, error: ADMIN_RESET };
   await db.query("update website_user set mfa_secret_enc = null, mfa_enabled_at = null where id = $1", [id]);
   await db.query("delete from website_user_recovery_code where user_id = $1", [id]);
   await revokeAllSessions(db, id, now);
