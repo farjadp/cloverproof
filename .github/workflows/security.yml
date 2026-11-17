@@ -117,7 +117,7 @@ jobs:
     # partial matching, so "GPL" can never slip in via a substring). Every exception is
     # pinned to a named package AND its current licence, so a licence change fails the job.
     # Current exceptions (both pending an ADR + lawyer review, not silently allowed):
-    #   - psycopg / psycopg-binary: LGPL-3.0-only (Python Postgres driver)
+    #   - psycopg / psycopg-binary / psycopg-pool: LGPL-3.0-only (Python Postgres driver + pool, same project)
     #   - @img/sharp-libvips-*: LGPL-3.0-or-later (libvips binary pulled in by next -> sharp)
     #   - certifi: MPL-2.0 (Mozilla CA bundle, unmodified; arrives with data_sources deps)
     # Adding any other exception requires an ADR first.
@@ -150,7 +150,7 @@ jobs:
           # certifi (Mozilla CA bundle, MPL-2.0, used unmodified) is a named exception
           # pinned to its exact licence string, pending ADR + lawyer like psycopg.
           uvx pip-licenses==5.5.5 --python .venv/bin/python --from=mixed --format=json \
-            --ignore-packages psycopg psycopg-binary > "$RUNNER_TEMP/pip-licenses.json"
+            --ignore-packages psycopg psycopg-binary psycopg-pool > "$RUNNER_TEMP/pip-licenses.json"
           python3 -I .github/scripts/check_licences.py --allow "$PY_ALLOW" \
             --ignore-prefix cloverproof- \
             --exception "certifi=Mozilla Public License 2.0 (MPL 2.0)" \
@@ -161,7 +161,7 @@ jobs:
         # distribution). Fails if the licence changes or new packages appear under the name.
         run: |
           uvx pip-licenses==5.5.5 --python .venv/bin/python --from=mixed --format=plain \
-            --packages psycopg psycopg-binary --allow-only "LGPL-3.0-only"
+            --packages psycopg psycopg-binary psycopg-pool --allow-only "LGPL-3.0-only"
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
