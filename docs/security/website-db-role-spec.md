@@ -12,14 +12,14 @@ Closes: T-W3 / T-H6 in `docs/security/threat-model-webapp.md`. **Blocker:** do n
 | Columns written: `locale, full_name, email, country, farm_size_text, main_crop, notes, consent_at, consent_text` | same | Column-level `INSERT`. `id`, `created_at`, `status`, `deleted_at` are filled by defaults; the website cannot set `status = 'accepted'`, back-date `created_at` or set `deleted_at`. |
 | `id uuid default gen_random_uuid()` | `db/migrations/0001_pilot_request.sql:5` | No sequence → no `USAGE` on a sequence. `gen_random_uuid()` is built in (EXECUTE to PUBLIC by default). |
 | Pool `max: 5` per process | `website/src/lib/db.ts:10` | `CONNECTION LIMIT 10` = one replica + overlap during a deploy. Raise only if replicas > 1. |
-| `pilot_request` owned by the deploy superuser (0001 has no `set local role cp_migrator`) | `db/migrations/0001_pilot_request.sql` vs `0003+` | Not a blocker for this spec. Flag for `cp-database`: forward migration `alter table pilot_request owner to cp_migrator` before ADR 0006 applies FORCE RLS. |
+| `pilot_request` owned by the deploy superuser (0001 has no `set local role cp_migrator`) | `db/migrations/0001_pilot_request.sql` vs `0003+` | Not a blocker for this spec. Flag for `cp-database`: forward migration `alter table pilot_request owner to cp_migrator` before ADR 0008 applies FORCE RLS. |
 
 Postgres privilege rules relied on (PostgreSQL 17 docs):
 - "If a column list is specified, you only need `INSERT` privilege on the listed columns." "Each column not present in the explicit or implicit column list will be filled with a default value." "Use of the `RETURNING` clause requires `SELECT` privilege on all columns mentioned in `RETURNING`." — https://www.postgresql.org/docs/17/sql-insert.html
 - Defaults to `PUBLIC`: "`CONNECT` and `TEMPORARY` ... for databases; `EXECUTE` privilege for functions and procedures". Tables, sequences, columns: none. — https://www.postgresql.org/docs/17/ddl-priv.html
 - PG 15+ (`postgis/postgis:17-3.5`): schema `public` gives `PUBLIC` only `USAGE`, no `CREATE`. The migration still revokes `CREATE` explicitly so the file is correct on any server.
 
-**RLS on `pilot_request`: not needed for the website.** With no `SELECT` and a column-level `INSERT` that excludes `status` / `deleted_at`, the role can neither read rows nor create rows in a state other than `new`. RLS would add nothing. Interaction with ADR 0006: if ADR 0006 enables RLS on every table, `pilot_request` gets exactly one policy for this role — `create policy pilot_request_website_insert on pilot_request for insert to cp_website with check (status = 'new' and deleted_at is null);` — and no `SELECT` policy. Without that policy the default-deny would break the form.
+**RLS on `pilot_request`: not needed for the website.** With no `SELECT` and a column-level `INSERT` that excludes `status` / `deleted_at`, the role can neither read rows nor create rows in a state other than `new`. RLS would add nothing. Interaction with ADR 0008: if ADR 0008 enables RLS on every table, `pilot_request` gets exactly one policy for this role — `create policy pilot_request_website_insert on pilot_request for insert to cp_website with check (status = 'new' and deleted_at is null);` — and no `SELECT` policy. Without that policy the default-deny would break the form.
 
 ## 2. Role design
 

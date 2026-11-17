@@ -22,7 +22,7 @@ Not in v1: farmer portal (Phase 4, planned only — §8), map drawing, OCR/LLM, 
 > - **S3 (merge by Dec 23):** P/K **with a lab soil test only**, method-aware (Olsen / Bray-1 / Mehlich-3), form tracked; no-test mode from an offline SoilGrids cache — **N only, confidence `medium` at most**, P/K "test recommended"; unit conversions on display.
 > - **S4:** weather (NASA POWER daily fetch) + GDD timing windows per split; soil-report upload with manual "confirm values" (no OCR).
 > - **Every agronomic constant stays `PLACEHOLDER` + `TODO(agronomist)` until a human agronomist validates it.** Values proposed by the AI agronomist `cp-agronomist` are `ai_reviewed` only (D4) and never count as validation.
-> - Storage/auth/DB stay as in §3 (D1), now with Postgres RLS on Railway as defence in depth (ADR 0006, pending). Weather moves into scope from S4; the rest of the "Not in v1" list stands until `CLAUDE.md` is updated (draft: `docs/product/claude-md-draft.md`, awaiting Farjad Iranmehr).
+> - Storage/auth/DB stay as in §3 (D1), now with Postgres RLS on Railway as defence in depth (ADR 0008, pending — 0006 is SoilGrids, 0007 is DB privileges). Weather moves into scope from S4; the rest of the "Not in v1" list stands until `CLAUDE.md` is updated (draft: `docs/product/claude-md-draft.md`, awaiting Farjad Iranmehr).
 > - Story-level detail: `docs/backlog.md`.
 
 ## 3. What changes vs Sprint 1 (Supabase → Railway)

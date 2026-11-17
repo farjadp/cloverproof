@@ -124,7 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      PY_ALLOW: "MIT;MIT License;BSD License;BSD-2-Clause;BSD-3-Clause;0BSD;Zlib;CC0-1.0;Apache-2.0;Apache Software License;ISC;ISC License (ISCL);PSF-2.0;Python Software Foundation License"
+      PY_ALLOW: "MIT;MIT-0;MIT License;BSD License;BSD-2-Clause;BSD-3-Clause;0BSD;Zlib;CC0-1.0;Apache-2.0;Apache Software License;ISC;ISC License (ISCL);PSF-2.0;Python Software Foundation License"
       NPM_ALLOW: "MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;CC-BY-4.0"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

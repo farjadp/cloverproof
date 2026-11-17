@@ -24,7 +24,7 @@ Farms without a soil test still need context (pH, organic carbon, total N, textu
 1. Property allowlist is exactly `phh2o, soc, nitrogen, clay, sand, silt`; any P/K-like name (`p`, `k`, `phosph*`, `potass*`, `P2O5`, `K2O`, Olsen/Bray/Mehlich) is rejected with an error naming rule 3, in the CLI, in `fetch` and in `estimate_at`.
 2. `SoilEstimate` / `EstimateValue` are pydantic models with `extra="forbid"` and `frozen=True`; `property` is a Literal of the six names. There is no field that can hold P or K.
 3. `source` is `Literal["estimate"]` (never `lab`), `provider` is `SoilGrids`, `confidence` is `Literal["low"]`.
-4. Tests in `data_sources/tests/` prove each point, using tiny Homolosine rasters generated in `tmp_path`; no network.
+4. Tests in `data_sources/data_sources_tests/` prove each point, using tiny Homolosine rasters generated in `tmp_path`; no network.
 
 ## Consequences
 - A plan for a farm without a soil test needs a `fetch` for its window before review (one-off, small). Cached values are stable until we re-fetch; the retrieval date travels with every value.
