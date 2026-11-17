@@ -2,7 +2,8 @@
 -- (CPO decision RK-X7 = A, 2026-11-16; backend plan §6; model in S2, UI in S9).
 --
 -- One row per grant. The only change ever allowed is a one-time revoke: revoked_at,
--- revoked_by and revoke_reason go from NULL to a value, nothing else changes. Un-revoke,
+-- revoked_by and revoke_reason go from NULL to a value, nothing else changes (revoked_at is
+-- overwritten with the server's now()). Un-revoke,
 -- a second revoke, a scope change and DELETE/TRUNCATE all raise. Changing the scope =
 -- revoke + a new row. Active = revoked_at is null and (expires_at is null or expires_at > now()).
 --
@@ -55,7 +56,8 @@ comment on table access_grant is
   'change it; DELETE/TRUNCATE raise. No read path to farm data until S9 (DM-R1).';
 
 -- May this user grant or revoke on behalf of the farmer? The farmer's own login, or an
--- enabled org_admin of the owning organisation.
+-- enabled org_admin of the owning organisation. Humans only: a service/AI account never
+-- grants access to a farmer's data (CLAUDE.md rules 11, 12).
 create function access_grant_actor_allowed(p_owner_organisation_id uuid, p_farmer_id uuid,
                                            p_user_id uuid) returns boolean
 language sql stable set search_path = pg_catalog, public as $$
@@ -64,7 +66,11 @@ language sql stable set search_path = pg_catalog, public as $$
       join public.app_user u on u.id = f.app_user_id
       where f.organisation_id = p_owner_organisation_id and f.id = p_farmer_id
         and f.app_user_id = p_user_id and u.disabled_at is null and u.actor_kind = 'human')
-    or public.has_org_role(p_user_id, p_owner_organisation_id, 'org_admin')
+    or exists (
+      select 1 from public.membership m
+      join public.app_user u on u.id = m.user_id
+      where m.user_id = p_user_id and m.organisation_id = p_owner_organisation_id
+        and m.role = 'org_admin' and u.disabled_at is null and u.actor_kind = 'human')
 $$;
 
 create function access_grant_guard() returns trigger
@@ -99,6 +105,8 @@ begin
     raise exception 'only the farmer or an org_admin of the organisation can revoke access'
       using errcode = 'insufficient_privilege';
   end if;
+  -- The revoke time is the server's, never the caller's (no back- or future-dating).
+  new.revoked_at := now();
   return new;
 end
 $$;
