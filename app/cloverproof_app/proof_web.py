@@ -29,6 +29,7 @@ from fastapi.responses import RedirectResponse, Response
 
 from cloverproof_app import plan_web, planning
 from cloverproof_app.auth import Conn, OrgContext, SettingsDep
+from cloverproof_app.config import Settings
 from cloverproof_app.pdf import (
     Approval,
     Comparison,
@@ -43,10 +44,12 @@ from cloverproof_app.storage import (
     KeyExists,
     ProofNotFound,
     ProofStore,
+    ProofTampered,
     filesystem_store,
     proof_key,
     sha256_hex,
 )
+from cloverproof_app.storage.s3 import s3_store
 from cloverproof_app.web import render
 
 router = APIRouter()
@@ -68,11 +71,24 @@ TAMPERED = (
 FILE_MISSING = "The file for this document is missing from storage. Report this document ID."
 
 
+def store_for(settings: Settings) -> ProofStore:
+    """The ProofStore that PROOF_STORE selects (validated in Settings)."""
+    if settings.proof_store == "s3":
+        return s3_store(
+            endpoint=settings.bucket_endpoint,
+            region=settings.bucket_region,
+            bucket=settings.bucket_name,
+            access_key_id=settings.bucket_access_key_id,
+            secret_access_key=settings.bucket_secret_access_key,
+        )
+    return filesystem_store(settings.proof_store_dir)
+
+
 def proof_store(request: Request, settings: SettingsDep) -> ProofStore:
-    """The app's ProofStore (tests set `app.state.proof_store`); filesystem by default."""
+    """The app's ProofStore (tests set `app.state.proof_store`); PROOF_STORE picks it."""
     store: ProofStore | None = getattr(request.app.state, "proof_store", None)
     if store is None:
-        store = filesystem_store(settings.proof_store_dir)
+        store = store_for(settings)
         request.app.state.proof_store = store
     return store
 
@@ -200,6 +216,9 @@ def proof_download(request: Request, conn: Conn, context: InternalOrg, settings:
     except ProofNotFound as error:
         log.error("proof %s: file missing at %s", row.id, row.storage_key)
         raise HTTPException(500, FILE_MISSING) from error
+    except ProofTampered as error:  # the S3 store re-hashes on get
+        log.error("proof %s: stored bytes do not match the SHA-256 in the key", row.id)
+        raise HTTPException(500, TAMPERED) from error
     if sha256_hex(data) != row.sha256:
         log.error("proof %s: stored bytes do not match the recorded SHA-256", row.id)
         raise HTTPException(500, TAMPERED)

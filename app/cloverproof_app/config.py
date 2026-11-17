@@ -2,14 +2,16 @@
 
 Required: DATABASE_URL, SESSION_SECRET; ENV too when DATABASE_URL is not on localhost.
 Optional: PACK_PATH (country-pack YAML the engine uses; default packs/placeholder/v0.yaml
-in the repo), PROOF_STORE_DIR (proof PDF store root; default ./var/proofs), login limits,
-proxy header, hosts and HSTS (see the fields below).
+in the repo), PROOF_STORE (`filesystem` default, or `s3` with every BUCKET_* variable),
+PROOF_STORE_DIR (filesystem store root; default ./var/proofs), login limits, proxy header,
+hosts and HSTS (see the fields below).
 Missing or invalid values stop the app at startup (fail fast) with a message that names
 the variable but never prints its value.
 """
 
 from __future__ import annotations
 
+import dataclasses
 import os
 import re
 from collections.abc import Mapping
@@ -25,6 +27,15 @@ LOCAL_DB_HOSTS = frozenset({"", "localhost", "127.0.0.1", "::1"})
 DEPLOYED_ENVS = frozenset({"staging", "production"})
 DEV_ALLOWED_HOSTS = ("localhost", "127.0.0.1")
 TEST_ALLOWED_HOSTS = ("testserver", *DEV_ALLOWED_HOSTS)  # Starlette TestClient's host
+PROOF_STORES = frozenset({"filesystem", "s3"})
+# PROOF_STORE=s3 needs all of these (ADR 0005); names map to Settings fields.
+BUCKET_VARS = {
+    "BUCKET_ENDPOINT": "bucket_endpoint",
+    "BUCKET_NAME": "bucket_name",
+    "BUCKET_REGION": "bucket_region",
+    "BUCKET_ACCESS_KEY_ID": "bucket_access_key_id",
+    "BUCKET_SECRET_ACCESS_KEY": "bucket_secret_access_key",
+}
 
 
 class ConfigError(RuntimeError):
@@ -94,9 +105,15 @@ class Settings:
     # F4: minutes stored per review are capped here (a tab left open); capped reviews are
     # flagged in the review reason.
     review_minutes_cap: int = 240
-    # Proof PDFs: root of the write-once filesystem ProofStore (ADR 0005). Empty =
-    # ./var/proofs (gitignored). The Railway Bucket store (B1) is not wired yet.
+    # Proof PDFs (ADR 0005 B1): `filesystem` (local dev, tests; root proof_store_dir, empty
+    # = ./var/proofs, ephemeral in a container) or `s3` (any S3-compatible private bucket).
+    proof_store: str = "filesystem"
     proof_store_dir: str = ""
+    bucket_endpoint: str = ""
+    bucket_name: str = ""
+    bucket_region: str = ""
+    bucket_access_key_id: str = ""
+    bucket_secret_access_key: str = dataclasses.field(default="", repr=False)
 
     def __post_init__(self) -> None:
         if not self.database_url.strip():
@@ -120,6 +137,22 @@ class Settings:
             object.__setattr__(self, "allowed_hosts", default)
         if self.trusted_proxy_header and not _HEADER_NAME.match(self.trusted_proxy_header):
             raise ConfigError("TRUSTED_PROXY_HEADER must be one header name, e.g. X-Real-IP")
+        self._check_proof_store()
+
+    def _check_proof_store(self) -> None:
+        if self.proof_store not in PROOF_STORES:
+            raise ConfigError(f"PROOF_STORE must be one of {', '.join(sorted(PROOF_STORES))}")
+        if self.proof_store != "s3":
+            return
+        missing = [name for name, attr in BUCKET_VARS.items() if not getattr(self, attr).strip()]
+        if missing:
+            raise ConfigError(f"PROOF_STORE=s3 requires: {', '.join(missing)}")
+        endpoint = self.bucket_endpoint
+        local_http = self.env in {"development", "test"} and endpoint.startswith("http://")
+        if not (endpoint.startswith("https://") or local_http):
+            raise ConfigError(
+                "BUCKET_ENDPOINT must be an https:// URL (http:// only in development or test)"
+            )
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> Settings:
@@ -151,6 +184,11 @@ class Settings:
             optional["pack_path"] = env["PACK_PATH"].strip()
         if env.get("PROOF_STORE_DIR"):
             optional["proof_store_dir"] = env["PROOF_STORE_DIR"].strip()
+        if env.get("PROOF_STORE", "").strip():
+            optional["proof_store"] = env["PROOF_STORE"].strip().lower()
+        for name, attr in BUCKET_VARS.items():
+            if env.get(name, "").strip():
+                optional[attr] = env[name].strip()
         for name, field in (
             ("SESSION_IDLE_MINUTES", "session_idle_minutes"),
             ("SESSION_ABSOLUTE_HOURS", "session_absolute_hours"),
