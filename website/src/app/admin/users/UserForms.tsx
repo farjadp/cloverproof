@@ -102,7 +102,7 @@ export function UserActions({ csrf, user }: { csrf: string; user: Row }) {
             </button>
           </form>
         ) : null}
-        {user.status !== "disabled" ? (
+        {user.status !== "disabled" && (user.role !== "admin" || user.self) ? (
           <form action={action}>
             <input type="hidden" name="csrf" value={csrf} />
             <input type="hidden" name="id" value={user.id} />
@@ -112,7 +112,7 @@ export function UserActions({ csrf, user }: { csrf: string; user: Row }) {
             </button>
           </form>
         ) : null}
-        {!user.self && user.status !== "invited" ? (
+        {!user.self && user.status !== "invited" && user.role !== "admin" ? (
           <form action={action}>
             <input type="hidden" name="csrf" value={csrf} />
             <input type="hidden" name="id" value={user.id} />
