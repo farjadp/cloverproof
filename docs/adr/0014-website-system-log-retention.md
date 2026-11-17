@@ -1,6 +1,6 @@
 # ADR 0014 — Website system log and 60-day retention (DRAFT)
 
-- Status: **Proposed** (2026-11-17) — needs `ciso` review and Farjad Iranmehr's decision; `coo` for privacy wording
+- Status: **Accepted** by Farjad Iranmehr (2026-11-17). `ciso` review: PASS with findings; privacy-notice wording by `coo` (notice v0.5.3) on the website privacy page (#71).
 - Decider: Farjad Iranmehr · Author: `cp-website`
 - Related: ADR 0010 (site_event, separate), ADR 0012, ADR 0013, `docs/plans/website-admin.md` (P1)
 

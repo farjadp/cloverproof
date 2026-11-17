@@ -1,6 +1,6 @@
 # ADR 0012 — Website admin authentication and roles (DRAFT)
 
-- Status: **Proposed** (2026-11-17) — Farjad Iranmehr chose option A (same service, `/admin`, 2026-11-17); `ciso` review pending
+- Status: **Accepted** by Farjad Iranmehr (2026-11-17), option A (same service, `/admin`). `ciso` review: PASS with findings, fixes merged (#67–#70); see `docs/security/S3-review-website-admin-p1.md` and `S3-review-website-admin-p1-fixes.md`.
 - Decider: Farjad Iranmehr · Author: `cp-website`
 - Related: ADR 0003 (website stack), ADR 0005 (web-app auth, separate), ADR 0007 (DB privileges), `docs/plans/website-admin.md`
 

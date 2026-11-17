@@ -1,6 +1,6 @@
 # ADR 0013 — Website integration secrets (AI provider API keys) (DRAFT)
 
-- Status: **Proposed** (2026-11-17) — needs `ciso` review and Farjad Iranmehr's decision
+- Status: **Accepted** by Farjad Iranmehr (2026-11-17). `ciso` review: PASS with findings, fixes merged (#69, #70). No `WEBSITE_SECRETS_KEK` and no provider keys in production until P4 opens (CPO decision 2026-11-17, build order P1 → P3 → P2 → P4).
 - Decider: Farjad Iranmehr · Author: `cp-website`
 - Related: ADR 0012, `docs/plans/website-admin.md` (P2), CLAUDE.md rules 10 and 12
 
