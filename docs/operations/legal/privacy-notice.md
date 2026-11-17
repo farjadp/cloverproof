@@ -1,7 +1,7 @@
-# CloverProof privacy notice (website + pilot) — DRAFT v0.4
+# CloverProof privacy notice (website + pilot) — DRAFT v0.5
 
 > **This is not legal advice; a licensed Ontario lawyer should review before use.**
-> Drafted by `legal-compliance-specialist` (not a lawyer) for the CloverProof COO. v0.1 2026-11-16; v0.2 2026-11-16 (CPO decisions D4 + R4); v0.2.1 2026-11-16 (CPO decision D-7); v0.3 2026-11-16 (website measurement, CPO option A — see `website-measurement-review.md`); v0.4 2026-11-16 (Farjad Iranmehr decisions: OQ-06 residency + approval kinds — `origin/cpo-decisions-sa-fe-residency:CLAUDE.md` rule 8 and "Launch market + residency").
+> Drafted by `legal-compliance-specialist` (not a lawyer) for the CloverProof COO. v0.1 2026-11-16; v0.2 2026-11-16 (CPO decisions D4 + R4); v0.2.1 2026-11-16 (CPO decision D-7); v0.3 2026-11-16 (website measurement, CPO option A — see `website-measurement-review.md`); v0.4 2026-11-16 (Farjad Iranmehr decisions: OQ-06 residency + approval kinds — `origin/cpo-decisions-sa-fe-residency:CLAUDE.md` rule 8 and "Launch market + residency"); v0.5 2026-11-16 (Farjad Iranmehr decision: website form stays open, notes field removed, website data in the US on Railway until Canadian hosting is live).
 > Status: draft. Do not publish until every `[PLACEHOLDER]` is filled and counsel has reviewed it (OQ-07, see `oq-07-decision-pack.md`).
 
 **What changed in v0.2**
@@ -12,12 +12,18 @@
 
 **What changed in v0.4**
 - OQ-06 (decided 2026-11-16): **real pilot data** (farmer contacts, farms, fields, soil tests, plans, reviews, proof PDFs) **is stored in Canada**, at `[CANADIAN HOSTING PROVIDER, REGION]` (hosting ADR pending, owner `cto` + `devops-engineer` with `ciso`). The US/Canada either-or for pilot data is removed (§2, §6, §7, Part B). Until Canadian hosting is live, hosted environments hold only synthetic or de-identified data, so **no real pilot data is collected into hosted systems before then** — the notice says so.
-- Website pilot-request form and website measurement data: location is `[WEBSITE DATA LOCATION — confirm in hosting ADR]`. A US-transfer sentence is kept only as a bracketed option (§7, Part B) until the ADR decides.
+- Website pilot-request form and website measurement data: location is `[WEBSITE DATA LOCATION — confirm in hosting ADR]`. A US-transfer sentence is kept only as a bracketed option (§7, Part B) until the ADR decides. *(Superseded by v0.5.)*
 - Approvals (decided 2026-11-16): every plan is approved by a **named human** before a farmer sees it — either a human agronomist (`agronomist_approved`) or a CloverProof superadmin without agronomist credentials (`superadmin_approved`). The notice says each plan shows which kind, and never calls a superadmin approval an agronomist review (§1, §2, §3, §4, §9, §10, Part B). AI never approves (D-7 text unchanged). **Only agronomist-approved plans feed calibration** (§3, §5, Part B).
 - v0.4.1 (coo, CPO decision 2026-11-16): §3a + Part B say events are recorded only on en/fr/es/it/tr; nothing from fi/bg/ar; no `country`; §3a storage aligned to `[WEBSITE DATA LOCATION — confirm in hosting ADR]` (Railway US text removed).
 - Engineering dependency: the plan screen and proof PDF must actually display the approval kind and approver name as described in §4. *(Not verified in the repo — `cp-pdf` / `cp-concierge-app` to confirm before publication.)*
 
-Open placeholders (Farjad Iranmehr must supply): `[LEGAL ENTITY]`, `[CONTACT EMAIL]`, `[ADDRESS]`, `[PRIVACY OFFICER NAME]`, `[CANADIAN HOSTING PROVIDER, REGION]`, `[WEBSITE DATA LOCATION — confirm in hosting ADR]`, `[WEBSITE HOST]`, `[RAILWAY REGION]` (only if Railway stays the website host), `[AI PROVIDER]`, `[HUMAN AGRONOMIST NAME, CREDENTIALS]`, `[EMAIL PROVIDER]`, `[EFFECTIVE DATE]`, and the retention periods marked *proposed*.
+**What changed in v0.5** (decision by Farjad Iranmehr, 2026-11-16)
+- The website pilot-request form stays open now.
+- The free-text **notes** field is removed from the form; "notes" is removed from what we collect from the form (§3 table, Part B "What we collect"). "AI check notes" (§3, §5) and "notes" in the calibration removal list (§5) are unrelated and kept. *(Engineering dependency: on main, `website/src/app/[lang]/actions.ts` still reads and stores `notes`, `website/src/messages/en.json` still has `pilot.notes`, and `pilot_request.notes` exists in `website/db/migrations/0001_pilot_request.sql`. This notice must not be published until `cp-website` removes the field; what happens to notes already stored is a `cp-database` / `ciso` decision — not decided here.)*
+- Website data location decided: **until Canadian hosting is live, pilot-request form data and website measurement data (same database) are stored in the United States by our website host, Railway** (Railway DPA: primary processing in the US — S15 §9.1; no Canadian region — S14). **When Canadian hosting is live, this data moves to Canada** at `[CANADIAN HOSTING PROVIDER, REGION]`, and we update this notice. `[WEBSITE DATA LOCATION — confirm in hosting ADR]`, `[WEBSITE HOST]` and the bracketed Railway options are replaced with definitive text (§2, §3a, §6, §7, §8, EU transfer line, Part B). `[RAILWAY REGION]` is not used: Railway's DPA gives the US as the primary processing location.
+- Real pilot farm data unchanged: stored in Canada; not collected into hosted systems until Canadian hosting is live.
+
+Open placeholders (Farjad Iranmehr must supply): `[LEGAL ENTITY]`, `[CONTACT EMAIL]`, `[ADDRESS]`, `[PRIVACY OFFICER NAME]`, `[CANADIAN HOSTING PROVIDER, REGION]` (also the future location of website data), `[AI PROVIDER]`, `[HUMAN AGRONOMIST NAME, CREDENTIALS]`, `[EMAIL PROVIDER]`, `[EFFECTIVE DATE]`, and the retention periods marked *proposed*.
 
 Sources are listed at the end (S1–S23), with the date checked. Facts about our systems come from the repo (`website/db/migrations/0001_pilot_request.sql`, `db/migrations/0003–0009`, `website/src/app/[lang]/actions.ts`, ADR 0004, ADR 0005) and from `docs/plans/backend-plan-reconciliation.md` on `origin/backend-traceability` (D4, R4).
 
@@ -36,7 +42,7 @@ CloverProof is software that turns farm data into a field-specific fertilizer pl
 - The 2027 pilot is open to farms in **Ontario, Canada** only.
 - **A person, not software, approves your plan.** An AI system may help check a plan, but no plan reaches you until a named person has approved it: either our human agronomist, [HUMAN AGRONOMIST NAME, CREDENTIALS], or a CloverProof administrator who is not an agronomist. Every plan shows which of the two approved it.
 - We do not sell your information. We use no advertising trackers, no cookies and no analytics company. We count how the website is used ourselves, without identifying you (section 3a). *(Re-check before every release: no third-party analytics or tracking dependency in `website/package.json`; measurement matches §3a.)*
-- Your pilot farm data is stored in **Canada**, at [CANADIAN HOSTING PROVIDER, REGION]. We do not collect real pilot data into our hosted systems until that Canadian hosting is live. Website form and website measurement data: [WEBSITE DATA LOCATION — confirm in hosting ADR]. See section 7.
+- Your pilot farm data is stored in **Canada**, at [CANADIAN HOSTING PROVIDER, REGION]. We do not collect real pilot data into our hosted systems until that Canadian hosting is live. Until Canadian hosting is live, your website pilot request and our website measurement data are stored in the **United States** by our website host, Railway. When Canadian hosting is live, this data moves to Canada and we will update this notice. See section 7.
 - With your permission, we use **de-identified** results from agronomist-approved plans to improve our engine.
 - You can ask to see, correct or delete your information at any time: [CONTACT EMAIL].
 
@@ -44,7 +50,7 @@ CloverProof is software that turns farm data into a field-specific fertilizer pl
 
 | What | When | Why |
 |---|---|---|
-| Name, email, country, farm size (as typed), main crop, notes, the language you used, the exact consent wording you agreed to and the time | You send the pilot request form | Decide whether we can include your farm in the pilot and contact you about it |
+| Name, email, country, farm size (as typed), main crop, the language you used, the exact consent wording you agreed to and the time | You send the pilot request form | Decide whether we can include your farm in the pilot and contact you about it |
 | With your request: the campaign tag of the link you followed (`utm_source`, `utm_medium`, `utm_campaign`, `utm_content`), the name of the website that sent you (host only, e.g. `google.com`), and your field-check result if you did the check | You send the pilot request form | Know how you found us and which outreach works; prepare for your farm. These are linked to you once stored with your request |
 | Website measurement: page, language, time, button clicks, field-check answers, form steps, link campaign tag, referring site name, mobile/desktop | Each page load, unless your browser sends Global Privacy Control or Do Not Track | Improve the website and our outreach — not linked to you (section 3a) |
 | Contact details (name, email, phone if given), farm name, region | You join the pilot | Run the pilot and talk to you |
@@ -70,7 +76,7 @@ We count how our website is used, so we can see which pages and links help farme
 
 **Which pages:** we record this only on the English, French, Spanish, Italian and Turkish versions of the website. The Finnish, Bulgarian and Arabic versions record nothing.
 
-**Where and how long:** in our own database at [WEBSITE DATA LOCATION — confirm in hosting ADR]. Detailed records are kept for 90 days, then combined into daily totals and deleted; daily totals are kept for up to 25 months. *(Proposed — Farjad to approve.)*
+**Where and how long:** in our own database, which until Canadian hosting is live is stored in the United States by our website host, Railway; when Canadian hosting is live it moves to Canada (section 7). Detailed records are kept for 90 days, then combined into daily totals and deleted; daily totals are kept for up to 25 months. *(Proposed — Farjad to approve.)*
 
 **Turning it off:** if your browser sends a Global Privacy Control or Do Not Track signal, we record nothing about your visit. The website and the pilot form work the same either way.
 
@@ -102,7 +108,7 @@ De-identified data can sometimes be re-identified when combined with other infor
 ### 6. Who we share it with
 We do **not** sell, rent or trade personal information. We use no analytics or advertising company; website measurement (section 3a) runs on our own database. We share personal information only with:
 - **[CANADIAN HOSTING PROVIDER]** — stores pilot farm data (contacts, farms, fields, soil tests, plans, reviews, proof PDFs) in [REGION], Canada, as our service provider under a data-processing agreement. *(Provider and contract set by the hosting ADR.)*
-- **[WEBSITE HOST]** — hosts our website, pilot-request form and website measurement data in [WEBSITE DATA LOCATION — confirm in hosting ADR], as our service provider. *(Option, if Railway stays the website host: "Railway Corporation (US), under its Data Processing Addendum (S15).")*
+- **Railway Corporation (United States)** — hosts our website and, until Canadian hosting is live, stores pilot-request form data and website measurement data in the United States, as our service provider under its Data Processing Addendum (S15). When Canadian hosting is live, this data moves to [CANADIAN HOSTING PROVIDER, REGION].
 - **No AI provider receives information that identifies you or your farm.** The AI system that may check plans ([AI PROVIDER]) receives only de-identified case data as described in section 4 — no names, contact details, addresses, farm or field names, or exact field geometry. We will not send identifiable pilot data to any AI provider unless we first sign a data-processing agreement with it and update this notice. *(D-7. Confirm the provider's retention and no-training terms for the de-identified data before use.)*
 - **[EMAIL PROVIDER]** — if we use one to send email. *(None in the repo today; fill or delete.)*
 - **[HUMAN AGRONOMIST NAME]** — if the agronomist is a contractor rather than an employee, under a written confidentiality and data-processing agreement. *(Fill or delete.)*
@@ -116,12 +122,11 @@ The proof PDF records how a plan was made. It is not accepted, approved or endor
 
 *[If the chosen provider is US-owned, keep:]* Our provider is owned by a US company. Even though your data is stored in Canada, the provider may be required to give access to it under US law (S4).
 
-**Website form and website measurement data.** Stored at [WEBSITE DATA LOCATION — confirm in hosting ADR].
-*[Option, keep only if the hosting ADR keeps Railway or another US location for the website:]* "Our website host, Railway, states that its primary processing is in the United States (S15 §9.1); Railway has no Canadian region (S14). Your website request may be stored and accessed in the United States, where it may be available to US courts, law enforcement and national-security authorities under US law (S4)."
+**Website form and website measurement data.** Until Canadian hosting is live, pilot-request form data and website measurement data (they are in the same database) are stored in the **United States** by our website host, Railway. Railway states that its primary processing is in the United States (S15 §9.1); Railway has no Canadian region (S14). Your website request may be stored and accessed in the United States, where it may be available to US courts, law enforcement and national-security authorities under US law (S4). When Canadian hosting is live, this data moves to Canada, at [CANADIAN HOSTING PROVIDER, REGION], and we will update this notice.
 
 We stay responsible for your information when our providers process it, and we use contracts to require comparable protection (S4).
 
-*EU/EEA visitors to our website:* we collect your form data directly from you in Canada, which the EU recognises as adequate (S12). *[If the website host processes it in the US (Railway option):]* where Railway processes it in the US, Railway's DPA provides the EU Standard Contractual Clauses (S15 §9). *(Counsel to confirm — `oq-07-decision-pack.md` §3 Q9.)*
+*EU/EEA visitors to our website:* we collect your form data directly from you in Canada, which the EU recognises as adequate (S12). Until Canadian hosting is live, Railway processes it in the United States; for that transfer, Railway's DPA provides the EU Standard Contractual Clauses (S15 §9). *(Counsel to confirm — `oq-07-decision-pack.md` §3 Q9.)*
 
 ### 8. How long we keep it (*proposed — Farjad to approve*)
 | Data | Proposed retention |
@@ -131,7 +136,7 @@ We stay responsible for your information when our providers process it, and we u
 | Calibration data (de-identified, with consent) | Until the engine is retired or you withdraw consent, whichever is first |
 | Marketing consent record | While you are subscribed + 3 years (proof of consent) |
 | Deletion request record (who, what, when — no farm data) | 3 years |
-| Host technical logs | As set by our hosts; *[confirm log retention for [CANADIAN HOSTING PROVIDER] and [WEBSITE HOST]]* |
+| Host technical logs | As set by our hosts — Railway (United States) for the website until Canadian hosting is live, then [CANADIAN HOSTING PROVIDER]; *[confirm log retention for Railway and [CANADIAN HOSTING PROVIDER]]* |
 | Website measurement, detailed records (not linked to you) | 90 days, then combined into daily totals and deleted |
 | Website measurement, daily totals | Up to 25 months |
 | Link campaign tag, referring site, field-check result stored with a pilot request | Same as the pilot request |
@@ -168,7 +173,7 @@ CloverProof is for farm businesses and is not directed to anyone under 18. *(Age
 ### 14. Changes
 We will post changes here with a new date and tell pilot farms by email before a material change takes effect (for example, if we change who approves plans or where data is stored).
 
-Effective date: [EFFECTIVE DATE]. Version: 0.4-draft.
+Effective date: [EFFECTIVE DATE]. Version: 0.5-draft.
 
 ---
 
@@ -192,7 +197,7 @@ Shape matches `website/src/messages/en.json` → `privacy` (keys `title`, `draft
     },
     {
       "h": "What we collect",
-      "p": "When you request a pilot plan we collect what you enter: name, email, country, approximate farm size, main crop and any notes, plus the language you used and the exact consent wording you agreed to, with the time. If you join the pilot we also collect farm, field and soil-test information and the plans we make for you."
+      "p": "When you request a pilot plan we collect what you enter: name, email, country, approximate farm size, main crop, plus the language you used and the exact consent wording you agreed to, with the time. If you join the pilot we also collect farm, field and soil-test information and the plans we make for you."
     },
     {
       "h": "Why we collect it",
@@ -212,11 +217,11 @@ Shape matches `website/src/messages/en.json` → `privacy` (keys `title`, `draft
     },
     {
       "h": "Who sees it",
-      "p": "Only the CloverProof team members who need it, our human agronomist, [CANADIAN HOSTING PROVIDER], which stores pilot data in Canada, and [WEBSITE HOST], which hosts our website, as our service providers. No AI provider receives information that identifies you or your farm. We do not sell your information and we do not use advertising trackers or any analytics company."
+      "p": "Only the CloverProof team members who need it, our human agronomist, [CANADIAN HOSTING PROVIDER], which stores pilot data in Canada, and Railway, a US company that hosts our website and, until Canadian hosting is live, stores website requests and website measurement data in the United States, as our service providers. No AI provider receives information that identifies you or your farm. We do not sell your information and we do not use advertising trackers or any analytics company."
     },
     {
       "h": "Where it is stored",
-      "p": "Pilot farm data (contacts, farms, fields, soil tests, plans, reviews and proof PDFs) is stored in Canada, at [CANADIAN HOSTING PROVIDER, REGION]. We do not collect real pilot data into our hosted systems until that Canadian hosting is live. [IF US-OWNED PROVIDER: Our provider is owned by a US company, so it may be required to give access under US law even though the data is in Canada.] Website requests and website measurement data are stored at [WEBSITE DATA LOCATION]. [OPTION, ONLY IF THE WEBSITE STAYS IN THE US: Website requests are stored by Railway, a US company, and may be stored and accessed in the United States, where US authorities may be able to access them under US law.] We use data-processing contracts to protect your information."
+      "p": "Pilot farm data (contacts, farms, fields, soil tests, plans, reviews and proof PDFs) is stored in Canada, at [CANADIAN HOSTING PROVIDER, REGION]. We do not collect real pilot data into our hosted systems until that Canadian hosting is live. [IF US-OWNED PROVIDER: Our provider is owned by a US company, so it may be required to give access under US law even though the data is in Canada.] Until Canadian hosting is live, website requests and website measurement data are stored in the United States by our website host, Railway, a US company, where US authorities may be able to access them under US law. When Canadian hosting is live, this data moves to Canada and we will update this notice. We use data-processing contracts to protect your information."
     },
     {
       "h": "How long we keep it",
@@ -231,7 +236,8 @@ Shape matches `website/src/messages/en.json` → `privacy` (keys `title`, `draft
 ```
 
 Notes for `cp-website`:
-- Do not ship while any `[...]` remains. "Where it is stored": keep the bracketed US-owned-provider and US-website sentences only if the hosting ADR makes them true; delete them otherwise. Pilot data in Canada is decided (2026-11-16).
+- Do not ship while any `[...]` remains. "Where it is stored": keep the bracketed US-owned-provider sentence only if the hosting ADR makes it true; delete it otherwise. Pilot data in Canada and website data in the US on Railway until Canadian hosting is live are decided (Farjad Iranmehr, 2026-11-16); when the website data moves to Canada, this section and "Who sees it" must be updated the same day.
+- Notes field removed (Farjad Iranmehr, 2026-11-16): do not ship this copy until the form, `actions.ts` and the stored data no longer collect `notes`.
 - Approval kind: the "How plans are reviewed" text promises the plan and proof PDF show "agronomist" vs "CloverProof administrator (not an agronomist review)" and the approver's name. Do not ship until the app and PDF do that.
 - D-7 (decided): the AI system gets de-identified data only; do not add an AI provider to "Who sees it" unless Farjad approves a change (DPA + notice update).
 - Retention figures are *proposed*; do not ship until Farjad approves them.
@@ -266,7 +272,7 @@ Some Government of Canada and CRTC pages refused connections from this environme
 3. D-7: whether our de-identification for the AI reviewer (county-level region, crop, previous crop, target yield, soil-test values, plan date kept) makes the data non-personal under PIPEDA, so no transfer-for-processing contract is needed; and what a DPA must contain if Farjad later allows identifiable data.
 4. Whether calibration use can be a condition of the pilot or must stay optional (PIPEDA 4.3.3; GDPR Art. 7(4)).
 5. Whether our de-identification standard is enough to treat calibration data as non-personal.
-6. Residency (pilot data in Canada decided 2026-11-16): whether a US-owned provider's Canadian region needs the US-law access disclosure and what wording; whether the provider's backups, support access or sub-processors outside Canada must be disclosed; and the website-data transfer wording once the hosting ADR decides.
+6. Residency (pilot data in Canada decided 2026-11-16; website data in the US on Railway until Canadian hosting is live, decided 2026-11-16): whether a US-owned provider's Canadian region needs the US-law access disclosure and what wording; whether the provider's backups, support access or sub-processors outside Canada must be disclosed; whether the US website-data wording in §7 and Part B is adequate under PIPEDA openness/accountability (S4); and whether moving the data to Canada later needs notice to people who already sent a request.
 7. EU website-visitor transfer analysis and whether an Art. 27 EU representative is needed.
 8. If the pilot extends to a Prairie province: whether a provincial private-sector privacy law applies instead of PIPEDA (not assessed).
 9. Retention periods and the "legal claims" exception to deletion of immutable plan records.
