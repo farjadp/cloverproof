@@ -120,7 +120,7 @@ Agronomist minutes per plan. Record it on every review. Report human-approved an
 - Write an ADR in `docs/adr/` for any stack or data-model decision.
 - Never edit an applied migration; add a new forward-only one.
 - Ask before: deleting files, adding a paid service or paid tier (including a new Railway service, Sentry paid, Stripe).
-- Licences: no GPL/AGPL/EUPL dependencies. LGPL is allowed only by name — `psycopg` and libvips (via Next.js `sharp`) — pending an ADR and lawyer review; any other LGPL dependency needs that ADR first. NASA POWER: not farmer-facing until the lawyer review in S8.
+- Licences: no GPL/AGPL/EUPL dependencies. LGPL is allowed only by name — `psycopg` (incl. `psycopg-binary`, `psycopg-pool`, same project; decided 2026-11-17) and libvips (via Next.js `sharp`) — pending an ADR and lawyer review; any other LGPL dependency needs that ADR first. NASA POWER: not farmer-facing until the lawyer review in S8.
 - Keep code and comments in English.
 
 ## Design
