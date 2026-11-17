@@ -1,7 +1,7 @@
-# CloverProof privacy notice (website + pilot) — DRAFT v0.5
+# CloverProof privacy notice (website + pilot) — DRAFT v0.5.2
 
 > **This is not legal advice; a licensed Ontario lawyer should review before use.**
-> Drafted by `legal-compliance-specialist` (not a lawyer) for the CloverProof COO. v0.1 2026-11-16; v0.2 2026-11-16 (CPO decisions D4 + R4); v0.2.1 2026-11-16 (CPO decision D-7); v0.3 2026-11-16 (website measurement, CPO option A — see `website-measurement-review.md`); v0.4 2026-11-16 (Farjad Iranmehr decisions: OQ-06 residency + approval kinds — `origin/cpo-decisions-sa-fe-residency:CLAUDE.md` rule 8 and "Launch market + residency"); v0.5 2026-11-16 (Farjad Iranmehr decision: website form stays open, notes field removed, website data in the US on Railway until Canadian hosting is live).
+> Drafted by `legal-compliance-specialist` (not a lawyer) for the CloverProof COO. v0.1 2026-11-16; v0.2 2026-11-16 (CPO decisions D4 + R4); v0.2.1 2026-11-16 (CPO decision D-7); v0.3 2026-11-16 (website measurement, CPO option A — see `website-measurement-review.md`); v0.4 2026-11-16 (Farjad Iranmehr decisions: OQ-06 residency + approval kinds — `origin/cpo-decisions-sa-fe-residency:CLAUDE.md` rule 8 and "Launch market + residency"); v0.5 2026-11-16 (Farjad Iranmehr decision: website form stays open, notes field removed, website data in the US on Railway until Canadian hosting is live); v0.5.1 2026-11-17 (Hebrew); v0.5.2 2026-11-17 (security log of the private website admin area — `origin/docs/website-admin-plan`, ADR 0011/0013 drafts).
 > Status: draft. Do not publish until every `[PLACEHOLDER]` is filled and counsel has reviewed it (OQ-07, see `oq-07-decision-pack.md`).
 
 **What changed in v0.2**
@@ -24,6 +24,12 @@
 - Website data location decided: **until Canadian hosting is live, pilot-request form data and website measurement data (same database) are stored in the United States by our website host, Railway** (Railway DPA: primary processing in the US — S15 §9.1; no Canadian region — S14). **When Canadian hosting is live, this data moves to Canada** at `[CANADIAN HOSTING PROVIDER, REGION]`, and we update this notice. `[WEBSITE DATA LOCATION — confirm in hosting ADR]`, `[WEBSITE HOST]` and the bracketed Railway options are replaced with definitive text (§2, §3a, §6, §7, §8, EU transfer line, Part B). `[RAILWAY REGION]` is not used: Railway's DPA gives the US as the primary processing location.
 - Real pilot farm data unchanged: stored in Canada; not collected into hosted systems until Canadian hosting is live.
 
+**What changed in v0.5.2** (coo, 2026-11-17; input `origin/docs/website-admin-plan:docs/plans/website-admin.md` §4–§5, §10 Q5 and draft ADRs 0011 + 0013 on that branch — **plan not approved**)
+- Decision: **yes, the public notice needs it.** The `/admin` security log (`website_log`) keeps a shortened IP (IPv4 /24, IPv6 /48), browser family, time, action and outcome for 60 days, and records failed sign-ins by anyone, so members of the public can be in it. A /24 prefix with an exact timestamp, browser family and the host's own full-IP request logs (§3 "Technical logs kept by our host") can plausibly single out a person or household; under the OPC "serious possibility" test (S38) and the CJEU *Breyer* reasoning (S40) we treat it as personal information. The login-throttling table also keeps keyed hashes (HMAC) of the shortened IP and of the email typed (ADR 0011). Disclosure costs one paragraph; omission would make the §3a/Part B "we do not store your IP address" read as a site-wide promise that the admin breaks.
+- New §3b; new rows in §3 and §8; §2 bullet; §3a "What we do not record" re-scoped to measurement ("our measurement records never contain your IP address") with a pointer to §3b; Part B: measurement sentence re-scoped, new section "Security log of our staff area", "Who sees it" and "How long we keep it" extended.
+- Facts taken from the plan/ADRs: logged fields `occurred_at`, `actor_user_id` (null for anonymous), `kind`, `action`, `target_type/id`, `outcome` (ok/denied/failed), `ip_prefix`, `ua_family`, whitelisted `detail`; never passwords, tokens, keys, TOTP codes, post bodies, form values, emails of non-users, full URLs with query strings; **public-site errors carry no IP prefix** (ADR 0013). Only the `admin` role can view/export the log (ADR 0011 role table). Staff-side detail is in `admin-staff-notice.md`.
+- Engineering dependencies (not verified — nothing is built): ship §3b and the Part B section **with** admin P1, not before; the rate-limit rows must be purged within 24 h or the "within a day" wording changes; the log viewer's CSV export creates copies outside the 60-day purge (staff notice rule; counsel item 14).
+
 Open placeholders (Farjad Iranmehr must supply): `[LEGAL ENTITY]`, `[CONTACT EMAIL]`, `[ADDRESS]`, `[PRIVACY OFFICER NAME]`, `[CANADIAN HOSTING PROVIDER, REGION]` (also the future location of website data), `[AI PROVIDER]`, `[HUMAN AGRONOMIST NAME, CREDENTIALS]`, `[EMAIL PROVIDER]`, `[EFFECTIVE DATE]`, and the retention periods marked *proposed*.
 
 Sources are listed at the end (S1–S23), with the date checked. Facts about our systems come from the repo (`website/db/migrations/0001_pilot_request.sql`, `db/migrations/0003–0009`, `website/src/app/[lang]/actions.ts`, ADR 0004, ADR 0005) and from `docs/plans/backend-plan-reconciliation.md` on `origin/backend-traceability` (D4, R4).
@@ -44,6 +50,7 @@ CloverProof is software that turns farm data into a field-specific fertilizer pl
 - **A person, not software, approves your plan.** An AI system may help check a plan, but no plan reaches you until a named person has approved it: either our human agronomist, [HUMAN AGRONOMIST NAME, CREDENTIALS], or a CloverProof administrator who is not an agronomist. Every plan shows which of the two approved it.
 - We do not sell your information. We use no advertising trackers, no cookies and no analytics company. We count how the website is used ourselves, without identifying you (section 3a). *(Re-check before every release: no third-party analytics or tracking dependency in `website/package.json`; measurement matches §3a.)*
 - Your pilot farm data is stored in **Canada**, at [CANADIAN HOSTING PROVIDER, REGION]. We do not collect real pilot data into our hosted systems until that Canadian hosting is live. Until Canadian hosting is live, your website pilot request and our website measurement data are stored in the **United States** by our website host, Railway. When Canadian hosting is live, this data moves to Canada and we will update this notice. See section 7.
+- If anyone tries to sign in to our private staff area, a security log keeps a shortened IP address and the browser type for 60 days, then deletes it automatically (section 3b).
 - With your permission, we use **de-identified** results from agronomist-approved plans to improve our engine.
 - You can ask to see, correct or delete your information at any time: [CONTACT EMAIL].
 
@@ -62,6 +69,8 @@ CloverProof is software that turns farm data into a field-specific fertilizer pl
 | Proof PDF and its fingerprint (SHA-256) | When a plan is approved by a named person (agronomist or CloverProof administrator) | Give you a record of the plan and let anyone check the file has not been changed |
 | De-identified comparison of engine output vs the human agronomist's final numbers ("calibration data") — agronomist-approved plans only | During and after the pilot | Improve the engine's accuracy for future users — **with your separate consent** (section 5) |
 | Technical logs kept by our host (IP address, browser, time, page) | Every website visit | Keep the site running and secure |
+| Security log of our private staff area (`/admin`): time, what was attempted (e.g. sign-in) and the result, shortened IP address (IPv4: last of four parts removed; IPv6: only the first 48 bits kept), browser type (e.g. "Firefox"); for staff, also the staff account | Someone signs in to, or tries to sign in to or use, the staff area — this can be a member of the public | Protect the website and its staff area from break-ins and abuse; investigate incidents (section 3b) |
+| Sign-in throttling counters: a keyed, one-way scrambled form (HMAC) of the shortened IP and of the email typed on the staff sign-in page, with a count | Someone tries to sign in to the staff area | Slow down password guessing (section 3b) |
 | News or marketing emails | Only if you tick the separate box | Send you CloverProof news (CASL express consent) |
 
 Information about your farm and fields is treated as personal information when it can be linked to you (for example, a sole-proprietor farm). *(Assumption — counsel to confirm; S1, S11 Art. 4(1).)*
@@ -73,7 +82,9 @@ We count how our website is used, so we can see which pages and links help farme
 
 **What we record for each page load:** the page and language; the time; which of our buttons and links you click; your answers in the field check (for example "soil test: yes / no / not sure") and its result; which step of the pilot form you reach, and whether sending it worked; the campaign tag in the link you followed (`utm_source`, `utm_medium`, `utm_campaign`, `utm_content`); the name of the website that sent you (for example `google.com`, never the full address); and whether your screen is mobile- or desktop-sized. Each page load gets a random number that exists only in your browser's memory while the page is open, so we can put the clicks of that one page view in order. It disappears when you leave or reload the page.
 
-**What we do not record:** we put no cookies or anything else on your device (no local storage); we do not record your name, email or anything you type into the form; we do not store your IP address (we use it only while your request travels to us, to filter out automated traffic) or your full browser identifier; we do not fingerprint your device; we do not link one visit to another or to you; we do not follow you on other websites; and we do not share or sell this data.
+**What we do not record:** we put no cookies or anything else on your device (no local storage); we do not record your name, email or anything you type into the form; our measurement records never contain your IP address (we use it only while your request travels to us, to filter out automated traffic) or your full browser identifier; we do not fingerprint your device; we do not link one visit to another or to you; we do not follow you on other websites; and we do not share or sell this data.
+
+(Separately, if you try to sign in to our private staff area, a security log keeps a shortened IP address for 60 days — section 3b. Ordinary visits to our public pages are not in that log.)
 
 **Which pages:** we record this only on the English, French, Spanish, Italian and Turkish versions of the website. The Finnish, Bulgarian, Arabic and Hebrew versions record nothing.
 
@@ -84,6 +95,23 @@ We count how our website is used, so we can see which pages and links help farme
 **If you send a pilot request**, the campaign tag of the link you followed, the name of the website that sent you and your field-check result are stored with your request (section 3) and are then linked to you. We use them to know how you found us and to prepare for your farm, and keep them for as long as your request (section 8).
 
 *Why no consent banner (for reviewers, not for publication): see `website-measurement-review.md` §1 — Canada/Ontario: notice + opt-out; EU: CNIL/AEPD/Garante audience-measurement exemptions as far as we can tell; Finland (consent likely needed), Bulgaria and Arabic-speaking markets (unknown): resolved by CPO decision 2026-11-16 — no events are sent from the fi, bg, ar or he locales (he: CPO decision 2026-11-17, pending Israel review acceptance — `website-measurement-review.md` §1a), and no `country` property is recorded; Türkiye scope: unknown, events sent (tr). Hidden attribution fields on EU locales (C9): open. EU/EEA legal basis: legitimate interests (GDPR Art. 6(1)(f)); you can object (section 10).*
+
+### 3b. Security log of our private staff area
+Our website has a private area where CloverProof staff manage the site (`/admin`). It is not meant for the public, but anyone can reach its sign-in page.
+
+**What we record:** when someone signs in, tries to sign in, or tries to use the staff area, our security log records the time, what was attempted (for example a sign-in or a password reset) and whether it worked, was refused or failed, a **shortened** version of the IP address (for IPv4 we remove the last of its four parts; for IPv6 we keep only the first 48 bits), and the browser type (for example "Firefox", not the full browser identifier). For our staff it also records which staff account acted and what it did. The log never contains passwords, sign-in codes, keys, anything typed into a form, or the email address typed by someone who is not on our staff. Ordinary visits to our public pages, and errors on them, are not recorded in this log.
+
+**Sign-in throttling:** to slow down password guessing we count recent sign-in attempts using a keyed, one-way scrambled form of the shortened IP address and of the email typed. These counters are deleted within a day.
+
+**Why:** only to keep the website and its staff area secure — to detect and block break-in attempts and abuse, and to investigate a security incident. We do not use it for marketing or measurement, and we do not try to find out who is behind a shortened IP address unless we need to for a security incident or the law requires it.
+
+**Who sees it:** only CloverProof administrators, and Railway as our website host.
+
+**Where and how long:** in our website database, which until Canadian hosting is live is stored in the United States by Railway (section 7). The log is deleted automatically after **60 days**. *(Proposed — Farjad to approve with the admin plan.)*
+
+**EU/EEA:** our legal basis is our legitimate interest in keeping our network and website secure (GDPR Art. 6(1)(f); Recital 49 — S39). You can object (section 10). Because the log holds only a shortened IP address, we may not be able to find records about you unless you tell us roughly when and from which network you tried to sign in (GDPR Art. 11 — S41).
+
+*(Reviewer note, not for publication: Quebec P-39.1 s. 8.1 — we derive no location from the prefix and build no profile, so s. 8.1 likely does not bite (S5 in `website-measurement-review.md`; counsel). Israel — Amendment 13 lists IP addresses as personal information (S15 there); the admin is English-only and not aimed at Israel; same scope question as `website-measurement-review.md` counsel item 10.)*
 
 ### 4. How plans are reviewed — AI assists, a person decides
 1. Our software (the engine) calculates a proposed plan from your data.
@@ -109,7 +137,7 @@ De-identified data can sometimes be re-identified when combined with other infor
 ### 6. Who we share it with
 We do **not** sell, rent or trade personal information. We use no analytics or advertising company; website measurement (section 3a) runs on our own database. We share personal information only with:
 - **[CANADIAN HOSTING PROVIDER]** — stores pilot farm data (contacts, farms, fields, soil tests, plans, reviews, proof PDFs) in [REGION], Canada, as our service provider under a data-processing agreement. *(Provider and contract set by the hosting ADR.)*
-- **Railway Corporation (United States)** — hosts our website and, until Canadian hosting is live, stores pilot-request form data and website measurement data in the United States, as our service provider under its Data Processing Addendum (S15). When Canadian hosting is live, this data moves to [CANADIAN HOSTING PROVIDER, REGION].
+- **Railway Corporation (United States)** — hosts our website and, until Canadian hosting is live, stores pilot-request form data, website measurement data and the staff-area security log (section 3b) in the United States, as our service provider under its Data Processing Addendum (S15). When Canadian hosting is live, this data moves to [CANADIAN HOSTING PROVIDER, REGION].
 - **No AI provider receives information that identifies you or your farm.** The AI system that may check plans ([AI PROVIDER]) receives only de-identified case data as described in section 4 — no names, contact details, addresses, farm or field names, or exact field geometry. We will not send identifiable pilot data to any AI provider unless we first sign a data-processing agreement with it and update this notice. *(D-7. Confirm the provider's retention and no-training terms for the de-identified data before use.)*
 - **[EMAIL PROVIDER]** — if we use one to send email. *(None in the repo today; fill or delete.)*
 - **[HUMAN AGRONOMIST NAME]** — if the agronomist is a contractor rather than an employee, under a written confidentiality and data-processing agreement. *(Fill or delete.)*
@@ -138,6 +166,8 @@ We stay responsible for your information when our providers process it, and we u
 | Marketing consent record | While you are subscribed + 3 years (proof of consent) |
 | Deletion request record (who, what, when — no farm data) | 3 years |
 | Host technical logs | As set by our hosts — Railway (United States) for the website until Canadian hosting is live, then [CANADIAN HOSTING PROVIDER]; *[confirm log retention for Railway and [CANADIAN HOSTING PROVIDER]]* |
+| Security log of the private staff area (shortened IP, browser type, time, action, result) | 60 days, then deleted automatically by a daily job |
+| Sign-in throttling counters (keyed hashes of shortened IP and typed email) | Deleted within a day |
 | Website measurement, detailed records (not linked to you) | 90 days, then combined into daily totals and deleted |
 | Website measurement, daily totals | Up to 25 months |
 | Link campaign tag, referring site, field-check result stored with a pilot request | Same as the pilot request |
@@ -174,7 +204,7 @@ CloverProof is for farm businesses and is not directed to anyone under 18. *(Age
 ### 14. Changes
 We will post changes here with a new date and tell pilot farms by email before a material change takes effect (for example, if we change who approves plans or where data is stored).
 
-Effective date: [EFFECTIVE DATE]. Version: 0.5-draft.
+Effective date: [EFFECTIVE DATE]. Version: 0.5.2-draft.
 
 ---
 
@@ -206,7 +236,11 @@ Shape matches `website/src/messages/en.json` → `privacy` (keys `title`, `draft
     },
     {
       "h": "Website measurement",
-      "p": "We count how this website is used, ourselves, with no analytics company and no cookies or other storage on your device. We do this only on the English, French, Spanish, Italian and Turkish versions of the site; the Finnish, Bulgarian, Arabic and Hebrew versions record nothing. For each page load we record the page, language and time, the buttons you click, your field-check answers and result, the form step you reach and whether sending worked, the campaign tag of the link you followed, the name of the website that sent you (not the full address) and whether your screen is mobile or desktop size. A random number held only in your browser's memory groups the clicks of one page view and disappears when you leave. We do not record your name, email or anything you type, we do not store your IP address, and we do not link visits to each other or to you. Detailed records are kept 90 days, then turned into daily totals kept up to 25 months. If your browser sends Global Privacy Control or Do Not Track, we record nothing. If you send a pilot request, the link's campaign tag, the referring website and your field-check result are stored with your request, so we know how you found us."
+      "p": "We count how this website is used, ourselves, with no analytics company and no cookies or other storage on your device. We do this only on the English, French, Spanish, Italian and Turkish versions of the site; the Finnish, Bulgarian, Arabic and Hebrew versions record nothing. For each page load we record the page, language and time, the buttons you click, your field-check answers and result, the form step you reach and whether sending worked, the campaign tag of the link you followed, the name of the website that sent you (not the full address) and whether your screen is mobile or desktop size. A random number held only in your browser's memory groups the clicks of one page view and disappears when you leave. We do not record your name, email or anything you type, these measurement records never contain your IP address, and we do not link visits to each other or to you. Detailed records are kept 90 days, then turned into daily totals kept up to 25 months. If your browser sends Global Privacy Control or Do Not Track, we record nothing. If you send a pilot request, the link's campaign tag, the referring website and your field-check result are stored with your request, so we know how you found us."
+    },
+    {
+      "h": "Security log of our staff area",
+      "p": "Our website has a private area for CloverProof staff. If anyone, including a member of the public, signs in, tries to sign in or tries to use it, our security log records the time, what was attempted and whether it worked, a shortened IP address (the end of it removed) and the browser type (for example Firefox). It never records passwords, codes or anything typed into a form. To slow down password guessing we also keep counters based on a scrambled form of the shortened IP address and the email typed; they are deleted within a day. We use this only to keep the website secure. Only CloverProof administrators can see the log, and it is deleted automatically after 60 days. Until Canadian hosting is live it is stored in the United States by Railway. Ordinary visits to our public pages are not in this log. If you are in the EU, we rely on our legitimate interest in keeping the site secure, and you can object."
     },
     {
       "h": "How plans are reviewed",
@@ -218,7 +252,7 @@ Shape matches `website/src/messages/en.json` → `privacy` (keys `title`, `draft
     },
     {
       "h": "Who sees it",
-      "p": "Only the CloverProof team members who need it, our human agronomist, [CANADIAN HOSTING PROVIDER], which stores pilot data in Canada, and Railway, a US company that hosts our website and, until Canadian hosting is live, stores website requests and website measurement data in the United States, as our service providers. No AI provider receives information that identifies you or your farm. We do not sell your information and we do not use advertising trackers or any analytics company."
+      "p": "Only the CloverProof team members who need it, our human agronomist, [CANADIAN HOSTING PROVIDER], which stores pilot data in Canada, and Railway, a US company that hosts our website and, until Canadian hosting is live, stores website requests, website measurement data and the staff-area security log in the United States, as our service providers. No AI provider receives information that identifies you or your farm. We do not sell your information and we do not use advertising trackers or any analytics company."
     },
     {
       "h": "Where it is stored",
@@ -226,7 +260,7 @@ Shape matches `website/src/messages/en.json` → `privacy` (keys `title`, `draft
     },
     {
       "h": "How long we keep it",
-      "p": "Pilot requests we can't accept: 12 months. Pilot records: the pilot season plus 2 years. De-identified engine data: until you withdraw consent or we retire the engine. You can ask us to delete your details at any time."
+      "p": "Pilot requests we can't accept: 12 months. Pilot records: the pilot season plus 2 years. De-identified engine data: until you withdraw consent or we retire the engine. Staff-area security log: 60 days. You can ask us to delete your details at any time."
     },
     {
       "h": "Your rights",
@@ -246,10 +280,11 @@ Notes for `cp-website`:
 - Do not ship the measurement code before this notice is published (brief §9 criterion 10).
 - The pilot form must say "Ontario farms only" next to the country field; a non-Ontario request is stored and answered, not enrolled.
 - Link this page from the pilot form (already done: `pilot.privacyLink`).
+- "Security log of our staff area" (v0.5.2): ship it **with** website admin P1 (`docs/plans/website-admin.md`), not before, and drop it if P1 is cancelled. It must stay true: no IP prefix on public-site errors or page views; log purge at 60 days; rate-limit rows purged within 24 h; no typed email of non-staff and no form values in `website_log`. Any change to `website_log`, `website_rate_limit` or `website_session` fields → `coo` re-checks this text.
 
 ---
 
-## Sources (checked 2026-11-16)
+## Sources (checked 2026-11-16; S38–S43 checked 2026-11-17)
 Some Government of Canada and CRTC pages refused connections from this environment; those are marked *(not fetched — confirmed via search summaries only; verify before reliance)*.
 
 - S1 PIPEDA, S.C. 2000, c. 5, incl. Schedule 1 and s. 8(3) — https://laws-lois.justice.gc.ca/eng/acts/P-8.6/ *(not fetched)*
@@ -265,6 +300,13 @@ Some Government of Canada and CRTC pages refused connections from this environme
 - S15 Railway Data Processing Addendum — https://railway.com/legal/dpa *(fetched)*
 - S23 Federal/provincial/territorial privacy regulators, *Principles for responsible, trustworthy and privacy-protective generative AI technologies* (7 Dec 2023) — listed at https://www.priv.gc.ca/en/privacy-topics/ai-technology-and-innovation/artificial-intelligence/leadership-ai/ ; text at https://oipc.bc.ca/documents/guidance-documents/2811 *(search only: transparency principle — tell individuals how AI uses their information and its role in decisions; full text not read — verify)*
 - Decisions: `origin/backend-traceability:docs/plans/backend-plan-reconciliation.md` D4, R4 (CPO, 2026-11-16).
+- S38 OPC, Interpretation Bulletin: Personal Information ("serious possibility" test, *Gordon v. Canada (Health)* 2008 FC 258; IP address can be personal information where it can be associated with an identifiable individual) — https://www.priv.gc.ca/en/privacy-topics/privacy-laws-in-canada/the-personal-information-protection-and-electronic-documents-act-pipeda/pipeda-compliance-help/pipeda-interpretation-bulletins/interpretations_02/ *(search summary only; full text not read — verify)*. Commentary: Norton Rose Fulbright, "IP addresses as personal information: the Canadian and EU positions contrasted" — https://www.nortonrosefulbright.com/en/knowledge/publications/2b463345/ip-addresses-as-personal-information-the-canadian-and-eu-positions-contrasted *(search only)*
+- S39 GDPR Recital 49 (network and information security, to the extent strictly necessary and proportionate, is a legitimate interest) — https://gdpr-info.eu/recitals/no-49/ *(fetched 2026-11-17; unofficial site — official text S11)*
+- S40 CJEU C-582/14 *Breyer* (19 Oct 2016): dynamic IP address is personal data for a website operator with legal means to identify the user; website security as a legitimate interest — https://curia.europa.eu/juris/liste.jsf?num=C-582/14 *(not fetched; search summary only)*
+- S41 GDPR Art. 11 (processing that does not require identification) — S11 *(cited from search summary; verify)*
+- S42 PIPEDA s. 4(1)(a)–(b) (applies to commercial activities, and to employee information only in connection with a federal work, undertaking or business) — https://laws-lois.justice.gc.ca/eng/acts/P-8.6/page-1.html *(fetched 2026-11-17)*
+- S43 Ontario, *Your guide to the Employment Standards Act*: written policy on electronic monitoring (ESA s. 41.1.1; 25+ employees on 1 January → policy by 1 March) — https://www.ontario.ca/document/your-guide-employment-standards-act-0/written-policy-electronic-monitoring-employees *(search summary only; verify)*
+- Website admin: `origin/docs/website-admin-plan:docs/plans/website-admin.md`, `docs/adr/0011-website-admin-auth.md`, `docs/adr/0013-website-system-log-retention.md` (drafts, read 2026-11-17).
 - S24–S37 (website measurement, §3a): see the source list in `website-measurement-review.md` (EDPB Guidelines 2/2023 v2.0; CNIL; AEPD; Garante; Traficom; KVKK; Quebec P-39.1 s. 8.1; OPC).
 
 ## Needs licensed counsel
@@ -280,3 +322,5 @@ Some Government of Canada and CRTC pages refused connections from this environme
 10. Minimum age wording.
 11. Website measurement (§3a): every item in `website-measurement-review.md` "Needs licensed counsel" — in particular Finland consent, the Art. 5(3) status of hidden attribution fields for EU visitors, and Quebec s. 8.1.
 12. Administrator (`superadmin_approved`) approvals: whether sending fertilizer rate recommendations approved by a person without agronomic credentials creates liability, professional-title or nutrient-management regulatory issues in Ontario, and whether the §4 disclosure ("not an agronomist review") is enough for farmers to rely on it. Not researched here — no rule is stated.
+13. Staff-area security log (§3b): whether a shortened IP (/24, /48) with timestamp and browser family is personal information under PIPEDA and GDPR; whether legitimate interests (Recital 49) and a 60-day period are proportionate; whether the HMAC of a typed email from a non-staff person is personal data; whether Quebec s. 8.1 or Israeli law adds any duty.
+14. Whether admin CSV exports of the log (copies outside the 60-day purge) need their own retention rule in this notice, and whether the "within a day" throttling-counter promise is safe to publish before engineering proves it.
