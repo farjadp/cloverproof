@@ -4,8 +4,10 @@ Rules enforced here (not only in the UI):
 - the web app grants and removes only `staff` (WEB_ROLES), through the database functions
   web_grant_member_role / web_revoke_member_role; `agronomist` and `owner` are changed
   with the CLI only (cp_admin, ADR 0007) and shown read-only;
-- passwords of agronomist/owner accounts are reset with the CLI only, so an owner page
-  cannot take over the approver's account;
+- passwords of agronomist/owner accounts and of platform accounts (`platform_role`, e.g.
+  superadmin) are reset with the CLI only, and those accounts are disabled/re-enabled with
+  the CLI only, so an owner page cannot take over or lock out an approver (ciso NB1; the
+  database enforces the same rule, migration 0014);
 - an organisation never loses its last enabled owner (disable);
 - account-wide actions (password reset, disable) refuse accounts that also belong to
   another organisation, so an owner of one org cannot lock someone out of another;
@@ -25,6 +27,10 @@ INTERNAL_ROLES = ("owner", "agronomist", "staff")
 WEB_ROLES = ("staff",)
 CLI_ONLY_ROLES = ("owner", "agronomist")
 CLI_ONLY = "Agronomist and Owner roles can only be changed with the user-create command."
+CLI_ONLY_ACCOUNT = (
+    "Passwords and access of Agronomist, Owner and platform accounts can only be changed"
+    " with the user-create command (--reset-password)."
+)
 
 
 class AdminError(ValueError):
@@ -41,6 +47,12 @@ class Member:
     password_change_required: bool
     has_password: bool
     other_orgs: int
+    platform_role: str | None
+
+    @property
+    def cli_only_account(self) -> bool:
+        """Reset, disable and enable only with the CLI (approvers and platform accounts)."""
+        return self.platform_role is not None or bool(set(self.roles) & set(CLI_ONLY_ROLES))
 
 
 _MEMBER_SELECT = """
@@ -49,7 +61,8 @@ select u.id, u.email, u.display_name,
        u.disabled_at, u.password_change_required,
        (u.password_hash is not null) as has_password,
        (select count(distinct o.organisation_id)::int from membership o
-         where o.user_id = u.id and o.organisation_id <> %(org)s) as other_orgs
+         where o.user_id = u.id and o.organisation_id <> %(org)s) as other_orgs,
+       u.platform_role
 from membership m join app_user u on u.id = m.user_id
 where m.organisation_id = %(org)s
 """
@@ -229,19 +242,20 @@ def reset_password(
 ) -> int:
     member = _require(get_member(conn, org_id, user_id))
     _account_wide_allowed(member)
-    if set(member.roles) & set(CLI_ONLY_ROLES):
-        raise AdminError(
-            "Passwords of Agronomist and Owner accounts can only be reset with the"
-            " user-create command (--reset-password)."
-        )
+    if member.cli_only_account:
+        raise AdminError(CLI_ONLY_ACCOUNT)
     if member.disabled_at is not None:
         raise AdminError("This account is disabled. Re-enable it first.")
     return set_temporary_password(conn, user_id, temporary_password_hash)
 
 
-def set_disabled(conn: psycopg.Connection, *, org_id: UUID, user_id: UUID, disabled: bool) -> None:
+def set_disabled(
+    conn: psycopg.Connection, *, actor_id: UUID, org_id: UUID, user_id: UUID, disabled: bool
+) -> None:
     member = _require(get_member(conn, org_id, user_id))
     _account_wide_allowed(member)
+    if member.cli_only_account and member.id != actor_id:
+        raise AdminError(CLI_ONLY_ACCOUNT)
     if disabled:
         owners = _lock_enabled_owners(conn, org_id)
         if owners == {member.id}:

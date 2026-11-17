@@ -53,8 +53,8 @@
 {% if not is_self %}
 <section aria-labelledby="reset-heading">
   <h2 id="reset-heading">Password</h2>
-  {% if 'agronomist' in member.roles or 'owner' in member.roles %}
-  <p class="muted">Agronomist and Owner passwords are reset only with <code>user-create --reset-password</code> (change via CLI).</p>
+  {% if member.cli_only_account %}
+  <p class="muted">Agronomist, Owner and platform account passwords are reset only with <code>user-create --reset-password</code> (change via CLI).</p>
   {% else %}
   <p class="muted">Creates a new temporary password, shown once, and signs this person out everywhere.</p>
   <form method="post" action="/admin/users/{{ member.id }}/reset-password">
@@ -67,7 +67,9 @@
 
 <section aria-labelledby="access-heading">
   <h2 id="access-heading">Access</h2>
-  {% if member.disabled_at %}
+  {% if member.cli_only_account and not is_self %}
+  <p class="muted">Agronomist, Owner and platform accounts are disabled or re-enabled only with the CLI.</p>
+  {% elif member.disabled_at %}
   <p class="muted">Disabled on {{ member.disabled_at.strftime('%Y-%m-%d') }}. Their plans and reviews stay on record.</p>
   <form method="post" action="/admin/users/{{ member.id }}/enable">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

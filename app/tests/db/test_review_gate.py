@@ -63,7 +63,8 @@ def test_agronomist_of_other_org_cannot_approve(
 
 
 def test_disabled_agronomist_cannot_approve(db: psycopg.Connection, org_a: Org) -> None:
-    db.execute("update app_user set disabled_at = now() where id = %s", (org_a.agronomist,))
+    with as_owner(db):  # operator setup; cp_app cannot disable approvers (0014)
+        db.execute("update app_user set disabled_at = now() where id = %s", (org_a.agronomist,))
     with pytest.raises(errors.InsufficientPrivilege), db.transaction():
         approve(db, org_a, org_a.engine_rec, org_a.agronomist)
 

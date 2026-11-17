@@ -12,17 +12,16 @@ import pytest
 from fastapi.testclient import TestClient
 
 from cloverproof_app import plan_web, security
-from cloverproof_app.repo import users
 
 from ..support.fakes import TEST_SECRET
 from .conftest import Org
-from .test_web_auth import PASSWORD, build_client, email_of, login, page_csrf
+from .test_web_auth import build_client, email_of, login, page_csrf, with_password
 
 pytestmark = pytest.mark.db
 
 
 def signed_in(db: psycopg.Connection, user_id: UUID) -> tuple[TestClient, str]:
-    users.set_password_hash(db, user_id, security.hash_password(PASSWORD))
+    with_password(db, user_id)
     client = build_client(db)
     assert login(client, email_of(db, user_id)).status_code == 303
     return client, page_csrf(client)

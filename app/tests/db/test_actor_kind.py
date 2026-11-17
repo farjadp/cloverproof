@@ -160,6 +160,7 @@ def test_service_cannot_hold_password(db: psycopg.Connection, org_a: Org) -> Non
     with (
         pytest.raises(errors.CheckViolation, match="app_user_service_no_password"),
         db.transaction(),
+        as_role(db, "cp_admin"),  # cp_app cannot touch approver accounts at all (0014)
     ):
         db.execute("update app_user set password_hash = %s where id = %s", (HASH, service))
     with pytest.raises(errors.CheckViolation), as_role(db, "cp_admin"):

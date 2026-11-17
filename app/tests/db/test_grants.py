@@ -200,7 +200,8 @@ def test_functions_refuse_non_owner_actor(
     for actor in (org_a.agronomist, org_a.staff, other_owner):
         with pytest.raises(errors.InsufficientPrivilege, match="owner"), db.transaction():
             fn(db, actor, org_a.id, target, "staff")
-    db.execute("update app_user set disabled_at = now() where id = %s", (owner,))
+    with as_owner(db):  # operator setup; cp_app cannot disable approvers (0014)
+        db.execute("update app_user set disabled_at = now() where id = %s", (owner,))
     with pytest.raises(errors.InsufficientPrivilege, match="owner"), db.transaction():
         fn(db, owner, org_a.id, target, "staff")
     assert roles_of(db, org_a.id, target) == ["staff"]
