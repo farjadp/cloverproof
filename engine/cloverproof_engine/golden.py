@@ -266,14 +266,87 @@ def format_case(case: ExpectedCase, rows: list[DiffRow], rec: Recommendation) ->
     for r in rows:
         diff = "-" if r.diff is None else f"{r.diff:+.1f}"
         table.append((r.field, _cell(r.expected), _cell(r.actual), diff, "yes" if r.ok else "NO"))
-    widths = [max(len(row[i]) for row in table) for i in range(len(table[0]))]
-    lines = [header]
-    lines += [
-        "  " + "  ".join(c.ljust(w) for c, w in zip(row, widths, strict=True)) for row in table
-    ]
+    lines = [header, *_table(table)]
     return "\n".join(line.rstrip() for line in lines)
 
 
 def format_error(name: str, message: str) -> str:
     first = message.strip().splitlines()[0] if message.strip() else "unknown error"
     return f"== {name}  ERROR: {first}"
+
+
+def case_agrees(rows: list[DiffRow]) -> bool:
+    """A case agrees when every compared number is within the case tolerance."""
+    return all(r.ok for r in rows if r.kind == "number")
+
+
+class ExternalRow(_Frozen):
+    """Engine N vs an external tool's N, both in kg/ha. Information only."""
+
+    field: str
+    engine_kg_ha: float | None
+    reference: str | None
+    reference_kg_ha: float | None
+    diff_kg_ha: float | None
+
+
+def _as_entered(rate: ReferenceRate) -> str:
+    return f"{rate.value:.1f} {rate.unit.value}"
+
+
+def _external_row(field: str, engine: float | None, ref: ReferenceRate | None) -> ExternalRow:
+    ref_kg = None if ref is None else ref.kg_per_ha
+    diff = None if engine is None or ref_kg is None else engine - ref_kg
+    return ExternalRow(
+        field=field,
+        engine_kg_ha=engine,
+        reference=None if ref is None else _as_entered(ref),
+        reference_kg_ha=ref_kg,
+        diff_kg_ha=diff,
+    )
+
+
+def compare_external(case: ExternalReferenceCase, rec: Recommendation) -> list[ExternalRow]:
+    """N rate and splits (by position). P/K are not compared: the engine gives no P/K."""
+    ref = case.reference_output
+    rows = [_external_row("n_rate", rec.nitrogen.rate.value, ref.n_rate)]
+    if ref.n_splits:
+        engine_splits = [s.rate.value for s in rec.nitrogen.splits]
+        for i in range(max(len(ref.n_splits), len(engine_splits))):
+            e = engine_splits[i] if i < len(engine_splits) else None
+            r = ref.n_splits[i] if i < len(ref.n_splits) else None
+            rows.append(_external_row(f"split_{i + 1}", e, r))
+    return rows
+
+
+def _table(rows: list[tuple[str, ...]]) -> list[str]:
+    widths = [max(len(row[i]) for row in rows) for i in range(len(rows[0]))]
+    return ["  " + "  ".join(c.ljust(w) for c, w in zip(row, widths, strict=True)) for row in rows]
+
+
+def format_external(
+    case: ExternalReferenceCase, rows: list[ExternalRow], rec: Recommendation
+) -> str:
+    src = case.source
+    locator = ", ".join(x for x in ((src.version or "").strip(), (src.url or "").strip()) if x)
+    lines = [
+        f"== {case.id}  [{case.kind}]  pack {rec.pack_id} {rec.pack_version}  "
+        f"engine {rec.engine_version}",
+        f"  source: {src.tool} ({locator}); accessed {case.accessed_on.isoformat()} "
+        f"by {case.entered_by}; region {case.region}",
+    ]
+    table = [("field", "engine kg/ha", "reference", "reference kg/ha", "diff kg/ha")]
+    for r in rows:
+        diff = "-" if r.diff_kg_ha is None else f"{r.diff_kg_ha:+.1f}"
+        table.append(
+            (r.field, _cell(r.engine_kg_ha), r.reference or "-", _cell(r.reference_kg_ha), diff)
+        )
+    lines += _table(table)
+    ref = case.reference_output
+    for name, value in (("phosphorus", ref.phosphorus), ("potassium", ref.potassium)):
+        if value is not None:
+            lines.append(
+                f"  {name}: {_as_entered(value)} {value.form.value} "
+                "- reference only, engine gives no P/K"
+            )
+    return "\n".join(line.rstrip() for line in lines)

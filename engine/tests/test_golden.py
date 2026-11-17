@@ -16,6 +16,7 @@ from cloverproof_engine.golden import (
     RateUnit,
     ReferenceRate,
     compare,
+    compare_external,
     parse_golden_case,
 )
 from cloverproof_engine.golden_report import main, run_report
@@ -338,3 +339,119 @@ def test_loader_skips_underscore_files(tmp_path: Path) -> None:
     report = run_report(tmp_path, PACKS_DIR)
     assert "_TEMPLATE_x" not in report
     assert "ERROR" not in report
+
+
+def _write(directory: Path, data: dict[str, Any]) -> None:
+    (directory / f"{data['id']}.yaml").write_text(yaml.safe_dump(data), encoding="utf-8")
+
+
+def _mixed_dir(tmp_path: Path) -> Path:
+    """One sample, two approved (one agrees, one does not), one external reference."""
+    _write(tmp_path, {**_case_data(), "id": "s1"})
+    _write(tmp_path, _approved_data(id="a_ok"))
+    bad = _approved_data(id="a_off")
+    bad["expected"]["n_rate_kg_ha"] = 150.0
+    _write(tmp_path, bad)
+    ext = _external_data(id="e1")
+    ext["reference_output"] = {
+        "n_rate": {"value": 100.0, "unit": "lb/ac"},
+        "phosphorus": {"value": 30.0, "unit": "lb/ac", "form": "P2O5"},
+        "potassium": {"value": 20.0, "unit": "kg/ha", "form": "K2O"},
+    }
+    _write(tmp_path, ext)
+    return tmp_path
+
+
+def test_report_has_one_section_per_kind_in_order(tmp_path: Path) -> None:
+    report = run_report(_mixed_dir(tmp_path), PACKS_DIR)
+    heads = [
+        report.index("## sample (1)"),
+        report.index("## agronomist_approved (2)"),
+        report.index("## external_reference (1)"),
+    ]
+    assert heads == sorted(heads)
+    assert heads[0] < report.index("== s1") < heads[1]
+    assert heads[1] < report.index("== a_ok") < heads[2]
+    assert heads[2] < report.index("== e1")
+
+
+def test_report_empty_sections_say_none(tmp_path: Path) -> None:
+    _write(tmp_path, {**_case_data(), "id": "s1"})
+    report = run_report(tmp_path, PACKS_DIR)
+    assert "## agronomist_approved (0)" in report
+    assert "## external_reference (0)" in report
+    assert report.count("(none)") == 2
+
+
+def test_agreement_counts_only_approved_cases(tmp_path: Path) -> None:
+    report = run_report(_mixed_dir(tmp_path), PACKS_DIR)
+    assert (
+        "agreement gate (agronomist_approved only): 1/2 = 50.0% — gate not enforced yet" in report
+    )
+    assert "target" not in report.lower()
+
+
+def test_agreement_with_no_approved_cases(tmp_path: Path) -> None:
+    _write(tmp_path, {**_case_data(), "id": "s1"})
+    report = run_report(tmp_path, PACKS_DIR)
+    assert "agreement gate (agronomist_approved only): 0/0 = n/a — gate not enforced yet" in report
+
+
+def test_agreement_target_only_from_cli(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    _mixed_dir(tmp_path)
+    args = ["--golden-dir", str(tmp_path), "--packs-dir", str(PACKS_DIR)]
+    assert main([*args, "--agreement-target", "0.9"]) == 0
+    out = capsys.readouterr().out
+    assert "target 90.0% (from --agreement-target), not met" in out
+    assert main([*args, "--agreement-target", "0.5"]) == 0
+    assert "target 50.0% (from --agreement-target), met" in capsys.readouterr().out
+
+
+def test_agreement_target_must_be_a_fraction(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit):
+        main(["--golden-dir", str(GOLDEN_DIR), "--agreement-target", "90"])
+
+
+def test_external_comparison_converts_lb_per_ac(placeholder_pack) -> None:
+    case = parse_golden_case(_external_data())
+    assert isinstance(case, ExternalReferenceCase)
+    rec = recommend(case.input, placeholder_pack)
+    rows = {r.field: r for r in compare_external(case, rec)}
+    n = rows["n_rate"]
+    assert n.reference == "100.0 lb/ac"
+    assert n.reference_kg_ha == pytest.approx(units.lb_per_ac_to_kg_per_ha(100.0))
+    assert n.engine_kg_ha == pytest.approx(rec.nitrogen.rate.value)
+    assert n.diff_kg_ha == pytest.approx(n.engine_kg_ha - n.reference_kg_ha)
+
+
+def test_external_comparison_splits_by_position(placeholder_pack) -> None:
+    ref = {
+        "n_rate": {"value": 150.0, "unit": "kg/ha"},
+        "n_splits": [{"value": 150.0, "unit": "kg/ha", "timing": "pre-plant"}],
+    }
+    case = parse_golden_case(_external_data(reference_output=ref))
+    assert isinstance(case, ExternalReferenceCase)
+    rec = recommend(case.input, placeholder_pack)
+    rows = {r.field: r for r in compare_external(case, rec)}
+    assert rows["split_1"].reference_kg_ha == 150.0
+    assert rows["split_2"].reference_kg_ha is None
+    assert rows["split_2"].engine_kg_ha == pytest.approx(rec.nitrogen.splits[1].rate.value)
+
+
+def test_report_external_section_is_information_only(tmp_path: Path) -> None:
+    report = run_report(_mixed_dir(tmp_path), PACKS_DIR)
+    ext = report[report.index("## external_reference") :]
+    assert "information only — reference is not ground truth" in ext
+    assert "100.0 lb/ac" in ext
+    assert f"{units.lb_per_ac_to_kg_per_ha(100.0):.1f}" in ext
+    assert "30.0 lb/ac P2O5" in ext and "20.0 kg/ha K2O" in ext
+    assert ext.count("reference only, engine gives no P/K") == 2
+    assert "Test Tool" in ext and "2026-11-16" in ext and "Test Region" in ext
+
+
+def test_report_errors_have_their_own_section(tmp_path: Path) -> None:
+    _mixed_dir(tmp_path)
+    (tmp_path / "broken.yaml").write_text("id: broken\n", encoding="utf-8")
+    report = run_report(tmp_path, PACKS_DIR)
+    errors = report[report.index("## errors (1)") :]
+    assert "== broken.yaml  ERROR" in errors
