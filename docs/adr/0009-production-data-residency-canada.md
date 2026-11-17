@@ -1,6 +1,7 @@
 # ADR 0009 — Production hosting in Canada (data residency)
 
 - Status: **Proposed** (2026-11-16). No paid service, account or contract is approved by this ADR; it lists options only.
+- Decision on residency taken by Farjad Iranmehr (2026-11-16): real farmer data must be stored in Canada. This ADR chooses the provider (still Proposed).
 - Decider: Farjad Iranmehr. Authors: `system-architect` for `cto` + `devops-engineer`; review: `ciso`, `coo`.
 - Related: ADR 0004 (Railway), ADR 0005 (auth + Railway Bucket), ADR 0006 (SoilGrids cache), ADR 0007 (DB privileges), ADR 0008 (RLS, reserved); `docs/operations/legal/data-residency-input.md` (OQ-06); `docs/security/backup-restore-test-plan.md`; `docs/runbook-db-switch.md`; `docs/plans/backend-plan.md` §4, §12, §14.
 
@@ -10,7 +11,7 @@
 - **Website:** `pilot_request` (name, email, notes, consent) is in the same database (`runbook-db-switch.md` §3, `cp_website` INSERT-only role). Pilot applicants are prospective farmers → their rows must be stored in Canada too. See "What stays on Railway".
 - Scale: 5–10 farms in 2027, DB < 1 GB, hundreds of ~200 KB PDFs, 1 internal user, farmer accounts from S9. Team of 1–2: the ops burden matters more than the price.
 - Deadline: the S5 rehearsal (Jan 18–29, 2027) enters **3 real farms** → production must be in Canada **before Jan 18**, not just before the Jan 29 gate.
-- Repo facts to carry: local image `postgis/postgis:17-3.5` (docker-compose, runbook). The brief targets Postgres 18; all managed options below offer 17 and 18. Migration `0002_roles_and_extensions.sql` assumes a **superuser** deploy user (creates `cp_migrator`/`cp_app`, `create extension postgis`, `set role cp_migrator`); no managed service gives a true superuser (RDS `rds_superuser`, Cloud SQL `cloudsqlsuperuser`, Azure `azure_pg_admin`, DO `doadmin`). Expect small changes to 0002-style grants and to the backup role's `pg_read_all_data` grant.
+- Repo facts to carry: local dev and CI run `postgis/postgis:18-3.7`, matching the Railway service `PostGIS-cXKk`, so **Postgres 18 is already the baseline** (no upgrade decision needed). All managed options below offer 18 except E (Fly.io); their listed PostGIS is 3.6.x (3.7 not confirmed on any), a minor-version gap to check in the staging build. Migration `0002_roles_and_extensions.sql` assumes a **superuser** deploy user (creates `cp_migrator`/`cp_app`, `create extension postgis`, `set role cp_migrator`); no managed service gives a true superuser (RDS `rds_superuser`, Cloud SQL `cloudsqlsuperuser`, Azure `azure_pg_admin`, DO `doadmin`). Expect small changes to 0002-style grants and to the backup role's `pg_read_all_data` grant.
 - Law (from `data-residency-input.md`, not legal advice): PIPEDA does not require residency; storage in Canada with a US-owned provider is still reachable under the US CLOUD Act. Only a non-US-owned provider changes that.
 
 ## Options compared
@@ -55,7 +56,7 @@ Not compared further: **Canadian-owned providers** (ThinkOn, Canadian Web Hostin
 - ADR 0004 is superseded for production hosting and ADR 0005 B1 (Railway Bucket) is replaced by Spaces TOR1. `ProofStore` and the S3 API stay the same; only `BUCKET_*` values change.
 - New env vars: none new; `DATABASE_URL`, `BUCKET_*`, `SESSION_SECRET` move to App Platform (encrypted env). Add `BACKUP_DEST_*` for the S3 Object Lock copy (empty in `.env.example`).
 - `make db-migrate` runs as an App Platform pre-deploy job using `doadmin`-derived deploy role; migration 0002 needs a no-superuser path (`cp-database`): role creation + `grant cp_migrator to <deploy user> with set true`; verify `create extension postgis` and the `pg_read_all_data` grant on DO. RLS (ADR 0008) and role split (ADR 0007) are plain Postgres and carry over unchanged.
-- Local dev and CI move to `postgis/postgis:18-3.6` in a separate PR so local = production.
+- Local dev and CI already run `postgis/postgis:18-3.7` (Postgres 18, same as Railway `PostGIS-cXKk`), so local = production on the major version; the only gap is PostGIS minor (3.7 locally vs 3.6.x listed on the managed services), checked in the staging build.
 - `backup-restore-test-plan.md` L1/L2 (Railway volume backups/PITR) are replaced by DO daily backups + 7-day PITR; L3/L4 stay (hourly `age` dump + PDF copy) with destination S3 ca-central-1 Object Lock. Drills A/B are re-run on DO.
 - Privacy notice §6–7: "stored in Canada (Toronto) with DigitalOcean, a US company; may be accessible to US authorities"; list Sentry/AI provider as out-of-Canada processors.
 
@@ -64,7 +65,7 @@ Hosted environments hold no real farmer data yet, so this is mostly a **fresh bu
 | When | Step | Owner |
 |---|---|---|
 | By Dec 4 (S2) | Farjad decides D or C; creates accounts; signs/accepts DPAs after counsel review | Farjad Iranmehr |
-| By Dec 11 (S2) | DO written answers on backup/log location (else switch to C). `cp-database`: no-superuser migration path, tested on PG 18 + PostGIS 3.6 locally | `devops-engineer`, `cp-database` |
+| By Dec 11 (S2) | DO written answers on backup/log location (else switch to C). `cp-database`: no-superuser migration path, tested on PG 18 + PostGIS locally (`postgis/postgis:18-3.7`) | `devops-engineer`, `cp-database` |
 | S3 (Dec 14 – Jan 1) | Build **staging** in TOR1 (app, worker, website, DB, Spaces), migrations 0001–0009+, RLS tests, synthetic seed; drill A on staging | `cp-platform` |
 | Jan 4–8 (S4) | Build production; DB has no public ingress (trusted sources only); S3 Object Lock backup job live; first restore drill | `cp-platform`, `cp-database` |
 | Jan 8 (window) | Pause website writes → copy `pilot_request` from Railway (`pg_dump --data-only`) → verify counts → switch DNS → test submission | `cp-website`, `cp-platform` |
@@ -78,7 +79,6 @@ Hosted environments hold no real farmer data yet, so this is mostly a **fresh bu
 2. Create the DigitalOcean account/team (and the AWS account for the Object Lock backup bucket); billing card; MFA on both.
 3. Accept/sign each provider's DPA after counsel review; save a dated copy.
 4. Approve moving the website off Railway and, later, deleting the Railway `Postgres` service.
-5. Approve Postgres 18 (vs 17) as the production major version.
 
 ## Questions for `ciso` / `coo`
 1. DPA: does DO's DPA name Canada-specific storage, sub-processors with locations, deletion deadline and backup expiry (same gaps as Railway D3/D6/D7)?
