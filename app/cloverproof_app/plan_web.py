@@ -247,7 +247,8 @@ def field_detail(request: Request, conn: Conn, context: InternalOrg, field_id: U
 
 def plan_form_page(request: Request, context: OrgContext, settings: SettingsDep,
                    field_row: farms.FieldRow, form: planning.PlanForm, errors: dict[str, str],
-                   started: str, status: int = 200) -> Response:  # fmt: skip
+                   started: str, status: int = 200,
+                   refusal: str | None = None) -> Response:  # fmt: skip
     while len(form.values) < planning.VALUE_ROWS:
         form.values.append(planning.ValueRow())
     ctx = {
@@ -256,6 +257,8 @@ def plan_form_page(request: Request, context: OrgContext, settings: SettingsDep,
         "errors": errors,
         "started": started,
         "previous_crops": planning.previous_crop_choices(pack_of(request)),
+        "needs": planning.pack_inputs(pack_of(request), form.crop),
+        "refusal": refusal,
         "planning": planning,
     }
     return render(request, "plan_new.html", ctx, status)
@@ -298,7 +301,13 @@ async def plan_create(request: Request, conn: Conn, context: InternalOrg, settin
         return plan_form_page(request, context, settings, row, form, errors, started_raw, 422)
 
     inputs = parsed.inputs
-    result = planning.run_engine(inputs, pack_of(request))
+    try:
+        result = planning.run_engine(inputs, pack_of(request))
+    except planning.ENGINE_REFUSALS as error:
+        # The engine refused (missing input, outside the pack's scope or tables, value
+        # not set): its reason goes on the form, no number is shown, nothing is saved.
+        return plan_form_page(request, context, settings, row, form, {}, started_raw, 422,
+                              refusal=planning.refusal_message(error))  # fmt: skip
     season = farms.season_for(conn, org, inputs.plan_date)
     farms.set_manual_area(conn, org, field_id=field_id, season_id=season,
                           area_ha=inputs.area_ha, user_id=context.user.id)  # fmt: skip

@@ -14,7 +14,14 @@
 <div class="strip">
   <div>
     <h1>Nitrogen plan for {{ v.field.name }}</h1>
-    <p class="muted">{{ doc.crop | capitalize }} · target {{ snap.target_yield_t_ha }} t/ha · after {{ previous_crop_label }} · {{ snap.area_ha }} ha · plan date {{ snap.plan_date }}{% if v.number > 1 %} · v{{ v.number }} (agronomist edit){% endif %}</p>
+    <p class="muted">{{ doc.crop | capitalize }} · target {{ snap.target_yield_t_ha }} t/ha · after {{ previous_crop_label }} · {{ snap.area_ha }} ha · plan date {{ snap.plan_date }}{% if v.number > 1 %} · v{{ v.number }} (edited){% endif %}</p>
+    {% if snap.wheat_class is defined or snap.manure_applied is defined or snap.n_price is defined %}
+    <p class="muted">
+      {%- if snap.wheat_class is defined %}{{ planning.WHEAT_CLASS_LABELS.get(snap.wheat_class, snap.wheat_class) }} wheat{% endif %}
+      {%- if snap.manure_applied is defined %} · manure applied: {{ "yes" if snap.manure_applied else "no" }}{% endif %}
+      {%- if snap.n_price is defined %} · N price {{ "%g" | format(snap.n_price.n_price_per_kg_n) }} {{ snap.n_price.currency }}/kg N, wheat {{ "%g" | format(snap.n_price.grain_price_per_kg) }} {{ snap.n_price.currency }}/kg, price ratio {{ "%.2f" | format(snap.n_price.ratio) }} ({{ snap.n_price.source }}, {{ snap.n_price.price_date }}){% endif -%}
+    </p>
+    {% endif %}
   </div>
   <div class="strip-side">
     {{ status(v.status, status_labels) }}
@@ -145,7 +152,7 @@
   {% if v.read_only %}
   <p class="muted">This plan is reviewed and read-only.</p>
   {% elif not can_review %}
-  <p class="muted">Waiting for agronomist review.</p>
+  <p class="muted">Waiting for a human review.</p>
   {% else %}
   {{ error_summary(errors, "saving the review") }}
   <form class="form panel" method="post" action="/plans/{{ v.plan.id }}/review" novalidate>
