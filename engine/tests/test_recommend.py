@@ -7,6 +7,7 @@ import pytest
 import cloverproof_engine
 from cloverproof_engine import recommend
 from cloverproof_engine.confidence import Confidence
+from cloverproof_engine.methods import OutOfScopeError
 from cloverproof_engine.models import ExtractionMethod, NutrientForm, SoilTestSource
 from cloverproof_engine.pack import pack_sha256
 from cloverproof_engine.results import Recommendation
@@ -114,6 +115,18 @@ def test_unused_soil_nitrate_note(lab_soil_test, soil_value, make_input, placeho
     rec = recommend(make_input(soil_test=lab_soil_test(values=values)), placeholder_pack)
     assert "SOIL_NITRATE_NOT_USED" in [n.code for n in rec.notes]
     assert rec.nitrogen.rate.value == pytest.approx(175.0)
+
+
+def test_manure_applied_is_refused_by_every_pack(make_input, placeholder_pack) -> None:
+    # The engine has no manure N credit for any pack yet: never ignore manure silently.
+    with pytest.raises(OutOfScopeError, match="manure"):
+        recommend(make_input(manure_applied=True), placeholder_pack)
+
+
+def test_placeholder_pack_ignores_absent_scope_inputs(make_input, placeholder_pack) -> None:
+    rec = recommend(make_input(), placeholder_pack)
+    assert "wheat_class" not in rec.input_snapshot
+    assert "manure" not in rec.nitrogen.rate.explanation
 
 
 def test_crop_missing_from_pack(make_input, placeholder_pack) -> None:

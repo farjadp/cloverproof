@@ -14,6 +14,7 @@ from cloverproof_engine.models import (
     SoilTest,
     SoilTestSource,
     SoilTestValue,
+    WheatClass,
 )
 
 
@@ -217,6 +218,30 @@ def test_price_ratio_round_trips() -> None:
 def test_price_ratio_must_be_positive_and_finite(ratio: float) -> None:
     with pytest.raises(ValidationError):
         _input(n_price_ratio=ratio)
+
+
+# --- wheat_class and manure_applied (required by packs that scope them, e.g. ca-on) ---
+
+
+def test_wheat_class_and_manure_are_optional_and_left_out_when_absent() -> None:
+    inp = _input()
+    assert inp.wheat_class is None and inp.manure_applied is None
+    snap = inp.model_dump(mode="json")
+    assert "wheat_class" not in snap and "manure_applied" not in snap
+
+
+def test_wheat_class_and_manure_round_trip() -> None:
+    inp = _input(wheat_class="pastry", manure_applied=False)
+    assert inp.wheat_class is WheatClass.PASTRY
+    snap = inp.model_dump(mode="json")
+    assert snap["wheat_class"] == "pastry" and snap["manure_applied"] is False
+    assert RecommendationInput.model_validate(snap) == inp
+
+
+@pytest.mark.parametrize("change", [{"wheat_class": "durum"}, {"manure_applied": "maybe"}])
+def test_wheat_class_and_manure_reject_bad_values(change: dict[str, object]) -> None:
+    with pytest.raises(ValidationError):
+        _input(**change)
 
 
 def test_ammonium_acetate_is_a_named_extraction_method() -> None:

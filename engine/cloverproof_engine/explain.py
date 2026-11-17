@@ -155,6 +155,21 @@ def table_n_rate(
     )
 
 
+def wheat_class_scope(label: str) -> str:
+    return f"Scope: {label}."
+
+
+def assumes_no_manure() -> str:
+    return "Assumes no manure applied (input manure_applied = false); no manure N credit is used."
+
+
+def manure_not_supported() -> str:
+    return (
+        "the engine has no manure N credit yet, so it gives no N rate when manure was applied; "
+        "the agronomist decides N for this field"
+    )
+
+
 def table_rate_after_credit(table_rate: float, credit: float, net: float) -> str:
     return (
         f"Table rate {num(table_rate)} - previous-crop credit {num(credit)} "

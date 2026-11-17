@@ -5,7 +5,7 @@ Output models live in `results.py`; pack config models in `pack.py`.
 
 from datetime import date
 from enum import StrEnum
-from typing import Annotated, Any, Self
+from typing import Annotated, Any, ClassVar, Self
 
 from pydantic import (
     BaseModel,
@@ -24,6 +24,13 @@ class _Frozen(BaseModel):
 
 class Crop(StrEnum):
     WHEAT = "wheat"
+
+
+class WheatClass(StrEnum):
+    """Market class of the wheat. A pack may cover only some classes (pack `scope`)."""
+
+    PASTRY = "pastry"  # soft red / soft white
+    HARD = "hard"  # hard red / hard white
 
 
 class ExtractionMethod(StrEnum):
@@ -135,13 +142,24 @@ class RecommendationInput(_Frozen):
     # grain that pay for 1 kg N. An economic input, not a pack constant. Needed only by
     # N methods that look the rate up by price ratio (e.g. pack ca-on v1).
     n_price_ratio: PositiveFloat | None = None
+    # Wheat market class. Required by packs whose `scope.wheat_class` is set (ca-on v1:
+    # pastry only).
+    wheat_class: WheatClass | None = None
+    # Was manure (or another organic amendment) applied for this crop? Required by
+    # packs whose `scope.manure` is set. True is refused by every pack: the engine
+    # has no manure N credit yet.
+    manure_applied: bool | None = None
+
+    _OMIT_IF_NONE: ClassVar[tuple[str, ...]] = ("n_price_ratio", "wheat_class", "manure_applied")
 
     @model_serializer(mode="wrap")
-    def _omit_absent_ratio(self, handler: SerializerFunctionWrapHandler) -> Any:
-        # Leave the key out when absent, so snapshots from engine 0.2.0 inputs match.
+    def _omit_absent_optionals(self, handler: SerializerFunctionWrapHandler) -> Any:
+        # Leave keys out when absent, so snapshots from engine 0.2.0 inputs match.
         data = handler(self)
-        if isinstance(data, dict) and data.get("n_price_ratio", 0) is None:
-            del data["n_price_ratio"]
+        if isinstance(data, dict):
+            for name in self._OMIT_IF_NONE:
+                if name in data and data[name] is None:
+                    del data[name]
         return data
 
     @field_validator("previous_crop")

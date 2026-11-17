@@ -35,6 +35,43 @@ description: >-
 
 crops:
   wheat:
+    # Where this pack's guidance applies. Inputs `wheat_class` and `manure_applied`
+    # are required; anything outside is refused (no number).
+    scope:
+      wheat_class:
+        # TODO(agronomist): hard wheat N adjustment (docs/agronomist-todo.md #20).
+        allowed: [pastry]
+        label: "pastry (soft) wheat only, Table 4-14"
+        refusal: >-
+          hard wheat is not covered. This pack covers soft red or soft white pastry
+          wheat only (Pub 811 Table 4-14). Pub 811 puts the optimum N rate for hard
+          winter wheat 35-70 kg/ha above pastry wheat; this pack has no hard-wheat
+          rate yet (TODO(agronomist)).
+        citation:
+          title: "Agronomy Guide for Field Crops (Publication 811), Chapter 4: Cereals (PDF edition 2022-10-13)"
+          publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+          year: 2022
+          locator: "Table 4-14, Nitrogen requirements for pastry wheat (most profitable N application), header, and section 'Hard Winter Wheats (Red and White)', p. 128"
+          url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-4-en-2022-10-13.pdf"
+          accessed_on: 2026-11-17
+          basis: stated
+          note: "'For soft red or soft white pastry wheat.' Hard wheat: 'The optimum rate of nitrogen is in the range of 35-70 kg/ha (30-60 lb/acre) greater than for pastry (soft) wheat.'"
+      manure:
+        # TODO(agronomist): manure N credit (docs/agronomist-todo.md #19).
+        refusal: >-
+          this pack has no manure N credit yet. Pub 811 Table 9-10 gives available N
+          per tonne by manure type and by fall or spring application, so a credit
+          needs manure type, rate and timing (or a manure analysis), which the engine
+          does not take yet (TODO(agronomist)). No N rate is given.
+        citation:
+          title: "Agronomy Guide for Field Crops (Publication 811), Chapter 9: Soil Fertility and Nutrient Use (PDF edition 2022-10-13)"
+          publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+          year: 2022
+          locator: "Table 9-10, Typical amounts of total and available nitrogen, phosphate and potash from various organic nutrient sources, pp. 228-229"
+          url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf"
+          accessed_on: 2026-11-17
+          basis: stated
+          note: "Table 4-13 footnote 1 (Chapter 4, p. 127) points to Table 9-10 where manure is applied."
     nitrogen:
       method: n_yield_price_table
 

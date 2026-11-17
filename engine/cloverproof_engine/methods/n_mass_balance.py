@@ -22,7 +22,9 @@ from cloverproof_engine.methods._shared import (
     UnknownPreviousCropError,
     apply_limits,
     build_splits,
+    check_scope,
     previous_crop,
+    scope_sentences,
 )
 from cloverproof_engine.methods._shared import (
     any_placeholder as _any_placeholder,
@@ -46,6 +48,7 @@ class NitrogenMassBalance(NutrientMethod):
                 f"pack {pack.id} {pack.version} nitrogen method is {cfg.method!r}, "
                 f"not {self.method_id!r}"
             )
+        check_scope(inputs, pack)
         previous, credit_const, credit_path = previous_crop(inputs, pack, cfg.previous_crop_credits)
 
         base = f"crops.{inputs.crop.value}.nitrogen"
@@ -119,7 +122,8 @@ class NitrogenMassBalance(NutrientMethod):
                 name="n_rate",
                 value=rate,
                 unit=KG_N_PER_HA,
-                explanation=explain.n_rate(raw, rate, bound, cfg.min_rate, cfg.max_rate),
+                explanation=explain.n_rate(raw, rate, bound, cfg.min_rate, cfg.max_rate)
+                + scope_sentences(inputs, pack),
                 uses_placeholder=_any_placeholder(rate_inputs),
             ),
             total=ExplainedNumber(

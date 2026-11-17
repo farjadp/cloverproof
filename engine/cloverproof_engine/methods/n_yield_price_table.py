@@ -22,13 +22,16 @@ from cloverproof_engine.methods._shared import (
     KG_N,
     KG_N_PER_HA,
     MissingInputError,
+    OutOfScopeError,
     OutsideTableError,
     PackValueNotSetError,
     UnknownPreviousCropError,
     any_placeholder,
     apply_limits,
     build_splits,
+    check_scope,
     previous_crop,
+    scope_sentences,
 )
 from cloverproof_engine.methods.base import NutrientMethod
 from cloverproof_engine.models import RecommendationInput
@@ -38,6 +41,7 @@ from cloverproof_engine.results import ExplainedNumber, NutrientResult, UsedCons
 __all__ = [
     "MissingInputError",
     "NitrogenYieldPriceTable",
+    "OutOfScopeError",
     "OutsideTableError",
     "PackValueNotSetError",
     "UnknownPreviousCropError",
@@ -72,6 +76,7 @@ class NitrogenYieldPriceTable(NutrientMethod):
                 f"pack {pack.id} {pack.version} nitrogen method is {cfg.method!r}, "
                 f"not {self.method_id!r}"
             )
+        check_scope(inputs, pack)
         ratio = inputs.n_price_ratio
         if ratio is None:
             raise MissingInputError(
@@ -145,7 +150,8 @@ class NitrogenYieldPriceTable(NutrientMethod):
                 unit=KG_N_PER_HA,
                 explanation=explain.n_rate(
                     raw, rate, bound, cfg.min_rate, cfg.max_rate, "yield x price-ratio table"
-                ),
+                )
+                + scope_sentences(inputs, pack),
                 uses_placeholder=any_placeholder(rate_inputs),
             ),
             total=ExplainedNumber(

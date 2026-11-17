@@ -1,5 +1,6 @@
 """Registry of nutrient methods, selected by id from the pack."""
 
+from cloverproof_engine.methods._shared import MissingInputError, OutOfScopeError
 from cloverproof_engine.methods.base import NutrientMethod
 from cloverproof_engine.methods.n_mass_balance import NitrogenMassBalance
 from cloverproof_engine.methods.n_yield_price_table import NitrogenYieldPriceTable
@@ -16,4 +17,4 @@ def get_method(method_id: str) -> NutrientMethod:
         raise KeyError(f"unknown nutrient method {method_id!r}") from None
 
 
-__all__ = ["NutrientMethod", "get_method"]
+__all__ = ["MissingInputError", "NutrientMethod", "OutOfScopeError", "get_method"]

@@ -6,7 +6,7 @@ No agronomy here: every number comes from the pack or the inputs.
 from typing import Literal
 
 from cloverproof_engine import explain
-from cloverproof_engine.models import RecommendationInput
+from cloverproof_engine.models import RecommendationInput, WheatClass
 from cloverproof_engine.pack import Pack, PackConstant, PreviousCrop, UnsetConstant
 from cloverproof_engine.results import ExplainedNumber, SplitApplication, UsedConstant
 
@@ -28,6 +28,50 @@ class MissingInputError(ValueError):
 
 class OutsideTableError(ValueError):
     """An input lies outside a pack table; the engine never extrapolates."""
+
+
+class OutOfScopeError(ValueError):
+    """The case is outside what the pack (or the engine) covers; no number is given."""
+
+
+def check_scope(inputs: RecommendationInput, pack: Pack) -> None:
+    """Refuse cases the pack's guidance does not cover (pack `scope`), before any number.
+
+    Manure is refused for every pack: no method has a manure N credit yet.
+    """
+    scope = pack.crops[inputs.crop].scope
+    who = f"pack {pack.id} {pack.version}"
+    wheat = scope.wheat_class if scope else None
+    if wheat is not None:
+        if inputs.wheat_class is None:
+            raise MissingInputError(
+                f"{who} covers {wheat.label}: input wheat_class "
+                f"({' | '.join(c.value for c in WheatClass)}) is required"
+            )
+        if inputs.wheat_class not in wheat.allowed:
+            raise OutOfScopeError(
+                f"{who}, wheat_class {inputs.wheat_class.value!r}: {wheat.refusal}"
+            )
+    manure = scope.manure if scope else None
+    if manure is not None and inputs.manure_applied is None:
+        raise MissingInputError(
+            f"{who} needs input manure_applied (true | false): it has no manure N credit, "
+            "so it must know that no manure was applied"
+        )
+    if inputs.manure_applied:
+        reason = manure.refusal if manure is not None else explain.manure_not_supported()
+        raise OutOfScopeError(f"{who}, manure_applied true: {reason}")
+
+
+def scope_sentences(inputs: RecommendationInput, pack: Pack) -> str:
+    """What the N rate assumes about scope, for the rate explanation ("" if nothing)."""
+    scope = pack.crops[inputs.crop].scope
+    parts: list[str] = []
+    if scope is not None and scope.wheat_class is not None:
+        parts.append(explain.wheat_class_scope(scope.wheat_class.label))
+    if inputs.manure_applied is False:
+        parts.append(explain.assumes_no_manure())
+    return "".join(f" {p}" for p in parts)
 
 
 def previous_crop(

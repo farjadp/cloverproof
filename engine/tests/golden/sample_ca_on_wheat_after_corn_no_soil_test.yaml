@@ -24,6 +24,8 @@ input:
   area_ha: 20.0
   plan_date: "2027-03-15"
   n_price_ratio: 5.5
+  wheat_class: pastry
+  manure_applied: false
 expected:
   n_rate_kg_ha: 115.0
   n_total_kg: 2300.0

@@ -39,7 +39,13 @@ from pydantic import (
     model_validator,
 )
 
-from cloverproof_engine.models import ConcentrationUnit, Crop, ExtractionMethod, NutrientForm
+from cloverproof_engine.models import (
+    ConcentrationUnit,
+    Crop,
+    ExtractionMethod,
+    NutrientForm,
+    WheatClass,
+)
 
 NonBlankStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -346,11 +352,41 @@ class ConfidenceConfig(_Frozen):
         return self
 
 
+class WheatClassScope(_Frozen):
+    """The wheat classes a pack's guidance covers. Other classes are refused."""
+
+    _OMIT_IF_NONE = ("citation",)
+
+    allowed: list[WheatClass] = Field(min_length=1)
+    label: NonBlankStr  # quoted in the N rate explanation
+    refusal: NonBlankStr  # message for a class outside `allowed`
+    citation: Citation | None = None
+
+
+class ManureScope(_Frozen):
+    """The pack needs `manure_applied`; manure is refused until a credit exists."""
+
+    _OMIT_IF_NONE = ("citation",)
+
+    refusal: NonBlankStr
+    citation: Citation | None = None
+
+
+class CropScope(_Frozen):
+    """Inputs that bound where a pack's guidance applies. Absent = not checked."""
+
+    _OMIT_IF_NONE = ("wheat_class", "manure")
+
+    wheat_class: WheatClassScope | None = None
+    manure: ManureScope | None = None
+
+
 class CropConfig(_Frozen):
-    _OMIT_IF_NONE = ("soil_test_methods",)
+    _OMIT_IF_NONE = ("soil_test_methods", "scope")
 
     nitrogen: NitrogenConfig
     confidence: ConfidenceConfig
+    scope: CropScope | None = None
     # Declarative in engine 0.3.0: which test the pack's P/K guidance assumes.
     # P/K rates arrive in S3 (still only with a lab soil test, rule 3).
     soil_test_methods: dict[Literal["P", "K"], SoilTestMethodSpec] | None = None

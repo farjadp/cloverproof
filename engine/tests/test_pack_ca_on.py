@@ -15,7 +15,11 @@ import yaml
 from cloverproof_engine import recommend
 from cloverproof_engine.confidence import Confidence
 from cloverproof_engine.loaders import load_pack
-from cloverproof_engine.methods.n_yield_price_table import PackValueNotSetError
+from cloverproof_engine.methods.n_yield_price_table import (
+    MissingInputError,
+    OutOfScopeError,
+    PackValueNotSetError,
+)
 from cloverproof_engine.models import (
     ConcentrationUnit,
     Crop,
@@ -38,7 +42,7 @@ CA_ON_PATH = Path(__file__).resolve().parents[2] / "packs" / "ca-on" / "v1.yaml"
 
 # Fingerprint of packs/ca-on/v1.yaml. Change only on purpose (a pack edit needs a
 # new pack version once any recommendation has recorded this one).
-CA_ON_V1_SHA256 = "987688f1543eae5ce1b37b17efc20d4ebacae8724e6296a83240f4f68024a007"
+CA_ON_V1_SHA256 = "84d874e7c6f0119cfeb44e5c5de8a9dfe04e3e9961a0dae0819cd856b1996e58"
 
 
 @pytest.fixture
@@ -59,9 +63,16 @@ def _input(**change: Any) -> RecommendationInput:
         "area_ha": 10.0,
         "plan_date": date(2027, 3, 1),
         "n_price_ratio": 5.0,
+        "wheat_class": "pastry",
+        "manure_applied": False,
     }
     data.update(change)
+    for key in [k for k, v in data.items() if v is _DROP]:
+        del data[key]
     return RecommendationInput.model_validate(data)
+
+
+_DROP = object()  # marks an input key to leave out
 
 
 def _lab_test() -> SoilTest:
@@ -245,3 +256,38 @@ def test_spring_timing_is_the_table_4_14_header_not_a_growth_stage(pack: Pack, t
     assert "Table 4-14" in split.timing_citation.locator
     rec = recommend(_input(), pack)
     assert "read from" in rec.nitrogen.splits[0].fraction.explanation
+
+
+# --- S1 wheat class (pastry only) and S2 manure ------------------------------------
+
+
+def test_wheat_class_is_required(pack: Pack) -> None:
+    with pytest.raises(MissingInputError, match="wheat_class"):
+        recommend(_input(wheat_class=_DROP), pack)
+
+
+def test_hard_wheat_is_refused(pack: Pack) -> None:
+    with pytest.raises(OutOfScopeError, match="hard wheat is not covered"):
+        recommend(_input(wheat_class="hard"), pack)
+
+
+def test_rate_explanation_states_pastry_scope(pack: Pack) -> None:
+    rec = recommend(_input(), pack)
+    assert "pastry (soft) wheat only, Table 4-14" in rec.nitrogen.rate.explanation
+    assert rec.input_snapshot["wheat_class"] == "pastry"
+
+
+def test_manure_applied_is_required(pack: Pack) -> None:
+    with pytest.raises(MissingInputError, match="manure_applied"):
+        recommend(_input(manure_applied=_DROP), pack)
+
+
+def test_manure_applied_is_refused(pack: Pack) -> None:
+    with pytest.raises(OutOfScopeError, match="manure"):
+        recommend(_input(manure_applied=True), pack)
+
+
+def test_no_manure_is_stated_in_the_rate_explanation(pack: Pack) -> None:
+    rec = recommend(_input(), pack)
+    assert "assumes no manure applied" in rec.nitrogen.rate.explanation.lower()
+    assert rec.input_snapshot["manure_applied"] is False
