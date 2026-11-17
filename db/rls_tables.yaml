@@ -35,6 +35,14 @@ identity:
   - user_session
   - membership
   - admin_event
+  # Website admin (migration 0024, ADR 0012/0014): grants + SECURITY DEFINER purge, RLS off.
+  - website_user
+  - website_user_recovery_code
+  - website_session
+  - website_one_time_token
+  - website_rate_limit
+  - website_log
+  - website_job_run
 
 website:
   - pilot_request
