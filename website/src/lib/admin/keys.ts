@@ -42,6 +42,14 @@ export async function listKeys(db: Db): Promise<Partial<Record<Provider, KeyRow>
 
 export type KeyResult = { ok: true; message: string } | { ok: false; error: string };
 
+/** Thrown (to roll back the transaction) when another admin changed the same key at once. */
+export class ConcurrentChange extends Error {
+  constructor() {
+    super("concurrent key change");
+    this.name = "ConcurrentChange";
+  }
+}
+
 export function keyProblem(key: string): string | null {
   if (key.length < 20 || key.length > 400) return "That doesn't look like an API key (20–400 characters).";
   if (/\s/.test(key)) return "Remove spaces or line breaks from the key.";
@@ -75,11 +83,17 @@ export async function saveKey(
   );
   const kek = config.keks[0];
   const last4 = key.slice(-4).replace(/[^A-Za-z0-9_-]/g, "_");
-  await db.query(
+  try {
+    await db.query(
     `insert into website_secret (provider, version, sealed, kek_id, last4, monthly_budget_usd, created_by, created_at)
      values ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [provider, version, seal(key, aad(provider, version), kek), kek.id, last4, prev[0]?.monthly_budget_usd ?? null, actor.user.id, now],
-  );
+      [provider, version, seal(key, aad(provider, version), kek), kek.id, last4, prev[0]?.monthly_budget_usd ?? null, actor.user.id, now],
+    );
+  } catch (error) {
+    // Two admins saving the same provider at once: the database keeps one; tell the other.
+    if ((error as { code?: string })?.code === "23505") throw new ConcurrentChange();
+    throw error;
+  }
   await writeLog(db, {
     actor: actor.user.id,
     kind: "secret",

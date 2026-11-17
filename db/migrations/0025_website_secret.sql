@@ -27,23 +27,25 @@ create table website_secret (
   last_test_at       timestamptz,
   last_test_ok       boolean,
   unique (provider, version),
-  check ((revoked_at is null) = (revoked_by is null))
+  check ((revoked_at is null) = (revoked_by is null)),
+  check (revoked_at is null or revoked_at >= created_at)
 );
 
 -- At most one active key per provider.
 create unique index website_secret_one_active on website_secret (provider) where revoked_at is null;
 
--- Sealed bytes, provider, version and authorship never change after insert; a revoked key stays revoked.
+-- Sealed bytes, provider, version and authorship never change after insert; a revoked row is frozen.
 create function website_secret_guard() returns trigger
 language plpgsql set search_path = '' as $$
 begin
-  if new.sealed <> old.sealed or new.kek_id <> old.kek_id or new.provider <> old.provider
+  if new.id <> old.id or new.sealed <> old.sealed or new.kek_id <> old.kek_id or new.provider <> old.provider
      or new.version <> old.version or new.last4 <> old.last4 or new.created_by <> old.created_by
      or new.created_at <> old.created_at then
     raise exception 'website_secret % is immutable; insert a new version', old.id
       using errcode = 'insufficient_privilege';
   end if;
-  if old.revoked_at is not null and new.revoked_at is distinct from old.revoked_at then
+  -- A revoked row is frozen entirely (revoker, cap and test result included).
+  if old.revoked_at is not null then
     raise exception 'website_secret % is revoked', old.id using errcode = 'insufficient_privilege';
   end if;
   return new;

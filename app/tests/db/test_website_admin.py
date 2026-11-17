@@ -385,10 +385,13 @@ def test_secret_rows_are_immutable_and_never_deleted(admin_db: psycopg.Connectio
     admin_db.execute(
         "update website_secret set revoked_at = now(), revoked_by = %s where id = %s", (user, key)
     )
-    with pytest.raises(errors.InsufficientPrivilege), admin_db.transaction():
-        admin_db.execute(
-            "update website_secret set revoked_at = null, revoked_by = null where id = %s", (key,)
-        )
+    for query in (
+        "update website_secret set revoked_at = null, revoked_by = null where id = %s",
+        "update website_secret set monthly_budget_usd = 1 where id = %s",
+        "update website_secret set last_test_ok = false where id = %s",
+    ):
+        with pytest.raises(errors.InsufficientPrivilege), admin_db.transaction():
+            admin_db.execute(query, (key,))
 
 
 def test_secret_checks(admin_db: psycopg.Connection) -> None:

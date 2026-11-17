@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { revokeKey, saveKey, setBudget, testKey, type KeyResult } from "@/lib/admin/keys";
+import { ConcurrentChange, revokeKey, saveKey, setBudget, testKey, type KeyResult } from "@/lib/admin/keys";
 import { guardAction, inTransaction } from "@/lib/admin/server";
 
 export type KeyState = { result: KeyResult | null };
@@ -16,7 +16,7 @@ export async function keyAction(_prev: KeyState, form: FormData): Promise<KeySta
   const provider = String(form.get("provider") ?? "");
   const op = String(form.get("op") ?? "");
   const now = new Date();
-  const result = await inTransaction(db, (tx): Promise<KeyResult> => {
+  const run = () => inTransaction(db, (tx): Promise<KeyResult> => {
     switch (op) {
       case "save":
         return saveKey(tx, config, current, provider, String(form.get("key") ?? ""), meta, now);
@@ -30,6 +30,13 @@ export async function keyAction(_prev: KeyState, form: FormData): Promise<KeySta
         return Promise.resolve({ ok: false, error: "Unknown action." });
     }
   });
+  let result: KeyResult;
+  try {
+    result = await run();
+  } catch (error) {
+    if (!(error instanceof ConcurrentChange)) throw error;
+    result = { ok: false, error: "Another admin just changed this key. Reload and try again." };
+  }
   revalidatePath("/admin/keys");
   return { result };
 }
