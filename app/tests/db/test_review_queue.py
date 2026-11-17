@@ -238,6 +238,14 @@ def test_htmx_returns_the_results_partial(db: psycopg.Connection, org_a: Org) ->
     assert r.status_code == 200
     assert r.text.lstrip().startswith('<div id="queue-results">') and "<html" not in r.text
     assert plan_ids(r.text) == [str(org_a.crop_plan)]
+    assert "HX-Request" in r.headers["vary"]
+
+
+def test_history_restore_gets_the_full_page(db: psycopg.Connection, org_a: Org) -> None:
+    # Back/Forward: htmx re-requests with both headers and swaps the whole body.
+    client, _ = signed_in(db, org_a.agronomist)
+    r = client.get("/review", headers={"HX-Request": "true", "HX-History-Restore-Request": "true"})
+    assert r.status_code == 200 and "<html" in r.text and 'id="queue-results"' in r.text
 
 
 def test_placeholder_pack_flag(db: psycopg.Connection, org_a: Org) -> None:

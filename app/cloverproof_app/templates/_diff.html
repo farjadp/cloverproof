@@ -8,7 +8,7 @@
 {% else %}<p class="diff-text">{{ value }}</p>{% endif %}
 {%- endmacro %}
 {% macro was(cell) -%}
-{% if cell.kind == "number" %}{{ num(cell.engine.value) }} {{ cell.engine.unit }}{% elif cell.kind == "share" %}{{ num(cell.engine.value * 100, 0) }}%{% else %}{{ cell.engine }}{% endif %}
+{% if cell.engine is none %}nothing{% elif cell.kind == "number" %}{{ num(cell.engine.value) }} {{ cell.engine.unit }}{% elif cell.kind == "share" %}{{ num(cell.engine.value * 100, 0) }}%{% else %}{{ cell.engine }}{% endif %}
 {%- endmacro %}
 {% set d = line_diff %}
 <section aria-labelledby="diff-h" class="diff-section" id="diff">

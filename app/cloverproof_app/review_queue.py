@@ -93,5 +93,11 @@ def review_queue(request: Request, conn: Conn, context: InternalOrg) -> Response
         "row_status": ROW_STATUS,
         "status_labels": STATUS_LABELS,
     }
-    name = "_review_rows.html" if request.headers.get("HX-Request") else "review_queue.html"
-    return render(request, name, ctx)
+    # Partial only for an htmx filter request. A history restore (Back/Forward) also sends
+    # HX-Request and swaps the whole body, so it must get the full page.
+    partial = bool(request.headers.get("HX-Request")) and not request.headers.get(
+        "HX-History-Restore-Request"
+    )
+    response = render(request, "_review_rows.html" if partial else "review_queue.html", ctx)
+    response.headers["Vary"] = "HX-Request, HX-History-Restore-Request"
+    return response
