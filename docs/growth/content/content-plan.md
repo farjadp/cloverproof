@@ -7,7 +7,7 @@ Every article in this plan is marked "DRAFT — needs human agronomist review be
 
 - **Site today:** one Next.js landing page per locale (`/en`, section anchors `#how`, `#proof`, `#principles`, `#faq`, `#check`, `#pilot`) and a draft privacy page (noindex). `website/src/app/sitemap.ts` lists locale roots only. There is no blog route, no Article schema and no author pages.
 - **Before any article can go live (engineering, not this plan):** a `/[lang]/learn/[slug]` route (proposed path), sitemap entries per article, Article + BreadcrumbList + FAQPage JSON-LD, a visible "last reviewed" date, an author/reviewer box component, and canonical/hreflang for `en` only until translations exist (ADR 0003 covers multi-language).
-- **Copy conflict to fix first (flag for CPO):** `en.json` `meta.description`, `hero.lead` and `hero.chips.reviewed` say plans are "reviewed by an agronomist" / "checked by an agronomist". Under CLAUDE.md rule 11 the current reviewer is the AI agent `cp-agronomist`, and no human agronomist is named yet. Articles must not repeat that claim, and the landing copy should be checked against it before outreach links go out.
+- **Landing copy (CPO ruling, 2026-11-17):** the site's "approved by a human agronomist" lines describe the enforced process (rule 8) and are not a rule-11 breach; no change. **Guard for every article:** never claim that a named agronomist or partner already reviews plans, and never claim that any plan has been delivered.
 - **Hard rules for every article:** no rates, thresholds or yield numbers as advice; point to OMAFA Publication 811 for numbers. No yield or savings promises. No claim that any third party (OMAFA, GFO, Fertilizer Canada, a lab, a lender) approves or accepts CloverProof or its proof PDF. Do not say "agronomist-reviewed" about CloverProof content or plans. CloverProof is vendor-neutral and software only.
 - **Keyword data:** no Search Console, Ahrefs or DataForSEO source is connected. Every volume is "volume unknown". Queries are phrased the way growers and CCAs search, taken from extension article titles, People-Also-Ask style questions and the pilot ICP's call questions. Priority = pilot-recruitment value + intent fit + how thin the existing answers are.
 
@@ -275,7 +275,7 @@ Format per brief: title · intent · queries (primary + related; all volume unkn
 ## 8. Open items
 
 1. Blog route, schema components and sitemap entries need a `cto`/website plan before anything goes live.
-2. Landing copy "reviewed/checked by an agronomist" vs rule 11 (section 0): CPO decision.
+2. ~~Landing copy vs rule 11~~ RESOLVED by CPO 2026-11-17 (see section 0 guard).
 3. A human must open S7-S16 and confirm each statement before an article cites them.
 4. Named author and reviewer. Until a human agronomist is named, articles stay drafts.
 5. AI-crawler policy in `robots.ts`: Farjad Iranmehr's decision.
