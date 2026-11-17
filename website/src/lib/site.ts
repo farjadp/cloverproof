@@ -18,5 +18,5 @@ export function languageAlternates(path = ""): Record<string, string> {
 
 /** Open Graph locale tag, e.g. en -> en_GB. */
 export const ogLocale: Record<Locale, string> = {
-  en: "en_GB", fr: "fr_FR", it: "it_IT", es: "es_ES", bg: "bg_BG", fi: "fi_FI", tr: "tr_TR", ar: "ar_AR",
+  en: "en_GB", fr: "fr_FR", it: "it_IT", es: "es_ES", bg: "bg_BG", fi: "fi_FI", tr: "tr_TR", ar: "ar_AR", he: "he_IL",
 };

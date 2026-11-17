@@ -10,7 +10,7 @@ Credibility + recruit 5–10 pilot farms for Feb–Apr 2027. Primary CTA: **Requ
 |---|---|
 | Location | `website/` in this monorepo |
 | Stack | Next.js (App Router) + TypeScript + Tailwind, static where possible |
-| i18n | Built in from day one (native Next.js i18n, `/[lang]/` routes, ADR 0003). Ship order: en → fr → it → es → bg → fi → tr → ar (RTL). One locale per step. |
+| i18n | Built in from day one (native Next.js i18n, `/[lang]/` routes, ADR 0003). Ship order: en → fr → it → es → bg → fi → tr → ar (RTL) → he (RTL, added 2026-11-17). One locale per step. |
 | Pages | Landing (hero → problem → how it works → sample proof → principles → pilot CTA), Pilot request form, Privacy |
 | Form | Railway Postgres table `pilot_request` (ADR 0004), explicit consent checkbox (PIPEDA / CASL / GDPR for EU locales) |
 | Audience | Global, English first |
@@ -31,7 +31,7 @@ Credibility + recruit 5–10 pilot farms for Feb–Apr 2027. Primary CTA: **Requ
 5. ✅ Pilot form → Railway Postgres (`pilot_request`), consent text stored, honeypot spam trap. Live: https://website-production-a1991e11.up.railway.app
 6. ✅ Redesign + official logo, icons, OG image, flag language menu (S1, live).
 7. QA: Lighthouse ≥ 90, mobile, keyboard/a11y, form end to end → preview deploy.
-8. ✅ All 8 locales live with machine translation (Farjad Iranmehr, 2026-11-16; ADR 0003 amendment). Native review per locale follows; status in ADR 0003 and each file's `meta.translationStatus`.
+8. ✅ All 8 locales live with machine translation (Farjad Iranmehr, 2026-11-16; ADR 0003 amendment). Hebrew added as the 9th (2026-11-17, ADR 0003 amendment). Native review per locale follows; status in ADR 0003 and each file's `meta.translationStatus`.
 
 ## Open items
 - Contact email and legal entity name for the privacy notice and footer.
@@ -53,7 +53,7 @@ Status (2026-11-16, commit `62310a5`, live):
 - ✅ 1 SEO basics — robots.txt, sitemap.xml, canonical, hreflang + x-default, Open Graph/Twitter. Privacy stays `noindex` and out of the sitemap until legal review (deliberate; its Lighthouse SEO = 69 for that reason only).
 - ✅ 2 Lighthouse mobile, live: `/en` 95 / 100 / 100 / 100 · `/en/privacy` 100 / 100 / 100 / 69 (perf / a11y / best practices / SEO).
 - ✅ 3 Keyboard / a11y — axe 0 violations at 375 + 1280 px in 5 states (page, language menu open, field check done, form step 2, privacy); focus moves to the new step in the field check and the form; proof table scroll region focusable.
-- ⏳ 4 Funnel events — CPO decision (option A, growth brief PR #15): first-party events in our Postgres (`site_event`, insert-only grant for `cp_website_login`), `POST /api/e`, `view_id` in memory only, form success/error written server-side in `requestPilot`. **No `country` property. Events only from en, fr, es, it, tr — none from fi, bg, ar until legal confirms. No consent banner.** Deploy only together with coo's privacy-notice wording. Blocked on `site_event`.
+- ⏳ 4 Funnel events — CPO decision (option A, growth brief PR #15): first-party events in our Postgres (`site_event`, insert-only grant for `cp_website_login`), `POST /api/e`, `view_id` in memory only, form success/error written server-side in `requestPilot`. **No `country` property. Events only from en, fr, es, it, tr — none from fi, bg, ar, he until legal confirms. No consent banner.** Deploy only together with coo's privacy-notice wording. Blocked on `site_event`.
 - (superseded) Funnel counts — request counts per day/locale need no schema change; a request *rate* needs a server-side visit counter (new table), which waits for the shared DB (item 5).
 - ⏳ 5 DB switch — waiting for PostGIS to be healthy and a window with `cloverproof-lead`.
 
