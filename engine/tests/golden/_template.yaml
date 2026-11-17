@@ -1,0 +1,70 @@
+# TEMPLATE for a hand-entered external_reference golden case. Not a case:
+# files starting with `_` are skipped by the loader. This template does NOT load
+# as-is (the TODO values below fail validation) — on purpose.
+#
+# How to use:
+#  1. Copy to engine/tests/golden/<id>.yaml; `id` must equal the file name.
+#  2. Enter the numbers BY HAND from an official document or public tool
+#     (CLAUDE.md data rules: never scraped, never from memory). One case per
+#     worked example / table cell / tool run.
+#  3. A case drafted by the AI agronomist uses `kind: ai_reviewed` and
+#     `entered_by: cp-agronomist` (rule 11). A human entering it uses
+#     `kind: external_reference` with their own name.
+#  4. Reference cases are information only: the report shows engine vs reference
+#     difference, never pass/fail; they never count toward the agreement gate.
+#
+# Units: yield is ALWAYS t/ha in `input.target_yield_t_ha`. If the tool or document
+# shows bu/ac, convert by hand with the bushel weight the source states and record
+# the display unit as `tool_settings.yield_display_unit: bu/ac`; never store a
+# bu/ac number. Rates may be entered as shown (kg/ha or lb/ac); the engine converts
+# lb/ac through units.py. P/K rates must name their form (P or P2O5, K or K2O).
+
+id: TODO_same_as_file_name
+kind: external_reference  # or ai_reviewed (entered_by: cp-agronomist)
+description: "TODO one line: what the reference case is"
+pack:
+  id: ca-on
+  version: v1
+
+# Citation of a document (all five fields required). For a tool instead, use
+# `tool:` plus `url:` and/or `version:`.
+source:
+  title: "TODO full document title"
+  publisher: "TODO publisher"
+  year: TODO_year_of_the_edition
+  locator: "TODO page / table / worked example, e.g. Table 4-14, row 5, column 6 t/ha"
+  url: "TODO URL as read"
+accessed_on: TODO_YYYY-MM-DD
+entered_by: "TODO name of the person who typed the numbers in"
+region: "TODO where the reference applies, e.g. Ontario"
+
+# Optional, text or true/false only (no numbers, no yield values).
+tool_settings:
+  yield_display_unit: t/ha  # or bu/ac if the source shows bu/ac
+
+notes: "TODO anything the reader needs: assumptions the source states, rounding"
+
+input:
+  crop: wheat
+  target_yield_t_ha: TODO_t_per_ha
+  previous_crop: TODO_key_from_the_pack_previous_crop_list
+  area_ha: TODO_ha
+  plan_date: TODO_YYYY-MM-DD
+  # n_price:  # only for packs whose N method needs it (ca-on v1); ratio is computed
+  #   n_price_per_kg_n: TODO
+  #   grain_price_per_kg: TODO
+  #   currency: CAD
+  #   source: TODO (price list / quote, as in the document)
+  #   price_date: TODO
+  # wheat_class: pastry  # pastry | hard; required by packs with scope.wheat_class (ca-on v1)
+  # manure_applied: false  # required by packs with scope.manure (ca-on v1); true is refused
+  soil_test: null  # or a full soil test: sample_date, depth, source, lab, values
+
+reference_output:
+  n_rate:
+    value: TODO_number
+    unit: kg/ha  # or lb/ac, as shown in the source
+  # n_splits:
+  #   - {value: TODO, unit: kg/ha, timing: "TODO as worded in the source"}
+  # phosphorus: {value: TODO, unit: kg/ha, form: P2O5}
+  # potassium: {value: TODO, unit: kg/ha, form: K2O}

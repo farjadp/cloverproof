@@ -1,0 +1,45 @@
+# Every table in schema `public`, with its RLS class (ADR 0008 §3, ciso criterion 0.3).
+# app/tests/db/test_rls_catalog.py fails when a table is missing here, listed twice, or its
+# catalog state (ENABLE / FORCE / policies) does not match its class.
+#
+#   tenant    has an organisation column; RLS enabled AND forced; restrictive org boundary
+#             policy to cp_app plus permissive per-command policies (migration 0021).
+#   identity  organisation, users, sessions, memberships, identity audit. Protected by grants
+#             (ADR 0007) and SECURITY DEFINER functions today; RLS v1 in S3 (ADR 0008 §7,
+#             needs the pre-auth lookup functions). Must have RLS DISABLED until then, so a
+#             half-done change is visible in the catalog test.
+#   website   written by cp_website only; RLS enabled (not forced) with an INSERT policy to
+#             cp_website (migration 0022).
+#   global    no tenant data, no RLS: migration bookkeeping and PostGIS.
+#
+# organisation_column is the column the boundary policy compares with app_ctx_org().
+
+tenant:
+  farmer: organisation_id
+  farm: organisation_id
+  field: organisation_id
+  season: organisation_id
+  field_geometry_version: organisation_id
+  soil_test: organisation_id
+  soil_test_value: organisation_id
+  crop_plan: organisation_id
+  recommendation: organisation_id
+  review: organisation_id
+  application_log: organisation_id
+  proof_document: organisation_id
+  access_grant: owner_organisation_id
+
+identity:
+  - organisation
+  - app_user
+  - user_session
+  - membership
+  - admin_event
+
+website:
+  - pilot_request
+  - site_event
+
+global:
+  - schema_migrations
+  - spatial_ref_sys

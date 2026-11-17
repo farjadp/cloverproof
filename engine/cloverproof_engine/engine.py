@@ -36,7 +36,11 @@ def recommend(inputs: RecommendationInput, pack: Pack) -> Recommendation:
             )
         )
     if soil is not None and any(v.form is NutrientForm.NO3_N for v in soil.values):
-        notes.append(Note(code="SOIL_NITRATE_NOT_USED", text=explain.soil_nitrate_not_used()))
+        notes.append(
+            Note(
+                code="SOIL_NITRATE_NOT_USED", text=explain.soil_nitrate_not_used(nitrogen.method_id)
+            )
+        )
 
     level, hits = assess(inputs, pack, nitrogen)
 

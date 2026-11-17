@@ -14,7 +14,7 @@ insert into app_user (id, email, display_name, password_hash) values
 on conflict do nothing;
 
 insert into membership (organisation_id, user_id, role) values
-  ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000101', 'owner'),
+  ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000101', 'org_admin'),
   ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000101', 'agronomist')
 on conflict do nothing;
 

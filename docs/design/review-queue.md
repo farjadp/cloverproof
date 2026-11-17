@@ -44,7 +44,7 @@ Exits: back to the queue (breadcrumb keeps filters), "Next in queue", or the pla
 
 | # | Ruling | Effect on this spec |
 |---|---|---|
-| P1 | **D-7 data boundary (CPO, 2026-11-16):** `cp-agronomist` never receives real pilot farmers' personal or identifiable farm data — only published, synthetic or de-identified cases. | The AI account **cannot see real-farm plans at all**: queue rows, detail, edit and AI-review routes for `record_kind = 'real'` return 404 for `app_user.kind = 'ai'`, enforced by RLS (ADR 0006) and the route. In §2 the AI column reads "not visible (404)" for every real-farm row; notice N-AI-REAL is not needed. The AI works on sample plans only; its "Real farms" filter option is hidden. |
+| P1 | **D-7 data boundary (CPO, 2026-11-16):** `cp-agronomist` never receives real pilot farmers' personal or identifiable farm data — only published, synthetic or de-identified cases. | The AI account **cannot see real-farm plans at all**: queue rows, detail, edit and AI-review routes for `record_kind = 'real'` return 404 for `app_user.kind = 'ai'`, enforced by RLS (ADR 0008) and the route. In §2 the AI column reads "not visible (404)" for every real-farm row; notice N-AI-REAL is not needed. The AI works on sample plans only; its "Real farms" filter option is hidden. |
 | P2 | Q1: the AI account never approves and never rejects, on any plan. | Adopted as S4 says. FI may revisit. |
 | P3 | Without a soil test, the P/K "Soil test recommended" line is a **rule line**: not editable, carried into every version, shown on both sides of the diff (hard rule 3). | One-sided diff rows apply only to rate lines added or removed by an edit. |
 | P4 | Q4, Q5, Q6, Q8: the recommendations in §7 are the S2 defaults (PLACEHOLDER acknowledgement checkbox; due date only; `APP_TIMEZONE=America/Toronto`; no claiming). | `REVIEW_DUE_DAYS` value is a product setting, not an agronomic constant; default to be set by the CPO. |
@@ -56,7 +56,7 @@ Exits: back to the queue (breadcrumb keeps filters), "Next in queue", or the pla
 
 ## 2. Roles: who sees what
 
-Role sources today: `membership.role` (`owner`, `agronomist`, `staff`, `farmer`). Target (ADR 0006, RK-X11): `owner`→`org_admin`, `staff`/`superadmin` → platform roles. "Human agronomist" = `agronomist` membership in the org **and** `app_user.kind = 'human'` (DB-3). "AI agronomist" = the `cp-agronomist` account, `agronomist` membership, `app_user.kind = 'ai'`.
+Role sources today: `membership.role` (`owner`, `agronomist`, `staff`, `farmer`). Target (ADR 0008, RK-X11): `owner`→`org_admin`, `staff`/`superadmin` → platform roles. "Human agronomist" = `agronomist` membership in the org **and** `app_user.kind = 'human'` (DB-3). "AI agronomist" = the `cp-agronomist` account, `agronomist` membership, `app_user.kind = 'ai'`.
 
 | Element | Human agronomist | AI agronomist (`cp-agronomist`) | staff | superadmin (not a human agronomist) | owner / org_admin | farmer |
 |---|---|---|---|---|---|---|
@@ -524,7 +524,7 @@ Analytics: no client-side analytics in the internal tool. The measurable events 
 |---|---|---|
 | Q1 | May the AI account reject, or approve **sample** plans? | No to both (S4). AI records `ai_review` and may propose an edited version. |
 | Q2 | S02-DoD needs "1 full PDF", but PDF v0 is generated from **approved** recommendations only, and AI cannot approve. Who approves the 5 published-reference sample cases? | Either a human agronomist approves a sample (allowed, "Approve sample plan"), or cp-pdf accepts `ai_review` on **sample** plans for a test PDF watermarked "Sample, not reviewed by an agronomist". Needs a CPO + cp-pdf call. |
-| Q3 | owner/org_admin seeing drafts (PM-DR-oa) | Follow §3.2: 403 on queue and detail after ADR 0006. Until then, view-only notice. |
+| Q3 | owner/org_admin seeing drafts (PM-DR-oa) | Follow §3.2: 403 on queue and detail after ADR 0008. Until then, view-only notice. |
 | Q4 | Real-farm approval while PLACEHOLDER constants are present | Require the acknowledgement checkbox (§4.4) in S2; block outright once the human agronomist has validated pack v1 constants. CLAUDE.md rule 9 + webapp-ui.md "check or replace them before approving". |
 | Q5 | Due-date rule (`REVIEW_DUE_DAYS`, business vs calendar days) and whether "priority" (A1 says "due date/priority") is needed | Due date only in S2; priority adds a second ordering nobody will maintain for 5–10 farms. |
 | Q6 | App time zone for "Overdue"/"Due today" | `APP_TIMEZONE` env var, `America/Toronto` for the Ontario pilot; no per-org zone yet. |

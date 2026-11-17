@@ -57,7 +57,7 @@ export function PilotForm({ t, privacyHref, locale }: { t: Labels; privacyHref: 
   // On step change, focus the first field of the new step so keyboard users don't land on <body>.
   const stepped = useRef(false);
   useEffect(() => {
-    if (stepped.current) formRef.current?.querySelector<HTMLElement>(`[data-step="${step}"] input, [data-step="${step}"] textarea`)?.focus();
+    if (stepped.current) formRef.current?.querySelector<HTMLElement>(`[data-step="${step}"] input`)?.focus();
     stepped.current = true;
   }, [step]);
 
@@ -127,10 +127,6 @@ export function PilotForm({ t, privacyHref, locale }: { t: Labels; privacyHref: 
       <div data-step="1" className={step === 1 ? "grid animate-pop gap-5 sm:grid-cols-2" : "hidden"}>
         <Field id="farmSize" label={t.farmSize} hint={t.farmSizeHint} requiredLabel={t.required} />
         <Field id="crop" label={t.crop} requiredLabel={t.required} />
-        <div className="flex flex-col gap-1.5 sm:col-span-2">
-          <label htmlFor="notes" className="text-sm font-semibold text-ink">{t.notes}</label>
-          <textarea id="notes" name="notes" rows={3} className={inputClass} />
-        </div>
       </div>
 
       <div data-step="2" className={step === 2 ? "animate-pop" : "hidden"}>

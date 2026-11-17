@@ -16,7 +16,7 @@
     "language": "Idioma"
   },
   "hero": {
-    "eyebrow": "Temporada piloto 2027 · Solicitudes abiertas",
+    "eyebrow": "Piloto de trigo 2027 · Solicitudes abiertas",
     "title": "Un plan más claro para cada parcela.",
     "lead": "CloverProof reúne sus análisis de suelo, el historial de la parcela y sus objetivos de cultivo en un solo plan de fertilización — qué aplicar, cuánto, cuándo y por qué — revisado por un agrónomo antes de llegar a usted.",
     "ctaPrimary": "Solicitar un plan piloto",
@@ -153,20 +153,36 @@
   },
   "pilot": {
     "title": "Únase al piloto 2027",
-    "intro": "Trabajamos con un número reducido de fincas para la próxima temporada. Cuéntenos sobre su explotación y nos pondremos en contacto con usted.",
+    "intro": "Buscamos un número reducido de fincas de trigo para la temporada de febrero–abril de 2027. Cuéntenos sobre su explotación y nos pondremos en contacto con usted.",
+    "giveTitle": "Qué le pediremos",
+    "give": [
+      "El nombre de su parcela y su superficie aproximada",
+      "Qué se cultivó en ella la temporada pasada",
+      "Su rendimiento objetivo para esta temporada",
+      "Su informe de análisis de suelo de laboratorio, si lo tiene — registramos su método, profundidad y fecha",
+      "Una breve llamada para revisarlo juntos"
+    ],
+    "getTitle": "Qué obtiene",
+    "get": [
+      "Un plan de fertilización para su parcela de trigo: qué, cuánto, cuándo y por qué",
+      "Aprobado por un agrónomo humano antes de llegarle",
+      "Un documento de prueba que registra los datos de partida, el razonamiento y quién lo revisó",
+      "Sin análisis de suelo, el plan cubre solo el nitrógeno, y le recomendaremos un análisis para el fósforo y el potasio"
+    ],
+    "control": "Usted tiene el control: usted decide qué aplicar.",
+    "terms": "Le explicaremos las condiciones del piloto en la llamada.",
     "name": "Nombre completo",
     "email": "Correo electrónico",
     "country": "País",
     "farmSize": "Tamaño de la finca",
     "farmSizeHint": "Aproximado, con unidades (ha o acres)",
     "crop": "Cultivo principal",
-    "notes": "Algo que debamos saber (opcional)",
     "consent": "Acepto que CloverProof almacene estos datos y se ponga en contacto conmigo sobre el piloto. Puedo solicitar que se eliminen en cualquier momento.",
     "privacyLink": "Aviso de privacidad",
     "submit": "Solicitar un plan piloto",
     "submitting": "Enviando…",
     "required": "Obligatorio",
-    "success": "Gracias. Hemos recibido su solicitud y nos pondremos en contacto con usted.",
+    "success": "Gracias. Le responderemos por correo electrónico para concertar una breve llamada. Si tiene un informe de análisis de suelo, téngalo a mano.",
     "notConnected": "Las solicitudes del piloto aún no están conectadas. Vuelva a consultar pronto.",
     "error": "Algo salió mal y su solicitud no se guardó. Inténtelo de nuevo en un momento.",
     "invalid": "Complete los campos obligatorios y acepte la declaración de consentimiento.",
@@ -179,7 +195,7 @@
     "back": "Atrás",
     "stepOf": "Paso {current} de {total}",
     "successTitle": "Ya está en la lista.",
-    "successBody": "Gracias. Hemos recibido su solicitud y nos pondremos en contacto con usted.",
+    "successBody": "Gracias. Le responderemos por correo electrónico para concertar una breve llamada. Si tiene un informe de análisis de suelo, téngalo a mano.",
     "imageAlt": "Una muestra de suelo, una bolsa de papel para muestras y una libreta de campo sobre una mesa de madera al borde de un campo de trigo"
   },
   "faq": {
@@ -199,15 +215,31 @@
       },
       {
         "q": "¿Quién revisa las recomendaciones?",
-        "a": "Cada plan lo revisa un agrónomo antes de que usted lo vea. Si cambia una cifra, el motivo queda registrado."
+        "a": "Cada plan lo aprueba un agrónomo humano antes de que usted lo vea. Las comprobaciones automáticas nunca sustituyen esa revisión. Si el agrónomo cambia una cifra, el motivo queda registrado."
       },
       {
         "q": "¿Para qué sirve el documento de prueba?",
         "a": "Es su registro de qué se recomendó, con qué datos y por qué. No es una certificación y ningún tercero lo ha respaldado."
       },
       {
+        "q": "¿El piloto es solo para trigo?",
+        "a": "En 2027, sí. Tenemos previsto añadir otros cultivos más adelante."
+      },
+      {
+        "q": "¿El piloto tiene algún coste?",
+        "a": "Le explicaremos las condiciones del piloto en la llamada, antes de que comparta ningún dato de sus parcelas."
+      },
+      {
+        "q": "¿Qué pasa con los datos de mi explotación?",
+        "a": "Los usamos únicamente para elaborar y revisar su plan. No los vendemos ni los compartimos con fines de marketing. Encontrará los detalles en el aviso de privacidad."
+      },
+      {
+        "q": "¿Puedo dejar el piloto?",
+        "a": "Sí, en cualquier momento. Pídanoslo y eliminaremos sus datos de contacto."
+      },
+      {
         "q": "¿Dónde está disponible el piloto?",
-        "a": "Empezamos con un número reducido de fincas. La disponibilidad depende de la ubicación, el cultivo y la adecuación — solicite un plan y le responderemos con honestidad."
+        "a": "Empezamos con un número reducido de fincas de trigo. La disponibilidad depende de la ubicación y la adecuación — solicite un plan y le responderemos con honestidad."
       }
     ]
   },
@@ -225,16 +257,36 @@
     "updated": "Última actualización: noviembre de 2026",
     "sections": [
       {
+        "h": "Quién puede participar en el piloto",
+        "p": "El piloto 2027 está abierto a fincas de Ontario, Canadá. Puede enviar una solicitud desde cualquier lugar, pero solo podemos incluir fincas de Ontario."
+      },
+      {
         "h": "Qué recopilamos",
-        "p": "Cuando solicita un plan piloto, recopilamos los datos que introduce: nombre, correo electrónico, país, tamaño aproximado de la finca, cultivo principal y cualquier nota."
+        "p": "Cuando solicita un plan piloto, recopilamos lo que introduce: nombre, correo electrónico, país, tamaño aproximado de la finca, cultivo principal, además del idioma que utilizó y el texto exacto del consentimiento que aceptó, con la hora. Si se une al piloto, también recopilamos información sobre la finca, las parcelas y los análisis de suelo, así como los planes que elaboramos para usted."
       },
       {
         "h": "Por qué lo recopilamos",
-        "p": "Únicamente para evaluar si podemos incluir su finca en el piloto y para ponernos en contacto con usted al respecto. No vendemos ni compartimos sus datos con fines de marketing."
+        "p": "Para decidir si podemos incluir su finca en el piloto, para ponernos en contacto con usted al respecto y, si se une, para elaborar y registrar sus planes de fertilización. No enviamos boletines de noticias por correo electrónico."
+      },
+      {
+        "h": "Medición del sitio web",
+        "p": "Medimos nosotros mismos cómo se usa este sitio web, sin ninguna empresa de analítica y sin cookies ni otro almacenamiento en su dispositivo. Solo lo hacemos en las versiones en inglés, francés, español, italiano y turco del sitio; las versiones en finés, búlgaro y árabe no registran nada. En cada carga de página registramos la página, el idioma y la hora, los botones en los que hace clic, sus respuestas a la revisión de parcela y el resultado, el paso del formulario al que llega y si el envío funcionó, la etiqueta de campaña del enlace que siguió, el nombre del sitio web que le remitió a nosotros (no la dirección completa) y si su pantalla tiene tamaño de móvil o de escritorio. Un número aleatorio que se guarda solo en la memoria de su navegador agrupa los clics de una misma visualización de página y desaparece cuando sale. No registramos su nombre, su correo electrónico ni nada de lo que escribe, no almacenamos su dirección IP y no vinculamos las visitas entre sí ni con usted. Los registros detallados se conservan 90 días y después se convierten en totales diarios que se conservan hasta 25 meses. Si su navegador envía Global Privacy Control o Do Not Track, no registramos nada. Si envía una solicitud del piloto, la etiqueta de campaña del enlace, el sitio web de procedencia y el resultado de su revisión de parcela se almacenan con su solicitud, para que sepamos cómo nos encontró."
+      },
+      {
+        "h": "Cómo se revisan los planes",
+        "p": "Nuestro software propone cada plan. Un sistema de IA puede ayudar a comprobarlo. El sistema de IA nunca recibe su nombre, sus datos de contacto, su dirección ni los límites exactos de sus parcelas; solo ve datos del caso desidentificados. Después, una persona identificada con su nombre aprueba, modifica o rechaza cada cifra antes de que usted la vea: nuestro agrónomo humano o un administrador de CloverProof que no es agrónomo. Su plan y su PDF de prueba indican cuál de los dos lo aprobó y su nombre; nunca llamamos revisión del agrónomo a la aprobación de un administrador. Una comprobación por IA por sí sola nunca aprueba un plan. Usted toma la decisión final sobre qué aplicar."
+      },
+      {
+        "h": "Mejorar el motor de cálculo",
+        "p": "Si usted lo acepta, conservamos una copia desidentificada de los resultados del piloto (la propuesta del motor frente a las cifras finales del agrónomo humano) para que el motor sea más preciso. Solo usamos planes aprobados por nuestro agrónomo humano, no planes aprobados por un administrador. Se eliminan los nombres, los datos de contacto, los nombres de fincas y parcelas y las ubicaciones exactas. Puede decir que no y participar igualmente."
+      },
+      {
+        "h": "Quién lo ve",
+        "p": "Solo los miembros del equipo de CloverProof que lo necesitan, nuestro agrónomo humano, nuestro proveedor de alojamiento canadiense, que almacenará los datos del piloto en Canadá, y Railway, una empresa estadounidense que aloja nuestro sitio web y, hasta que el alojamiento canadiense esté operativo, almacena en los Estados Unidos las solicitudes enviadas a través del sitio web y los datos de medición del sitio web, como nuestros proveedores de servicios. Ningún proveedor de IA recibe información que le identifique a usted o a su finca. No vendemos sus datos y no utilizamos rastreadores publicitarios ni ninguna empresa de analítica."
       },
       {
         "h": "Dónde se almacena",
-        "p": "Sus datos se almacenan en nuestro proveedor de base de datos, con acceso limitado al equipo de CloverProof."
+        "p": "Los datos de las fincas del piloto (contactos, fincas, parcelas, análisis de suelo, planes, revisiones y PDF de prueba) se almacenarán en Canadá. No recopilamos datos reales del piloto en nuestros sistemas alojados hasta que ese alojamiento canadiense esté operativo. Hasta que el alojamiento canadiense esté operativo, las solicitudes enviadas a través del sitio web y los datos de medición del sitio web los almacena en los Estados Unidos nuestro proveedor de alojamiento web, Railway, una empresa estadounidense, y allí las autoridades estadounidenses podrían acceder a ellos en virtud de la legislación estadounidense. Cuando el alojamiento canadiense esté operativo, estos datos se trasladarán a Canadá y actualizaremos este aviso. Utilizamos contratos de tratamiento de datos para proteger su información."
       },
       {
         "h": "Cuánto tiempo lo conservamos",
@@ -242,7 +294,7 @@
       },
       {
         "h": "Sus derechos",
-        "p": "Puede solicitar ver, corregir o eliminar sus datos, y retirar su consentimiento en cualquier momento."
+        "p": "Puede solicitar ver, corregir o eliminar su información, preguntar cómo se obtuvo una cifra de su plan y quién la aprobó, y retirar su consentimiento en cualquier momento. Respondemos en un plazo de 30 días. Puede presentar una reclamación ante la Oficina del Comisionado de Privacidad de Canadá (priv.gc.ca) o, si se encuentra en la UE, ante su autoridad local de protección de datos."
       }
     ]
   },

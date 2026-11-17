@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="htmx-config" content='{"includeIndicatorStyles": false, "allowEval": false, "historyCacheSize": 0}'>
+  <title>{% block title %}CloverProof{% endblock %} · CloverProof</title>
+  <link rel="preload" href="/static/fonts/source-sans-3-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/source-serif-4-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/vendor/htmx-2.0.11.min.js" defer></script>
+</head>
+<body{% if csrf_token %} hx-headers='{{ {"X-CSRF-Token": csrf_token} | tojson }}'{% endif %}>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="brand-line">
+      <a class="brand" href="/">
+        <svg viewBox="0 0 40 44" aria-hidden="true" class="mark">
+          <g class="mark-leaf"><circle cx="20" cy="10" r="9"/><circle cx="30" cy="20" r="9"/><circle cx="20" cy="30" r="9"/><circle cx="10" cy="20" r="9"/></g>
+          <circle cx="20" cy="20" r="3.5" class="mark-eye"/>
+          <path d="M20 33c1 7 6 9 10 10" class="mark-stem"/>
+        </svg>
+        <span>CloverProof</span>
+      </a>
+      {% if user and org_context %}<span class="org-name">{{ org_context.org.name }}</span>{% endif %}
+    </div>
+    {% if user %}
+    <details class="user-menu">
+      <summary>{{ user.display_name }}{% if org_context and org_context.roles %} · {{ org_context.roles | map("capitalize") | join(", ") }}{% endif %}</summary>
+      <div class="menu">
+        <a href="/farmers">Farmers</a>
+        <a href="/account">My account</a>
+        {% if org_context and "org_admin" in org_context.roles %}<a href="/admin/users">Users</a>{% endif %}
+        {% if org_context and org_context.organisations | length > 1 %}<a href="/orgs/choose">Switch organisation</a>{% endif %}
+        <form method="post" action="/logout">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="button text" type="submit">Sign out</button>
+        </form>
+      </div>
+    </details>
+    {% endif %}
+  </header>
+  {% block breadcrumb %}{% endblock %}
+  <main id="main" class="{% block main_class %}{% endblock %}">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

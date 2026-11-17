@@ -43,5 +43,5 @@ known-first-party = ["cloverproof_engine", "cloverproof_app", "data_sources"]
 quote-style = "double"
 
 [tool.pytest.ini_options]
-testpaths = ["engine/tests", "app/tests", "data_sources/tests"]
+testpaths = ["engine/tests", "app/tests", "data_sources/data_sources_tests"]
 addopts = "-ra --strict-markers --import-mode=importlib"

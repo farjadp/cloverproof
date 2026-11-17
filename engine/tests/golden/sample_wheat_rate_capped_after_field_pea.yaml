@@ -7,7 +7,7 @@
 # unbounded 210 / 0.8 = 262.5 -> cut to max_rate 200 kg N/ha;
 # total 200 x 12.5 = 2500 kg N; splits 0.4 / 0.6.
 id: sample_wheat_rate_capped_after_field_pea
-status: SAMPLE  # not agronomist-approved
+kind: sample  # not agronomist-approved; never counts toward the agreement gate
 description: High target yield after field pea, no soil test; rate hits the pack upper limit.
 pack:
   id: placeholder

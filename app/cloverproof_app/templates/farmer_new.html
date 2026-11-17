@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros.html" import error, invalid, breadcrumb %}
+{% block title %}Add farmer{% endblock %}
+{% block breadcrumb %}{{ breadcrumb([("Farmers", "/farmers"), ("Add farmer", None)]) }}{% endblock %}
+{% block content %}
+<h1>Add farmer</h1>
+<form class="form" method="post" action="/farmers" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <div class="field">
+    <label for="display_name">Farmer name</label>
+    <input id="display_name" name="display_name" type="text" required maxlength="200" value="{{ values.display_name }}" autofocus{{ invalid(errors, "display_name") }}>
+    {{ error(errors, "display_name") }}
+  </div>
+  <div class="field">
+    <label for="notes">Notes (optional)</label>
+    <textarea id="notes" name="notes" rows="3" maxlength="4000">{{ values.notes }}</textarea>
+  </div>
+  <div class="actions">
+    <button class="button" type="submit">Add farmer</button>
+    <a class="button text" href="/farmers">Cancel</a>
+  </div>
+</form>
+{% endblock %}

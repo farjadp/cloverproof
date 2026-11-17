@@ -16,7 +16,7 @@
     "language": "Dil"
   },
   "hero": {
-    "eyebrow": "2027 pilot sezonu · Başvurular açık",
+    "eyebrow": "2027 buğday pilot programı · Başvurular açık",
     "title": "Her tarla için daha net bir plan.",
     "lead": "CloverProof toprak analizlerinizi, tarla geçmişinizi ve ürün hedeflerinizi tek bir gübreleme planında birleştirir — ne uygulanacağı, ne kadar, ne zaman ve neden — ve plan size ulaşmadan önce bir ziraat mühendisi tarafından kontrol edilir.",
     "ctaPrimary": "Pilot planı isteyin",
@@ -153,20 +153,36 @@
   },
   "pilot": {
     "title": "2027 pilot programına katılın",
-    "intro": "Önümüzdeki sezon için az sayıda çiftlikle çalışıyoruz. Bize işletmenizden bahsedin, size geri dönelim.",
+    "intro": "Şubat–Nisan 2027 sezonu için az sayıda buğday çiftliği arıyoruz. Bize işletmenizden bahsedin, size geri dönelim.",
+    "giveTitle": "Sizden isteyeceklerimiz",
+    "give": [
+      "Tarlanızın adı ve yaklaşık alanı",
+      "Geçen sezon tarlada yetiştirilen ürün",
+      "Bu sezon için hedef veriminiz",
+      "Varsa laboratuvar toprak analizi raporunuz — yöntemini, derinliğini ve tarihini kaydediyoruz",
+      "Bunları birlikte gözden geçirmek için kısa bir görüşme"
+    ],
+    "getTitle": "Neler alırsınız",
+    "get": [
+      "Buğday tarlanız için bir gübreleme planı: ne, ne kadar, ne zaman ve neden",
+      "Size ulaşmadan önce bir ziraat mühendisi onaylar — bir insan, yazılım değil",
+      "Girdileri, gerekçeyi ve kimin incelediğini kaydeden bir kanıt belgesi",
+      "Toprak analizi yoksa plan yalnızca azotu kapsar ve fosfor ile potasyum için analiz yaptırmanızı öneririz"
+    ],
+    "control": "Kontrol sizde kalır: neyi uygulayacağınıza siz karar verirsiniz.",
+    "terms": "Pilot program koşullarını görüşmede açıklayacağız.",
     "name": "Ad soyad",
     "email": "E-posta",
     "country": "Ülke",
     "farmSize": "Çiftlik büyüklüğü",
     "farmSizeHint": "Yaklaşık, birimiyle (ha veya akre)",
     "crop": "Ana ürün",
-    "notes": "Bilmemiz gereken bir şey (isteğe bağlı)",
     "consent": "CloverProof'un bu bilgileri saklamasını ve pilot program hakkında benimle iletişime geçmesini kabul ediyorum. Bilgilerin silinmesini istediğim zaman talep edebilirim.",
     "privacyLink": "Gizlilik bildirimi",
     "submit": "Pilot planı isteyin",
     "submitting": "Gönderiliyor…",
     "required": "Zorunlu",
-    "success": "Teşekkürler. Talebinizi aldık, sizinle iletişime geçeceğiz.",
+    "success": "Teşekkürler. Kısa bir görüşme ayarlamak için size e-postayla dönüş yapacağız. Toprak analizi raporunuz varsa yanınızda bulundurun.",
     "notConnected": "Pilot talepleri henüz bağlı değil. Lütfen kısa süre sonra tekrar kontrol edin.",
     "error": "Bir sorun oluştu ve talebiniz kaydedilmedi. Lütfen biraz sonra tekrar deneyin.",
     "invalid": "Lütfen zorunlu alanları doldurun ve onay beyanını kabul edin.",
@@ -179,7 +195,7 @@
     "back": "Geri",
     "stepOf": "Adım {current} / {total}",
     "successTitle": "Listedesiniz.",
-    "successBody": "Teşekkürler. Talebinizi aldık, sizinle iletişime geçeceğiz.",
+    "successBody": "Teşekkürler. Kısa bir görüşme ayarlamak için size e-postayla dönüş yapacağız. Toprak analizi raporunuz varsa yanınızda bulundurun.",
     "imageAlt": "Bir buğday tarlasının kenarında, ahşap bir masa üzerinde toprak karotu, kâğıt numune torbası ve tarla defteri"
   },
   "faq": {
@@ -199,15 +215,31 @@
       },
       {
         "q": "Önerileri kim kontrol ediyor?",
-        "a": "Her plan, siz görmeden önce bir ziraat mühendisi tarafından incelenir. Bir rakamı değiştirirse gerekçesi kaydedilir."
+        "a": "Her plan, siz görmeden önce bir ziraat mühendisi tarafından bizzat onaylanır. Otomatik kontroller bu incelemenin yerini asla tutmaz. Ziraat mühendisi bir rakamı değiştirirse gerekçesi kaydedilir."
       },
       {
         "q": "Kanıt belgesi ne işe yarar?",
         "a": "Neyin, hangi girdilerle ve neden önerildiğine dair sizin kaydınızdır. Bir sertifika değildir ve hiçbir üçüncü taraf onu onaylamamıştır."
       },
       {
+        "q": "Pilot program yalnızca buğday için mi?",
+        "a": "2027'de evet. İleride başka ürünleri de eklemeyi planlıyoruz."
+      },
+      {
+        "q": "Pilot programın bir ücreti var mı?",
+        "a": "Pilot program koşullarını, herhangi bir tarla verisi paylaşmanızdan önce görüşmede açıklayacağız."
+      },
+      {
+        "q": "Çiftlik verilerime ne oluyor?",
+        "a": "Verilerinizi yalnızca planınızı hazırlamak ve incelemek için kullanırız. Satmayız ve pazarlama amacıyla paylaşmayız. Ayrıntılar gizlilik bildiriminde yer alıyor."
+      },
+      {
+        "q": "Pilot programdan ayrılabilir miyim?",
+        "a": "Evet, istediğiniz zaman. Bize bildirin, iletişim bilgilerinizi silelim."
+      },
+      {
         "q": "Pilot program nerede geçerli?",
-        "a": "Az sayıda çiftlikle başlıyoruz. Katılım konuma, ürüne ve uygunluğa bağlıdır — bir plan isteyin, size dürüstçe söyleyelim."
+        "a": "Az sayıda buğday çiftliğiyle başlıyoruz. Katılım konuma ve uygunluğa bağlıdır — bir plan isteyin, size dürüstçe söyleyelim."
       }
     ]
   },
@@ -225,16 +257,36 @@
     "updated": "Son güncelleme: Kasım 2026",
     "sections": [
       {
+        "h": "Pilot programa kimler katılabilir",
+        "p": "2027 pilot programı Ontario, Kanada'daki çiftliklere açıktır. Talebinizi her yerden gönderebilirsiniz, ancak yalnızca Ontario'daki çiftlikleri dahil edebiliriz."
+      },
+      {
         "h": "Ne topluyoruz",
-        "p": "Bir pilot planı istediğinizde girdiğiniz bilgileri topluyoruz: ad, e-posta, ülke, yaklaşık çiftlik büyüklüğü, ana ürün ve varsa notlarınız."
+        "p": "Bir pilot planı istediğinizde girdiğiniz bilgileri topluyoruz: ad, e-posta, ülke, yaklaşık çiftlik büyüklüğü, ana ürün; ayrıca kullandığınız dili ve kabul ettiğiniz onay metninin tam ifadesini, zamanıyla birlikte. Pilot programa katılırsanız çiftlik, tarla ve toprak analizi bilgilerini ve sizin için hazırladığımız planları da topluyoruz."
       },
       {
         "h": "Neden topluyoruz",
-        "p": "Yalnızca çiftliğinizi pilot programa dahil edip edemeyeceğimizi değerlendirmek ve bu konuda sizinle iletişime geçmek için. Bilgilerinizi pazarlama amacıyla satmıyor veya paylaşmıyoruz."
+        "p": "Çiftliğinizi pilot programa dahil edip edemeyeceğimize karar vermek, bu konuda sizinle iletişime geçmek ve katılırsanız gübreleme planlarınızı hazırlayıp kaydetmek için. Haber bülteni e-postaları göndermiyoruz."
+      },
+      {
+        "h": "Web sitesi ölçümü",
+        "p": "Bu web sitesinin nasıl kullanıldığını, herhangi bir analiz şirketi olmadan ve cihazınızda çerez veya başka bir depolama olmadan kendimiz sayıyoruz. Bunu yalnızca sitenin İngilizce, Fransızca, İspanyolca, İtalyanca ve Türkçe sürümlerinde yapıyoruz; Fince, Bulgarca ve Arapça sürümler hiçbir şey kaydetmez. Her sayfa yüklemesinde sayfayı, dili ve zamanı, tıkladığınız düğmeleri, tarla kontrolü yanıtlarınızı ve sonucunu, formda ulaştığınız adımı ve gönderimin başarılı olup olmadığını, izlediğiniz bağlantının kampanya etiketini, sizi yönlendiren web sitesinin adını (tam adresini değil) ve ekranınızın mobil boyutta mı yoksa masaüstü boyutunda mı olduğunu kaydediyoruz. Yalnızca tarayıcınızın belleğinde tutulan rastgele bir sayı, tek bir sayfa görüntülemesine ait tıklamaları gruplar ve siteden ayrıldığınızda kaybolur. Adınızı, e-postanızı veya yazdığınız hiçbir şeyi kaydetmiyoruz, IP adresinizi saklamıyoruz ve ziyaretleri birbirine ya da size bağlamıyoruz. Ayrıntılı kayıtlar 90 gün saklanır, ardından en fazla 25 ay saklanan günlük toplamlara dönüştürülür. Tarayıcınız Global Privacy Control veya Do Not Track gönderiyorsa hiçbir şey kaydetmiyoruz. Bir pilot talebi gönderirseniz, bağlantının kampanya etiketi, yönlendiren web sitesi ve tarla kontrolü sonucunuz talebinizle birlikte saklanır; böylece bizi nasıl bulduğunuzu biliriz."
+      },
+      {
+        "h": "Planlar nasıl inceleniyor",
+        "p": "Her planı yazılımımız önerir. Bir yapay zekâ sistemi planın kontrol edilmesine yardımcı olabilir. Yapay zekâ sistemi adınızı, iletişim bilgilerinizi, adresinizi veya tarlalarınızın kesin sınırlarını hiçbir zaman almaz; yalnızca kimliksizleştirilmiş vaka verilerini görür. Ardından adı belirtilen bir kişi, siz görmeden önce her sayıyı onaylar, değiştirir veya reddeder: ya insan ziraat mühendisimiz ya da ziraat mühendisi olmayan bir CloverProof yöneticisi. Planınızda ve planınıza ait kanıt PDF dosyasında, ikisinden hangisinin onayladığı ve bu kişinin adı gösterilir; bir yönetici onayını asla ziraat mühendisi incelemesi olarak adlandırmayız. Tek başına bir yapay zekâ kontrolü hiçbir zaman bir planı onaylamaz. Neyi uygulayacağınıza ilişkin son kararı siz verirsiniz."
+      },
+      {
+        "h": "Hesaplama motorunu geliştirme",
+        "p": "Kabul ederseniz, motoru daha doğru hâle getirmek için pilot sonuçlarının kimliksizleştirilmiş bir kopyasını (motorun önerisi ile insan ziraat mühendisinin nihai sayılarının karşılaştırması) saklıyoruz. Yalnızca insan ziraat mühendisimizin onayladığı planları kullanıyoruz, bir yöneticinin onayladığı planları değil. Adlar, iletişim bilgileri, çiftlik ve tarla adları ve kesin konumlar çıkarılır. Hayır diyebilir ve yine de katılabilirsiniz."
+      },
+      {
+        "h": "Kimler görüyor",
+        "p": "Yalnızca bu bilgilere ihtiyaç duyan CloverProof ekip üyeleri, insan ziraat mühendisimiz ve hizmet sağlayıcılarımız olarak, pilot verilerini Kanada'da saklayacak olan Kanadalı barındırma sağlayıcımız ile web sitemizi barındıran ve Kanada'daki barındırma devreye girene kadar web sitesi taleplerini ve web sitesi ölçüm verilerini Amerika Birleşik Devletleri'nde saklayan ABD merkezli şirket Railway. Hiçbir yapay zekâ sağlayıcısı sizi veya çiftliğinizi tanımlayan bilgi almaz. Bilgilerinizi satmıyoruz ve reklam izleyicileri ya da herhangi bir analiz şirketi kullanmıyoruz."
       },
       {
         "h": "Nerede saklanıyor",
-        "p": "Bilgileriniz veritabanı sağlayıcımızda saklanır ve erişim CloverProof ekibiyle sınırlıdır."
+        "p": "Pilot çiftlik verileri (iletişim bilgileri, çiftlikler, tarlalar, toprak analizleri, planlar, incelemeler ve kanıt PDF'leri) Kanada'da saklanacaktır. Bu Kanada barındırması devreye girene kadar gerçek pilot verilerini barındırılan sistemlerimizde toplamıyoruz. Kanada'daki barındırma devreye girene kadar web sitesi talepleri ve web sitesi ölçüm verileri, web sitesi barındırma sağlayıcımız olan ABD merkezli şirket Railway tarafından Amerika Birleşik Devletleri'nde saklanır; orada ABD makamlarının ABD yasaları uyarınca bunlara erişmesi mümkün olabilir. Kanada'daki barındırma devreye girdiğinde bu veriler Kanada'ya taşınacak ve bu bildirimi güncelleyeceğiz. Bilgilerinizi korumak için veri işleme sözleşmeleri kullanıyoruz."
       },
       {
         "h": "Ne kadar süre saklıyoruz",
@@ -242,7 +294,7 @@
       },
       {
         "h": "Haklarınız",
-        "p": "Verilerinizi görmeyi, düzeltmeyi veya silmeyi talep edebilir ve onayınızı istediğiniz zaman geri çekebilirsiniz."
+        "p": "Bilgilerinizi görmeyi, düzeltmeyi veya silmeyi talep edebilir, planınızdaki bir sayının nasıl üretildiğini ve kimin onayladığını sorabilir ve onayınızı istediğiniz zaman geri çekebilirsiniz. 30 gün içinde yanıt veriyoruz. Kanada Gizlilik Komiserliği Ofisi'ne (priv.gc.ca) veya AB'deyseniz yerel veri koruma otoritenize şikâyette bulunabilirsiniz."
       }
     ]
   },

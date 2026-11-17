@@ -33,9 +33,9 @@ IDs: S01-G, S01-6, AR-01, AR-04, AR-20, AR-23, AR-24, AR-26, AR-30, EV-01, PM-OM
 
 ### 1B. Data model gap + RLS (cp-database; system-architect for the ADR) — S1 → S2
 IDs: REC-R1, REC-D1, REC-R2, REC-D4 (DB part), S01-3, S01-4, S02-2, AR-08, AR-10, AR-11, HC-08, RO-02, RO-03, RO-06, RO-07, U3a, U5, DM-C3, DM-C4, DM-C5, DM-01, DM-02, DM-03, DM-04, DM-05, DM-06, DM-07, DM-08, DM-09, DM-10, DM-11 (with cp-engine), DM-13, DM-14, DM-15, DM-17 (with app), DM-19, DM-24 (with 1C), DM-27, DM-R1, DM-R2, DM-R4, DM-R5, SC-02 (with ciso), SC-06, DD-02, DD-03, PM-GR, PM-FF-oa, PM-FF-ag, PM-FF-sa, PM-ST-oa, PM-ST-ag, PM-ST-sa, PM-RQ-sa, PM-DR-fa, PM-DR-ad, PM-DR-oa, PM-DR-sa, PM-AP-ag, PM-AP-sa, PM-VP-oa, PM-VP-sa; S3: DM-12, XD-08, HC-03 (data-source versions).
-- Order: (1) `docs/engineering/schema-gap-analysis.md` — §6 vs mig 0001–0010, one line per DM row, with the proposals for RK-X4 (status as a derived view), RK-X5 (season vs crop_plan), RK-X7 (grant history), RK-X11 (role mapping, superadmin cannot approve unless human agronomist) → CPO decision by **Nov 27**. (2) ADR 0006 "Postgres RLS on Railway" (SET LOCAL `app.user_id`/`app.org_id`/`app.platform_role`, non-bypass `cp_app`, psycopg kept — AR-10) → ciso review. (3) Forward-only migrations 0011+ (never edit 0001–0010): identity fields + platform role, `access_grant`, `recommendation_line` (replaces the P/K-columns proposal, R2), review `started_at`/`finished_at`, proof `kind`/`template_version`, `audit_event` + triggers, `created_by`/`updated_at`/`deleted_at` gaps, `ai_reviewed` + human-agronomist flag (D4), `fertilizer_product`. (4) RLS v0 on every org-owned table + derived recommendation state.
-- Exit (S2, Dec 11): gap analysis approved; ADR 0006 accepted; migrations apply on local PostGIS and (once AR-03 exists) on staging; every new table has an RLS test with an allowed and a denied user; unapproved recommendations invisible to non-agronomists; AI-only reviewer cannot approve (test).
-- Tests: `DBT`, `RLS` (two users per policy), `SR` on ADR 0006.
+- Order: (1) `docs/engineering/schema-gap-analysis.md` — §6 vs mig 0001–0010, one line per DM row, with the proposals for RK-X4 (status as a derived view), RK-X5 (season vs crop_plan), RK-X7 (grant history), RK-X11 (role mapping, superadmin cannot approve unless human agronomist) → CPO decision by **Nov 27**. (2) ADR 0008 "Postgres RLS on Railway" (SET LOCAL `app.user_id`/`app.org_id`/`app.platform_role`, non-bypass `cp_app`, psycopg kept — AR-10) → ciso review. (3) Forward-only migrations 0011+ (never edit 0001–0010): identity fields + platform role, `access_grant`, `recommendation_line` (replaces the P/K-columns proposal, R2), review `started_at`/`finished_at`, proof `kind`/`template_version`, `audit_event` + triggers, `created_by`/`updated_at`/`deleted_at` gaps, `ai_reviewed` + human-agronomist flag (D4), `fertilizer_product`. (4) RLS v0 on every org-owned table + derived recommendation state.
+- Exit (S2, Dec 11): gap analysis approved; ADR 0008 accepted; migrations apply on local PostGIS and (once AR-03 exists) on staging; every new table has an RLS test with an allowed and a denied user; unapproved recommendations invisible to non-agronomists; AI-only reviewer cannot approve (test).
+- Tests: `DBT`, `RLS` (two users per policy), `SR` on ADR 0008.
 
 ### 1C. Engine + pack (cp-engine + cp-agronomist research, `ai_reviewed` only + cp-agronomy-guard) — S2 → S3
 IDs: S02-1, S02-4 (engine matching; catalog table in 1B), S02-5, EN-05, EN-06, HC-07, AR-31, A4 (with 1B, 1D), DM-11 (enum labels), S03-1, S03-2, S03-3, S03-DoD (with QA), U7, XD-02, AR-19, RK-04, RK-06, HC-06.
@@ -79,7 +79,7 @@ GL-06..GL-09 held (no hardware, VRA, carbon, price/commission), DD-01, RK-06, HC
 
 ## 2. `ciso` — Security
 IDs: REC-R8, NB-SEC-01, SC-11, NB-SEC-02, NB-SEC-04; with cto: SC-02, SC-03, REC-D1, XD-07, DD-06.
-- Exit S2: S2 security branch pushed + PR (release-manager); #7 re-reviewed after fixes; least-privilege website DB role spec for the DB switch; ADR 0006 RLS reviewed (bypass paths, `SET LOCAL` leakage across pooled connections, superadmin, AI-agronomist account).
+- Exit S2: S2 security branch pushed + PR (release-manager); #7 re-reviewed after fixes; least-privilege website DB role spec for the DB switch; ADR 0008 RLS reviewed (bypass paths, `SET LOCAL` leakage across pooled connections, superadmin, AI-agronomist account).
 - Exit S3: RLS test suite reviewed; residency + Railway DPA recommendation to FI (with coo); backup/restore test plan for S5.
 - Tests: `SR`, CI security jobs green on `main`.
 
@@ -108,7 +108,7 @@ IDs: NB-STR-01, RK-08.
 
 ## 7. `head-of-mobile` — Mobile
 IDs: none open in S1–S3 (NB-MOB-01 held: no build until D2 schedule).
-- Optional, read-only: comment on AC-02 (API auth for a native client) when ADR 0006 is drafted. First real work S11 (NB-MOB-02).
+- Optional, read-only: comment on AC-02 (API auth for a native client) when ADR 0008 is drafted. First real work S11 (NB-MOB-02).
 
 ## 8. CPO product team (`product-manager` directly)
 IDs: REC-D3, REC-R5, REC-CL (draft for FI), DR-01, DR-02, DR-03, AR-34, NB-PRD-01, NB-PRD-02, RK-02 (with coo + head-of-data).

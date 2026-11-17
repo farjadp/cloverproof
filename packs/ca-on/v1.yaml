@@ -1,0 +1,327 @@
+# ca-on v1 — Ontario winter wheat (pastry / soft wheat). PLACEHOLDER PACK.
+#
+# NOT VALIDATED. Every constant is `status: PLACEHOLDER`, `source: null`, with a
+# TODO(agronomist). Where a value comes from a published document it carries a
+# `citation` (title, publisher, year, locator, URL, accessed date, basis). A
+# citation says where a number comes from; it is NOT a validation (CLAUDE.md
+# rule 9). `basis` says how:
+#   stated   = the document states this value ("read from" in explanations)
+#   derived  = computed by cp-engine from stated values (e.g. a table maximum)
+#   inferred = concluded by cp-engine from what the document says or omits
+# Values were entered by hand from the cited PDFs (OMAFRA Publication 811, PDF
+# edition 2022-10-13, chapters 4 and 9) and the ontario.ca soil-sampling page,
+# checked by cp-agronomist (ai_reviewed only) on 2026-11-17. Nothing here is from
+# memory. Where no citable value was found, the value is `null` and the engine
+# refuses rather than guesses.
+#
+# Scope: nitrogen for winter wheat grown as pastry (soft) wheat. Hard wheat is NOT
+# covered (Pub 811: optimum N 35-70 kg/ha higher than pastry wheat).
+# P and K: this pack only names the soil tests its guidance assumes (Olsen P,
+# ammonium acetate K, mg/kg, element form). P/K rates arrive in S3 and only with a
+# lab soil test (rule 3). Without a soil test the engine gives N only (max medium).
+#
+# Inputs this pack needs beyond the base input: `n_price` (N price per kg N, wheat
+# price per kg, currency, source, date; ratio = N price / wheat price, Pub 811
+# Table 4-14 footnote 1), `wheat_class`, `manure_applied`.
+# Not applied by this pack (Pub 811 Table 4-14 notes): +30 kg N/ha spring N with a T2 or
+# T3 fungicide and no lodging concern. TODO(agronomist): decide whether to model it.
+#
+# See docs/agronomist-todo.md items #12-#20.
+
+id: ca-on
+version: v1
+status: placeholder
+description: >-
+  Ontario winter wheat (pastry / soft wheat), nitrogen by expected yield and
+  N:wheat price ratio after OMAFRA Publication 811 Table 4-14. All constants
+  PLACEHOLDER until a human agronomist validates them. Not for a farmer.
+
+crops:
+  wheat:
+    # Where this pack's guidance applies. Inputs `wheat_class` and `manure_applied`
+    # are required; anything outside is refused (no number).
+    scope:
+      wheat_class:
+        # TODO(agronomist): hard wheat N adjustment (docs/agronomist-todo.md #20).
+        allowed: [pastry]
+        label: "pastry (soft) wheat only, Table 4-14"
+        refusal: >-
+          hard wheat is not covered. This pack covers soft red or soft white pastry
+          wheat only (Pub 811 Table 4-14). Pub 811 puts the optimum N rate for hard
+          winter wheat 35-70 kg/ha above pastry wheat; this pack has no hard-wheat
+          rate yet (TODO(agronomist)).
+        citation:
+          title: "Agronomy Guide for Field Crops (Publication 811), Chapter 4: Cereals (PDF edition 2022-10-13)"
+          publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+          year: 2022
+          locator: "Table 4-14, Nitrogen requirements for pastry wheat (most profitable N application), header, and section 'Hard Winter Wheats (Red and White)', p. 128"
+          url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-4-en-2022-10-13.pdf"
+          accessed_on: 2026-11-17
+          basis: stated
+          note: "'For soft red or soft white pastry wheat.' Hard wheat: 'The optimum rate of nitrogen is in the range of 35-70 kg/ha (30-60 lb/acre) greater than for pastry (soft) wheat.'"
+      manure:
+        # TODO(agronomist): manure N credit (docs/agronomist-todo.md #19).
+        refusal: >-
+          this pack has no manure N credit yet. Pub 811 Table 9-10 gives available N
+          per tonne by manure type and by fall or spring application, so a credit
+          needs manure type, rate and timing (or a manure analysis), which the engine
+          does not take yet (TODO(agronomist)). No N rate is given.
+        citation:
+          title: "Agronomy Guide for Field Crops (Publication 811), Chapter 9: Soil Fertility and Nutrient Use (PDF edition 2022-10-13)"
+          publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+          year: 2022
+          locator: "Table 9-10, Typical amounts of total and available nitrogen, phosphate and potash from various organic nutrient sources, pp. 228-229"
+          url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf"
+          accessed_on: 2026-11-17
+          basis: stated
+          note: "Table 4-13 footnote 1 (Chapter 4, p. 127) points to Table 9-10 where manure is applied."
+    nitrogen:
+      method: n_yield_price_table
+
+      # N rate (kg N/ha) by expected yield (columns) and N:wheat price ratio (rows).
+      # rates[i][j] = rate at price_ratio[i], yield_t_ha[j]. Entered by hand from
+      # the cited table (its lb/acre and bu/acre figures are not used).
+      # Between cells the engine interpolates bilinearly; outside the table it refuses.
+      rate_table:
+        # TODO(agronomist): validate the table for the pilot farms and give source.
+        unit: kg N/ha
+        status: PLACEHOLDER
+        source: null
+        citation:
+          title: "Agronomy Guide for Field Crops (Publication 811), Chapter 4: Cereals (PDF edition 2022-10-13)"
+          publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+          year: 2022
+          locator: "Table 4-14, Nitrogen requirements for pastry wheat (most profitable N application), p. 128"
+          url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-4-en-2022-10-13.pdf"
+          accessed_on: 2026-11-17
+          basis: stated
+          note: "All 20 cells, kg N/ha and t/ha. The 'Winter wheat' row of Table 4-13 says 'See Table 4-16' (Fall-applied nitrogen); the winter wheat rates are in Table 4-14, cited here by title."
+        yield_t_ha: [4, 5, 6, 7, 8]
+        price_ratio: [5, 6, 7, 8]
+        rates:
+          - [75, 95, 110, 125, 140]   # ratio 5
+          - [70, 85, 105, 120, 135]   # ratio 6
+          - [65, 80, 100, 115, 130]   # ratio 7
+          - [60, 75, 95, 110, 125]    # ratio 8
+
+      # Lower bound for the rate. Not from a source: an N rate cannot be negative.
+      # With a previous-crop credit larger than the table rate the rate floors here.
+      min_rate:
+        # TODO(agronomist): confirm 0 kg N/ha as the floor (no source gives one).
+        value: 0
+        unit: kg N/ha
+        status: PLACEHOLDER
+        source: null
+
+      # Upper bound for the rate. Pub 811 states no maximum; this is the largest
+      # cell of Table 4-14, so it never binds while the engine does not extrapolate.
+      max_rate:
+        # TODO(agronomist): give a cap (or confirm the table maximum) and its source.
+        value: 140
+        unit: kg N/ha
+        status: PLACEHOLDER
+        source: null
+        citation:
+          title: "Agronomy Guide for Field Crops (Publication 811), Chapter 4: Cereals (PDF edition 2022-10-13)"
+          publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+          year: 2022
+          locator: "Table 4-14, Nitrogen requirements for pastry wheat (most profitable N application), p. 128"
+          url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-4-en-2022-10-13.pdf"
+          accessed_on: 2026-11-17
+          basis: derived
+          note: "The largest cell of the table, used as the upper limit by cp-engine. Pub 811 states no cap."
+
+      # N credit of the previous crop, subtracted from the table rate.
+      # Pub 811 Table 4-13 footnote 1: "Where manure is applied or the preceding crop
+      # is a legume sod, reduce the N rates as shown in Table 9-9 ... and Table 9-10 ...".
+      # `value: null` = not known yet; the engine refuses for that crop.
+      previous_crop_credits:
+        corn:
+          label: Corn (grain)
+          credit:
+            # TODO(agronomist): validate 0 kg N/ha after grain corn and give source.
+            value: 0
+            unit: kg N/ha
+            status: PLACEHOLDER
+            source: null
+            citation:
+              title: "Agronomy Guide for Field Crops (Publication 811), Chapter 4: Cereals (PDF edition 2022-10-13)"
+              publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+              year: 2022
+              locator: "Table 4-13, Nitrogen requirements for cereal crops, footnote 1, p. 127"
+              url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-4-en-2022-10-13.pdf"
+              accessed_on: 2026-11-17
+              basis: inferred
+              note: "The footnote names reductions only where manure is applied or the preceding crop is a legume sod; corn is neither, so cp-engine uses no credit. Applying a Table 4-13 footnote to the Table 4-14 rates is itself an inference."
+        wheat:
+          label: Wheat or other small-grain cereal
+          credit:
+            # TODO(agronomist): validate 0 kg N/ha after a cereal and give source.
+            value: 0
+            unit: kg N/ha
+            status: PLACEHOLDER
+            source: null
+            citation:
+              title: "Agronomy Guide for Field Crops (Publication 811), Chapter 4: Cereals (PDF edition 2022-10-13)"
+              publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+              year: 2022
+              locator: "Table 4-13, Nitrogen requirements for cereal crops, footnote 1, p. 127"
+              url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-4-en-2022-10-13.pdf"
+              accessed_on: 2026-11-17
+              basis: inferred
+              note: "The footnote names reductions only where manure is applied or the preceding crop is a legume sod; a cereal is neither, so cp-engine uses no credit. Applying a Table 4-13 footnote to the Table 4-14 rates is itself an inference."
+        soybean:
+          label: Soybean
+          credit:
+            # TODO(agronomist): validate 0 kg N/ha after soybean (Table 9-9).
+            value: 0
+            unit: kg N/ha
+            status: PLACEHOLDER
+            source: null
+            citation:
+              title: "Agronomy Guide for Field Crops (Publication 811), Chapter 9: Soil Fertility and Nutrient Use (PDF edition 2022-10-13)"
+              publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+              year: 2022
+              locator: "Table 9-9, Adjustment of nitrogen requirement, where crops containing legumes are plowed down, row 'Soybean and field bean residue', p. 227"
+              url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf"
+              accessed_on: 2026-11-17
+              basis: stated
+              note: "Deduct 0 'for all crops other than corn' (footnote 2)."
+        legume_sod:
+          label: Legume sod (alfalfa, red clover) or underseeded legume
+          # Table 9-9 deductions depend on the legume share of the stand; the engine
+          # has no such input yet, so it refuses for this crop.
+          needs_input: >-
+            the legume fraction of the sod plowed down (Pub 811 Table 9-9 rows:
+            less than one-third legume, one-third to half legume, half or more legume,
+            or perennial legumes seeded and plowed in the same year)
+          credit:
+            # TODO(agronomist): validate the Table 9-9 deductions and the legume-fraction input.
+            value: null
+            unit: kg N/ha
+            status: PLACEHOLDER
+            source: null
+            citation:
+              title: "Agronomy Guide for Field Crops (Publication 811), Chapter 9: Soil Fertility and Nutrient Use (PDF edition 2022-10-13)"
+              publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+              year: 2022
+              locator: "Table 9-9, Adjustment of nitrogen requirement, where crops containing legumes are plowed down, p. 227"
+              url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf"
+              accessed_on: 2026-11-17
+              basis: stated
+              note: "The deduction depends on the legume fraction of the stand; no single value. Not set until the engine takes that input."
+
+      # Split plan. One pass: the remainder top-dressed in early spring. Pub 811
+      # allows at most 10 kg N/ha at seeding and discourages fall N for winter wheat
+      # in Ontario. No growth-stage window is given by Pub 811 for this.
+      splits:
+        - stage_label: "Early spring top-dress; max 10 kg N/ha at seeding (Pub 811 Table 4-14 header)"
+          # TODO(agronomist): validate the timing and when to split (Pub 811: split N +0.5 % yield on average).
+          timing_citation:
+            title: "Agronomy Guide for Field Crops (Publication 811), Chapter 4: Cereals (PDF edition 2022-10-13)"
+            publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+            year: 2022
+            locator: "Table 4-14, Nitrogen requirements for pastry wheat (most profitable N application), header, p. 128"
+            url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-4-en-2022-10-13.pdf"
+            accessed_on: 2026-11-17
+            basis: stated
+            note: "'A maximum of 10 kg N/ha may be applied at seeding and the remainder top-dressed in early spring.'"
+          fraction:
+            # TODO(agronomist): validate a single early-spring pass (fraction 1).
+            value: 1
+            unit: fraction
+            status: PLACEHOLDER
+            source: null
+            citation:
+              title: "Agronomy Guide for Field Crops (Publication 811), Chapter 4: Cereals (PDF edition 2022-10-13)"
+              publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+              year: 2022
+              locator: "Table 4-14 header (p. 128) and text before Table 4-16, Fall-applied nitrogen (pp. 128-129)"
+              url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-4-en-2022-10-13.pdf"
+              accessed_on: 2026-11-17
+              basis: derived
+              note: "cp-engine puts all N in one early-spring pass (none at seeding, none in fall). Pub 811 allows up to 10 kg N/ha at seeding and says 'Application of fall nitrogen is discouraged under Ontario growing conditions.' The fraction 1 is not a stated value."
+
+    # Thresholds for the confidence rules (engine/cloverproof_engine/confidence.py).
+    confidence:
+      # Yield range = the yield axis of Table 4-14 (the engine refuses outside it anyway).
+      target_yield_min:
+        # TODO(agronomist): validate the plausible yield range for Ontario winter wheat.
+        value: 4
+        unit: t/ha
+        status: PLACEHOLDER
+        source: null
+        citation:
+          title: "Agronomy Guide for Field Crops (Publication 811), Chapter 4: Cereals (PDF edition 2022-10-13)"
+          publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+          year: 2022
+          locator: "Table 4-14, Nitrogen requirements for pastry wheat (most profitable N application), Expected Yield columns, p. 128"
+          url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-4-en-2022-10-13.pdf"
+          accessed_on: 2026-11-17
+          basis: derived
+          note: "The lowest yield column of the table, used by cp-engine as a plausibility limit. Not a stated limit."
+      target_yield_max:
+        # TODO(agronomist): validate the plausible yield range for Ontario winter wheat.
+        value: 8
+        unit: t/ha
+        status: PLACEHOLDER
+        source: null
+        citation:
+          title: "Agronomy Guide for Field Crops (Publication 811), Chapter 4: Cereals (PDF edition 2022-10-13)"
+          publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+          year: 2022
+          locator: "Table 4-14, Nitrogen requirements for pastry wheat (most profitable N application), Expected Yield columns, p. 128"
+          url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-4-en-2022-10-13.pdf"
+          accessed_on: 2026-11-17
+          basis: derived
+          note: "The highest yield column of the table, used by cp-engine as a plausibility limit. Not a stated limit."
+      # A soil test older than this (relative to plan_date) is treated as stale.
+      max_soil_test_age_years:
+        # TODO(agronomist): validate 3 years as the stale-test limit.
+        value: 3
+        unit: years
+        status: PLACEHOLDER
+        source: null
+        citation:
+          title: "Soil sampling and analysis for managing crop nutrients"
+          publisher: "Ontario Ministry of Agriculture, Food and Agribusiness (OMAFA), ontario.ca"
+          year: 2025
+          locator: "section 'Sample frequency' (page updated 2025-07-28)"
+          url: "https://www.ontario.ca/page/soil-sampling-and-analysis-managing-crop-nutrients"
+          accessed_on: 2026-11-17
+          basis: derived
+          note: "The page says 'For most farms, sampling once every three years is adequate.' cp-engine uses that sampling interval as a staleness limit; the page does not state one."
+
+    # Soil tests the Ontario P and K guidance is calibrated for (OMAFA-accredited
+    # tests; values in ppm = mg/kg, element form). Declarative only in this
+    # version: no P/K rates yet.
+    # TODO(agronomist): confirm the soil tests this pack assumes (Olsen P, ammonium
+    # acetate K, mg/kg, element form); see docs/agronomist-todo.md #17.
+    soil_test_methods:
+      P:
+        form: P
+        unit: mg/kg
+        extraction_method: olsen
+        extraction_method_detail: "sodium bicarbonate (Olsen), OMAFA-accredited"
+        citation:
+          title: "Soil sampling and analysis for managing crop nutrients"
+          publisher: "Ontario Ministry of Agriculture, Food and Agribusiness (OMAFA), ontario.ca"
+          year: 2025
+          locator: "section 'Sample analysis', subsection 'Phosphorus'"
+          url: "https://www.ontario.ca/page/soil-sampling-and-analysis-managing-crop-nutrients"
+          accessed_on: 2026-11-17
+          basis: stated
+          note: "Mehlich-3 and Bray results 'cannot be used with the OMAFA fertilizer recommendation tables'."
+      K:
+        form: K
+        unit: mg/kg
+        extraction_method: ammonium-acetate
+        extraction_method_detail: "ammonium acetate, OMAFA-accredited"
+        citation:
+          title: "Soil sampling and analysis for managing crop nutrients"
+          publisher: "Ontario Ministry of Agriculture, Food and Agribusiness (OMAFA), ontario.ca"
+          year: 2025
+          locator: "section 'Sample analysis', subsection 'Potassium'"
+          url: "https://www.ontario.ca/page/soil-sampling-and-analysis-managing-crop-nutrients"
+          accessed_on: 2026-11-17
+          basis: stated

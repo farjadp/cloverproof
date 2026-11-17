@@ -14,6 +14,7 @@ from cloverproof_engine.models import (
     SoilTest,
     SoilTestSource,
     SoilTestValue,
+    WheatClass,
 )
 
 
@@ -118,7 +119,13 @@ def test_named_method_detail_is_optional() -> None:
 
 
 def test_extraction_method_values() -> None:
-    assert {m.value for m in ExtractionMethod} == {"olsen", "bray-1", "mehlich-3", "other"}
+    assert {m.value for m in ExtractionMethod} == {
+        "olsen",
+        "bray-1",
+        "mehlich-3",
+        "ammonium-acetate",
+        "other",
+    }
 
 
 def test_source_values() -> None:
@@ -188,3 +195,117 @@ def test_input_snapshot_round_trips() -> None:
     inp = _input(soil_test=_soil_test())
     snap = inp.model_dump(mode="json")
     assert RecommendationInput.model_validate(snap) == inp
+
+
+# --- n_price (needed by table-based N methods, e.g. pack ca-on v1) -----------------
+
+
+def _price(**change: object) -> dict[str, object]:
+    """TEST FIXTURE ONLY: not real prices."""
+    data: dict[str, object] = {
+        "n_price_per_kg_n": 1.5,
+        "grain_price_per_kg": 0.25,
+        "currency": "CAD",
+        "source": "TEST FIXTURE price list",
+        "price_date": "2027-01-20",
+    }
+    data.update(change)
+    return data
+
+
+def test_price_is_optional_and_left_out_of_the_snapshot_when_absent() -> None:
+    inp = _input()
+    assert inp.n_price is None
+    # Snapshots of inputs without prices are unchanged from engine 0.2.0.
+    assert "n_price" not in inp.model_dump(mode="json")
+
+
+def test_price_ratio_is_computed_from_the_two_prices() -> None:
+    inp = _input(n_price=_price())
+    assert inp.n_price is not None
+    assert inp.n_price.ratio == pytest.approx(6.0)
+
+
+def test_price_snapshot_stores_prices_source_date_and_ratio() -> None:
+    inp = _input(n_price=_price())
+    snap = inp.model_dump(mode="json")["n_price"]
+    assert snap == {
+        "n_price_per_kg_n": 1.5,
+        "grain_price_per_kg": 0.25,
+        "currency": "CAD",
+        "source": "TEST FIXTURE price list",
+        "price_date": "2027-01-20",
+        "ratio": pytest.approx(6.0),
+    }
+    assert RecommendationInput.model_validate(inp.model_dump(mode="json")) == inp
+
+
+def test_price_snapshot_with_a_wrong_ratio_is_rejected() -> None:
+    snap = _input(n_price=_price()).model_dump(mode="json")
+    snap["n_price"]["ratio"] = 7.0
+    with pytest.raises(ValidationError, match="ratio"):
+        RecommendationInput.model_validate(snap)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"n_price_per_kg_n": 0},
+        {"n_price_per_kg_n": -1.0},
+        {"grain_price_per_kg": 0},
+        {"grain_price_per_kg": float("inf")},
+        {"grain_price_per_kg": float("nan")},
+        {"currency": "dollars"},
+        {"source": "  "},
+        {"price_date": None},
+    ],
+)
+def test_price_rejects_bad_values(change: dict[str, object]) -> None:
+    with pytest.raises(ValidationError):
+        _input(n_price=_price(**change))
+
+
+@pytest.mark.parametrize("missing", ["currency", "source", "price_date"])
+def test_price_needs_its_provenance(missing: str) -> None:
+    data = _price()
+    del data[missing]
+    with pytest.raises(ValidationError):
+        _input(n_price=data)
+
+
+def test_bare_price_ratio_input_is_gone() -> None:
+    # Rule 5: a bare ratio has no provenance; the prices, source and date are required.
+    with pytest.raises(ValidationError):
+        _input(n_price_ratio=6.0)
+
+
+# --- wheat_class and manure_applied (required by packs that scope them, e.g. ca-on) ---
+
+
+def test_wheat_class_and_manure_are_optional_and_left_out_when_absent() -> None:
+    inp = _input()
+    assert inp.wheat_class is None and inp.manure_applied is None
+    snap = inp.model_dump(mode="json")
+    assert "wheat_class" not in snap and "manure_applied" not in snap
+
+
+def test_wheat_class_and_manure_round_trip() -> None:
+    inp = _input(wheat_class="pastry", manure_applied=False)
+    assert inp.wheat_class is WheatClass.PASTRY
+    snap = inp.model_dump(mode="json")
+    assert snap["wheat_class"] == "pastry" and snap["manure_applied"] is False
+    assert RecommendationInput.model_validate(snap) == inp
+
+
+@pytest.mark.parametrize("change", [{"wheat_class": "durum"}, {"manure_applied": "maybe"}])
+def test_wheat_class_and_manure_reject_bad_values(change: dict[str, object]) -> None:
+    with pytest.raises(ValidationError):
+        _input(**change)
+
+
+def test_ammonium_acetate_is_a_named_extraction_method() -> None:
+    # Ontario's accredited soil-test K uses an ammonium acetate extract (pack ca-on).
+    assert ExtractionMethod("ammonium-acetate") is ExtractionMethod.AMMONIUM_ACETATE
+    value = _value(NutrientForm.K, 120.0, ExtractionMethod.AMMONIUM_ACETATE)
+    assert value.extraction_method is ExtractionMethod.AMMONIUM_ACETATE
+    assert value.extraction_method_detail is None

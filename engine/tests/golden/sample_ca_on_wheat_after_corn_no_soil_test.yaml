@@ -1,0 +1,41 @@
+# SAMPLE golden case — NOT agronomist-approved.
+# Expected values are derived by hand from packs/ca-on/v1.yaml (PLACEHOLDER
+# constants; table read from OMAFA Pub 811 Table 4-14), only to exercise the golden
+# report over the ca-on pack. Not an agronomist decision.
+#
+# Arithmetic: yield 6.5 t/ha, price ratio 5.5 -> cells (ratio 5: 110, 125;
+# ratio 6: 105, 120) weights 0.25 each -> table rate 115.0 kg N/ha;
+# credit after corn 0 -> rate 115.0; total 115.0 x 20 = 2300 kg N; one split (1.0).
+# No soil test -> N only, P/K "recommend a soil test"; PLACEHOLDER pack -> low.
+id: sample_ca_on_wheat_after_corn_no_soil_test
+kind: sample  # not agronomist-approved; never counts toward the agreement gate
+description: Ontario winter wheat after grain corn, no soil test, price ratio 5.5 (ca-on v1).
+pack:
+  id: ca-on
+  version: v1
+# TODO(agronomist): set agreement tolerances for real cases.
+tolerance:
+  kg_n_per_ha: 0.5
+  kg_n: 10
+input:
+  crop: wheat
+  target_yield_t_ha: 6.5
+  previous_crop: corn
+  area_ha: 20.0
+  plan_date: "2027-03-15"
+  # SAMPLE prices, not real: ratio 1.375 / 0.25 = 5.5.
+  n_price:
+    n_price_per_kg_n: 1.375
+    grain_price_per_kg: 0.25
+    currency: CAD
+    source: SAMPLE (not a real price list)
+    price_date: "2027-01-20"
+  wheat_class: pastry
+  manure_applied: false
+expected:
+  n_rate_kg_ha: 115.0
+  n_total_kg: 2300.0
+  split_rates_kg_ha: [115.0]
+  confidence: low
+  pk_note: PK_SOIL_TEST_RECOMMENDED
+  reason: SAMPLE derived from the ca-on v1 pack; not an agronomist decision.

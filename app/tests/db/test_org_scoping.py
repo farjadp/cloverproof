@@ -6,7 +6,7 @@ import psycopg
 import pytest
 from psycopg import errors
 
-from .conftest import Org, insert
+from .conftest import Org, insert, use_context
 
 pytestmark = pytest.mark.db
 
@@ -25,6 +25,9 @@ SCOPED_QUERIES = {
 
 
 def ids(db: psycopg.Connection, sql: str, user: object) -> set[object]:
+    """Rows `user` sees, with the RLS context of the user's (first) organisation."""
+    row = db.execute("select member_organisation_ids(%s) limit 1", (user,)).fetchone()
+    use_context(db, user, row[0] if row else None)  # type: ignore[arg-type]
     return {row[0] for row in db.execute(sql, (user,))}  # type: ignore[arg-type]
 
 
