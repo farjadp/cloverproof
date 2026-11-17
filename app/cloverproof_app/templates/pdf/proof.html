@@ -1,0 +1,215 @@
+{#- Proof PDF v0 (WeasyPrint). Every number renders through `explained`, so it always has
+    its explanation line. Wording rules: cloverproof_app/pdf/model.py. -#}
+{% macro placeholder_mark(flag) %}{% if flag %}<span class="ph">{{ not_validated }}</span>{% endif %}{% endmacro %}
+{% macro explained(x, digits=1, cls="") %}
+<div class="explained {{ cls }}">
+{% if x.explanation %}
+  <span class="value">{{ x.value | num(digits) }} {{ x.unit }}</span>{{ placeholder_mark(x.uses_placeholder) }}
+  <p class="why">{{ x.explanation }}</p>
+{% else %}
+  <span class="value">—</span>
+  <p class="why">No explanation recorded</p>
+{% endif %}
+</div>
+{% endmacro %}
+{% macro share(x) %}
+<div class="explained">
+{% if x.explanation %}
+  <span class="value">{{ (x.value * 100) | num(0) }}%</span>{{ placeholder_mark(x.uses_placeholder) }}
+  <p class="why">{{ x.explanation }}</p>
+{% else %}
+  <span class="value">—</span>
+  <p class="why">No explanation recorded</p>
+{% endif %}
+</div>
+{% endmacro %}
+{% set soil = snap.soil_test %}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fertilizer plan · {{ p.field_name }} · {{ p.document_id }}</title>
+<meta name="generator" content="CloverProof {{ template_version }}">
+<style>
+{% include "pdf/proof.css" %}
+</style>
+</head>
+<body>
+{% if not p.is_final %}
+<div class="watermark" aria-hidden="true">DRAFT</div>
+{% elif p.placeholder_pack %}
+<div class="watermark" aria-hidden="true">TEST DOCUMENT</div>
+{% endif %}
+
+<header class="masthead">
+  <img src="logo.svg" alt="">
+  <div>
+    <div class="brand">CloverProof</div>
+    <div class="kind">Field fertilizer plan · nitrogen</div>
+  </div>
+</header>
+<h1>Nitrogen plan for {{ p.field_name }}</h1>
+<p class="muted">Document {{ p.document_id }} · plan version v{{ p.version_number }} · plan date {{ snap.plan_date }}</p>
+
+{% if p.placeholder_pack %}
+<div class="banner" role="note">
+  <p>{{ banner }}</p>
+  <p class="sub">Pack {{ doc.pack_id }} {{ doc.pack_version }} ({{ doc.pack_status }}) is not validated. The numbers below exist to test the workflow. Do not apply them to a field.</p>
+</div>
+{% endif %}
+
+{% if p.is_final %}
+<div class="status">
+  <p class="line">{{ approval_line }}</p>
+  <p>This plan version and its numbers are exactly as approved; later edits create a new version and a new document.</p>
+</div>
+{% else %}
+<div class="status draft">
+  <p class="line">DRAFT. Not approved.</p>
+  {% if approval_line %}<p>{{ approval_line }}.</p>{% else %}<p>No human agronomist has approved this plan version. Do not use these numbers.</p>{% endif %}
+</div>
+{% endif %}
+
+<section>
+  <h2>Farm and field</h2>
+  <dl class="facts">
+    <dt>Farmer</dt><dd>{{ p.farmer_name }}</dd>
+    <dt>Farm</dt><dd>{{ p.farm_name }}</dd>
+    <dt>Field</dt><dd>{{ p.field_name }}</dd>
+    <dt>Area</dt><dd>{{ snap.area_ha | plain }} ha (entered by hand)</dd>
+  </dl>
+</section>
+
+<section>
+  <h2>Inputs</h2>
+  <dl class="facts">
+    <dt>Crop</dt><dd>{{ doc.crop | capitalize }}</dd>
+    <dt>Target yield</dt><dd>{{ snap.target_yield_t_ha | plain }} t/ha</dd>
+    <dt>Previous crop</dt><dd>{{ p.previous_crop_label }}</dd>
+    <dt>Plan date</dt><dd>{{ snap.plan_date }}</dd>
+  </dl>
+  <h3>Soil test</h3>
+  {% if soil is none %}
+  <p>No soil test on file. This plan covers nitrogen only.</p>
+  {% else %}
+  <dl class="facts">
+    <dt>Sample date</dt><dd>{{ soil.sample_date }}</dd>
+    <dt>Sampling depth</dt><dd>{{ soil.depth_top_cm | plain }}–{{ soil.depth_bottom_cm | plain }} cm</dd>
+    <dt>Source</dt><dd>{{ soil.source | capitalize }}{% if soil.lab %} ({{ soil.lab }}){% endif %}</dd>
+  </dl>
+  {% if soil["values"] %}
+  <table>
+    <thead><tr><th>Form</th><th>Value</th><th>Unit</th><th>Extraction method</th></tr></thead>
+    <tbody>
+    {% for sv in soil["values"] %}
+      <tr><td>{{ form_labels.get(sv.form, sv.form) }}</td><td>{{ sv.value | plain }}</td><td>{{ sv.unit }}</td>
+          <td>{{ method_labels.get(sv.extraction_method, sv.extraction_method) }}{% if sv.extraction_method_detail %}: {{ sv.extraction_method_detail }}{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted">Values are stored as reported, in the form shown (elemental P/K or oxide P2O5/K2O).</p>
+  {% else %}
+  <p class="muted">The soil test has no nutrient values.</p>
+  {% endif %}
+  {% endif %}
+</section>
+
+<section>
+  <h2>Nitrogen recommendation</h2>
+  <p class="muted">N rate</p>
+  {{ explained(n.rate, 1, "headline") }}
+  <p class="muted">Total for the field</p>
+  {{ explained(n.total) }}
+  {% if n.bound_applied %}<div class="notice"><p>Rate limited to the pack {{ n.bound_applied }}.</p></div>{% endif %}
+
+  <h3>How the rate was calculated</h3>
+  <table>
+    <thead><tr><th style="width: 30%">Step</th><th>Value and explanation</th></tr></thead>
+    <tbody>
+    {% for c in n.components %}
+      <tr><th>{{ c.name | replace("_", " ") | capitalize }}</th><td>{{ explained(c) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h3>Split applications</h3>
+  <p class="muted">Timing is the stage text from the country pack.</p>
+  <table>
+    <thead><tr><th style="width: 28%">Timing</th><th>Share</th><th>Rate</th><th>Total</th></tr></thead>
+    <tbody>
+    {% for s in n.splits %}
+      <tr><th>{{ s.stage_label }}</th><td>{{ share(s.fraction) }}</td><td>{{ explained(s.rate) }}</td><td>{{ explained(s.total) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Confidence</h2>
+  <p><span class="badge conf-{{ doc.confidence }}">{{ doc.confidence | capitalize }} confidence</span></p>
+  {% if doc.confidence_reasons %}
+  <p>Why {{ doc.confidence }}:</p>
+  <ul>
+    {% for r in doc.confidence_reasons %}<li>{{ r.reason }} <span class="rule-id">({{ r.rule_id }})</span></li>{% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No rule lowered confidence.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Phosphorus and potassium</h2>
+  {% if doc.phosphorus_potassium.code == "PK_SOIL_TEST_RECOMMENDED" %}
+  <div class="notice">
+    <p class="title">Get a soil test for P and K</p>
+    <p>This plan covers nitrogen only. Send a sample to a lab to get phosphorus and potassium advice.</p>
+  </div>
+  {% endif %}
+  <p>{{ doc.phosphorus_potassium.text }}</p>
+</section>
+
+{% if doc.notes %}
+<section>
+  <h2>Notes</h2>
+  <ul>{% for note in doc.notes %}<li>{{ note.text }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+<section>
+  <h2>Constants used</h2>
+  {% set placeholders = n.constants_used | selectattr("status", "equalto", "PLACEHOLDER") | list %}
+  {% if placeholders %}
+  <div class="notice warn"><p>{{ placeholders | length }} of {{ n.constants_used | length }} constants are PLACEHOLDER values that are not yet validated by an agronomist. Numbers that depend on them are marked “{{ not_validated }}”.</p></div>
+  {% endif %}
+  <table>
+    <thead><tr><th>Constant</th><th>Value</th><th>Unit</th><th>Status</th><th>Source</th></tr></thead>
+    <tbody>
+    {% for c in n.constants_used %}
+      <tr><td class="mono">{{ c.path }}</td><td>{{ c.value | plain }}</td><td>{{ c.unit }}</td>
+          <td>{% if c.status == "PLACEHOLDER" %}<span class="ph">{{ not_validated }}</span>{% else %}Validated{% endif %}</td>
+          <td>{{ c.source or "No source yet" }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Versions and identifiers</h2>
+  <dl class="facts">
+    <dt>Document ID</dt><dd class="mono">{{ p.document_id }}</dd>
+    <dt>Recommendation ID</dt><dd class="mono">{{ p.recommendation_id }} (plan version v{{ p.version_number }})</dd>
+    <dt>Engine version</dt><dd>{{ doc.engine_version }}</dd>
+    <dt>Country pack</dt><dd>{{ doc.pack_id }} {{ doc.pack_version }} ({{ doc.pack_status }})</dd>
+    <dt>Pack SHA-256</dt><dd class="mono">{{ doc.pack_sha256 }}</dd>
+    <dt>Template</dt><dd>{{ template_version }}</dd>
+  </dl>
+</section>
+
+<section class="integrity">
+  <h2>This file</h2>
+  <p><strong>{{ hash_statement }}</strong>, together with document ID {{ p.document_id }}.</p>
+  <p>A PDF cannot contain its own SHA-256, so the value is kept outside the file. To check a copy, compute its SHA-256 (for example <code>shasum -a 256 file.pdf</code>) and compare it with the value CloverProof holds for this document ID. Any change to the file gives a different value.</p>
+  <p class="muted">This plan was prepared with CloverProof. It states the inputs, the numbers and how each number was calculated. It is not issued on behalf of any government, lender, buyer or other third party.</p>
+</section>
+</body>
+</html>

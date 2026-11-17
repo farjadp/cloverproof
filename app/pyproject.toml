@@ -13,6 +13,7 @@ dependencies = [
     "pydantic>=2.9",
     "python-multipart>=0.0.18",
     "uvicorn[standard]>=0.32",
+    "weasyprint>=66",
 ]
 
 [tool.uv.sources]

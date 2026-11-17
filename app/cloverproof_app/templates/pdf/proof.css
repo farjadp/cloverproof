@@ -1,0 +1,88 @@
+/* Proof PDF v0 (WeasyPrint, A4). Brand: olive #4C610B, sage #A7B58A, ivory #FAF6EB, ink #273125.
+   Sage is a fill/rule colour only (too light for text). Fonts are self-hosted (SIL OFL 1.1). */
+@font-face { font-family: "Source Serif 4"; font-style: normal;
+  src: url("fonts/source-serif-4-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Source Sans 3"; font-style: normal;
+  src: url("fonts/source-sans-3-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Source Sans 3"; font-style: italic;
+  src: url("fonts/source-sans-3-latin-wght-italic.woff2") format("woff2"); }
+
+@page {
+  size: A4;
+  margin: 20mm 17mm 22mm;
+  background: #FAF6EB;
+  @top-left { content: "CloverProof · Fertilizer plan"; font: 600 8pt "Source Sans 3"; color: #4D5A4A; }
+  @top-right { content: "Document {{ p.document_id }}"; font: 8pt "Source Sans 3"; color: #4D5A4A; }
+  @bottom-left { content: "{{ hash_statement }} · Document {{ p.document_id }}";
+    font: 7.5pt "Source Sans 3"; color: #4D5A4A; }
+  @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8pt "Source Sans 3"; color: #4D5A4A; }
+{% if p.placeholder_pack %}
+  @top-center { content: "{{ banner }}"; font: 700 8.5pt "Source Sans 3"; color: #9A2A1E;
+    width: 100%; }
+{% endif %}
+}
+{% if p.placeholder_pack %}
+@page { @top-left { content: none; } @top-right { content: none; } }
+{% endif %}
+
+html { font-family: "Source Sans 3", sans-serif; font-size: 9.5pt; line-height: 1.45; color: #273125;
+  font-variant-ligatures: none; font-variant-numeric: tabular-nums; hyphens: none; }
+body { margin: 0; }
+h1, h2, h3 { font-family: "Source Serif 4", serif; color: #273125; line-height: 1.2; margin: 0; }
+h1 { font-size: 19pt; font-weight: 600; }
+h2 { font-size: 12.5pt; font-weight: 600; color: #4C610B; margin: 0 0 2.5mm; }
+h3 { font-size: 10.5pt; font-weight: 600; margin: 4mm 0 1.5mm; }
+p { margin: 0 0 1.5mm; }
+section { border-top: 0.75pt solid #A7B58A; padding-top: 3.5mm; margin-top: 4.5mm; }
+.muted { color: #4D5A4A; }
+.mono { overflow-wrap: anywhere; word-break: break-all; }
+
+.masthead { display: flex; align-items: center; gap: 4mm; margin-bottom: 2mm; }
+.masthead img { width: 10mm; height: 11mm; }
+.masthead .brand { font-family: "Source Serif 4", serif; font-weight: 600; font-size: 12pt; color: #4C610B; }
+.masthead .kind { font-size: 8.5pt; color: #4D5A4A; text-transform: uppercase; letter-spacing: 0.06em; }
+
+.banner { border: 1.5pt solid #9A2A1E; background: #F7E1DA; color: #9A2A1E; padding: 3mm 4mm;
+  margin: 3mm 0; font-weight: 700; font-size: 11pt; }
+.banner p { margin: 0; }
+.banner .sub { font-weight: 400; font-size: 9pt; color: #273125; margin-top: 1mm; }
+.status { padding: 2.5mm 4mm; margin: 3mm 0; border-left: 3pt solid #4C610B; background: #E6EADB; }
+.status.draft { border-left-color: #9A2A1E; background: #F7E1DA; }
+.status p { margin: 0; }
+.status .line { font-weight: 700; }
+
+.watermark { position: fixed; top: 105mm; left: -10mm; width: 200mm; text-align: center;
+  transform: rotate(-32deg); font: 700 64pt "Source Sans 3"; color: rgba(154, 42, 30, 0.10);
+  letter-spacing: 0.05em; z-index: -1; }
+
+dl.facts { display: grid; grid-template-columns: 38mm 1fr; gap: 0.8mm 4mm; margin: 0; }
+dl.facts dt { color: #4D5A4A; }
+dl.facts dd { margin: 0; }
+
+table { width: 100%; border-collapse: collapse; margin: 1mm 0 2mm; }
+th, td { text-align: left; vertical-align: top; padding: 1.4mm 2mm 1.4mm 0; border-bottom: 0.5pt solid #DDD6C3; }
+thead th { font-size: 8pt; color: #4D5A4A; text-transform: uppercase; letter-spacing: 0.04em;
+  border-bottom: 0.75pt solid #A7B58A; font-weight: 600; }
+tbody th { font-weight: 600; }
+tr { page-break-inside: avoid; }
+
+.value { font-weight: 700; white-space: nowrap; }
+.headline .value { font-family: "Source Serif 4", serif; font-size: 17pt; color: #4C610B; }
+.why { font-size: 8.5pt; color: #4D5A4A; margin: 0.6mm 0 0; }
+.ph { display: inline-block; border: 0.75pt dashed #6B5200; color: #6B5200; background: #F5E9C8;
+  font-size: 7.5pt; font-weight: 700; padding: 0 1.2mm; margin-left: 1mm; white-space: nowrap; }
+.explained { margin-bottom: 2mm; page-break-inside: avoid; }
+
+.badge { display: inline-block; padding: 0.5mm 2.5mm; border-radius: 99pt; font-weight: 700; font-size: 9pt; }
+.conf-high { background: #4C610B; color: #FAF6EB; }
+.conf-medium { background: #A7B58A; color: #273125; }
+.conf-low { background: #F5E9C8; color: #6B5200; border: 0.75pt solid #6B5200; }
+.rule-id { color: #4D5A4A; font-size: 8pt; }
+.notice { border-left: 3pt solid #A7B58A; background: #FFFFFF; padding: 2mm 3.5mm; margin: 2mm 0; }
+.notice.warn { border-left-color: #6B5200; background: #F5E9C8; }
+.notice .title { font-weight: 700; }
+ul { margin: 0 0 2mm; padding-left: 5mm; }
+li { margin-bottom: 0.8mm; }
+
+.integrity { page-break-inside: avoid; }
+.integrity code { font-family: "Source Sans 3", sans-serif; font-weight: 600; }
