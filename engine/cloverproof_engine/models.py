@@ -30,6 +30,8 @@ class ExtractionMethod(StrEnum):
     OLSEN = "olsen"
     BRAY_1 = "bray-1"
     MEHLICH_3 = "mehlich-3"
+    # Ammonium acetate extract for exchangeable K (Ontario accredited K test).
+    AMMONIUM_ACETATE = "ammonium-acetate"
     OTHER = "other"
 
 

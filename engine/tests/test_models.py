@@ -118,7 +118,13 @@ def test_named_method_detail_is_optional() -> None:
 
 
 def test_extraction_method_values() -> None:
-    assert {m.value for m in ExtractionMethod} == {"olsen", "bray-1", "mehlich-3", "other"}
+    assert {m.value for m in ExtractionMethod} == {
+        "olsen",
+        "bray-1",
+        "mehlich-3",
+        "ammonium-acetate",
+        "other",
+    }
 
 
 def test_source_values() -> None:
@@ -211,3 +217,11 @@ def test_price_ratio_round_trips() -> None:
 def test_price_ratio_must_be_positive_and_finite(ratio: float) -> None:
     with pytest.raises(ValidationError):
         _input(n_price_ratio=ratio)
+
+
+def test_ammonium_acetate_is_a_named_extraction_method() -> None:
+    # Ontario's accredited soil-test K uses an ammonium acetate extract (pack ca-on).
+    assert ExtractionMethod("ammonium-acetate") is ExtractionMethod.AMMONIUM_ACETATE
+    value = _value(NutrientForm.K, 120.0, ExtractionMethod.AMMONIUM_ACETATE)
+    assert value.extraction_method is ExtractionMethod.AMMONIUM_ACETATE
+    assert value.extraction_method_detail is None

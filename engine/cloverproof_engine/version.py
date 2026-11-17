@@ -1,3 +1,3 @@
 """Engine version, recorded on every recommendation. Bump on any calculation change."""
 
-ENGINE_VERSION = "0.2.0"
+ENGINE_VERSION = "0.3.0"
