@@ -46,3 +46,7 @@ The CLI refuses a second admin unless `--additional` is given; later users are i
 
 ## 5. Client IP behind Railway
 The log stores only an IP prefix. `X-Real-IP` is used, else the last `X-Forwarded-For` entry. Before relying on the per-IP limit, check on staging that a spoofed `X-Forwarded-For: 6.6.6.6` does not appear as `6.6.6.0/24` in the log.
+
+## 6. API keys and the master key (ADR 0013)
+- Keys are entered on `/admin/keys` (admin, fresh code). After saving only the last 4 characters are shown. Removing a key here wipes its ciphertext; also revoke it in the provider's console.
+- Master-key rotation (e.g. if `WEBSITE_SECRETS_KEK` may have leaked): set the new key as `WEBSITE_SECRETS_KEK`/`_ID`, the old one as `WEBSITE_SECRETS_KEK_PREVIOUS`/`_ID`, run `npm run secrets:rewrap` in the website shell, then delete the `_PREVIOUS` variables. Also rotate the provider keys themselves if a leak is suspected.

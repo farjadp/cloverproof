@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import pg from "pg";
-import { decryptKeyServerSide, keyProblem, listKeys, revokeKey, saveKey, setBudget, testKey, testRequest } from "../src/lib/admin/keys.ts";
+import { decryptKeyServerSide, keyProblem, listKeys, revokeKey, rewrapAll, saveKey, setBudget, testKey, testRequest } from "../src/lib/admin/keys.ts";
 import { createFirstAdmin, loadSession, login, redeemLink, type AdminConfig, type Current } from "../src/lib/admin/service.ts";
 
 const url = process.env.WEBSITE_TEST_DATABASE_URL;
@@ -99,4 +99,27 @@ test("test connection: 200 passes, 401 is a rejected key, network error handled;
     assert.equal(rows[0].last_test_ok, false);
     const { rows: log } = await db.query("select string_agg(detail::text, ' ') as d from website_log where action = 'key.test'");
     assert.ok(!log[0].d.includes("THIS-IS-A-TEST"));
+  }));
+
+test("replaced and revoked keys keep no recoverable ciphertext (tombstone)", { skip }, () =>
+  withDb(async (db, admin) => {
+    await saveKey(db, config, admin, "openai", "sk-proj-first-key-aaaaaaaaaaaa1111", meta, now);
+    await saveKey(db, config, admin, "openai", "sk-proj-second-key-bbbbbbbbbbb2222", meta, now);
+    await revokeKey(db, admin, "openai", meta, now);
+    const { rows } = await db.query(
+      "select version, sealed = website_secret_tombstone() as tomb, revoked_at is not null as revoked from website_secret where provider = 'openai' order by version",
+    );
+    assert.deepEqual(rows, [{ version: 1, tomb: true, revoked: true }, { version: 2, tomb: true, revoked: true }]);
+  }));
+
+test("master-key rotation re-seals active keys under the new KEK", { skip }, () =>
+  withDb(async (db, admin) => {
+    await saveKey(db, config, admin, "anthropic", SECRET, meta, now);
+    const next = { id: "t2", key: randomBytes(32) };
+    const rotated = { ...config, keks: [next, ...config.keks] };
+    assert.equal(await rewrapAll(db, rotated), 1);
+    assert.equal(await rewrapAll(db, rotated), 0, "idempotent");
+    const { rows } = await db.query("select kek_id from website_secret where provider = 'anthropic' and revoked_at is null");
+    assert.equal(rows[0].kek_id, "t2");
+    assert.equal(await decryptKeyServerSide(db, { ...config, keks: [next] }, "anthropic"), SECRET, "old KEK no longer needed");
   }));

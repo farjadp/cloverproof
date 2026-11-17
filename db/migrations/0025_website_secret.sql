@@ -1,8 +1,8 @@
 -- Website admin: AI-provider API keys (ADR 0013; docs/plans/website-admin.md §5).
 -- Envelope-encrypted by the website (AES-256-GCM data key wrapped by WEBSITE_SECRETS_KEK from env;
 -- the master key is never in git or this database). The database never sees a plaintext key.
--- One active row per provider; replacing a key inserts a new version and revokes the old one, so
--- history stays (without plaintext). Only cp_website_admin can read or write; no DELETE.
+-- One active row per provider; replacing a key inserts a new version and revokes the old one. A
+-- revoked row keeps its metadata but its sealed bytes become a tombstone (nothing recoverable). Only cp_website_admin can read or write; no DELETE.
 -- RLS class website_admin (db/rls_tables.yaml).
 
 set local role cp_migrator;
@@ -34,19 +34,35 @@ create table website_secret (
 -- At most one active key per provider.
 create unique index website_secret_one_active on website_secret (provider) where revoked_at is null;
 
--- Sealed bytes, provider, version and authorship never change after insert; a revoked row is frozen.
+-- What a revoked key's sealed bytes become: nothing recoverable remains, even with the master key.
+create function website_secret_tombstone() returns bytea
+language sql immutable set search_path = '' as $$
+  select convert_to(rpad('{"v":0,"revoked":true}', 64, ' '), 'UTF8')
+$$;
+
+-- Provider, version, last 4 and authorship never change. While a key is active its sealed bytes
+-- change only in two ways: a master-key rotation (new kek_id, still active) or revocation (sealed
+-- becomes the tombstone, in the same statement). A revoked row is frozen.
 create function website_secret_guard() returns trigger
 language plpgsql set search_path = '' as $$
 begin
-  if new.id <> old.id or new.sealed <> old.sealed or new.kek_id <> old.kek_id or new.provider <> old.provider
-     or new.version <> old.version or new.last4 <> old.last4 or new.created_by <> old.created_by
-     or new.created_at <> old.created_at then
+  if new.id <> old.id or new.provider <> old.provider or new.version <> old.version
+     or new.last4 <> old.last4 or new.created_by <> old.created_by or new.created_at <> old.created_at then
     raise exception 'website_secret % is immutable; insert a new version', old.id
       using errcode = 'insufficient_privilege';
   end if;
   -- A revoked row is frozen entirely (revoker, cap and test result included).
   if old.revoked_at is not null then
     raise exception 'website_secret % is revoked', old.id using errcode = 'insufficient_privilege';
+  end if;
+  if new.revoked_at is not null then
+    if new.sealed <> public.website_secret_tombstone() then
+      raise exception 'revoking website_secret % must replace the sealed key with the tombstone', old.id
+        using errcode = 'insufficient_privilege';
+    end if;
+  elsif (new.sealed <> old.sealed or new.kek_id <> old.kek_id) and new.kek_id = old.kek_id then
+    raise exception 'website_secret % can only be re-sealed under a new master key', old.id
+      using errcode = 'insufficient_privilege';
   end if;
   return new;
 end
@@ -59,7 +75,8 @@ create trigger website_secret_no_delete before delete or truncate on website_sec
   for each statement execute function forbid_change();
 
 grant select, insert on website_secret to cp_website_admin;
-grant update (revoked_at, revoked_by, monthly_budget_usd, last_test_at, last_test_ok)
+-- sealed / kek_id: master-key rotation (npm run secrets:rewrap) and the revocation tombstone.
+grant update (sealed, kek_id, revoked_at, revoked_by, monthly_budget_usd, last_test_at, last_test_ok)
   on website_secret to cp_website_admin;
 
 comment on table website_secret is

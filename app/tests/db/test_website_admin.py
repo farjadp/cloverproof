@@ -360,7 +360,9 @@ def test_one_active_key_per_provider(admin_db: psycopg.Connection) -> None:
     with pytest.raises(errors.UniqueViolation), admin_db.transaction():
         add_secret(admin_db, user, version=2)
     admin_db.execute(
-        "update website_secret set revoked_at = now(), revoked_by = %s where id = %s", (user, first)
+        "update website_secret set revoked_at = now(), revoked_by = %s,"
+        " sealed = website_secret_tombstone() where id = %s",
+        (user, first),
     )
     add_secret(admin_db, user, version=2)
     add_secret(admin_db, user, provider="openai")
@@ -382,8 +384,16 @@ def test_secret_rows_are_immutable_and_never_deleted(admin_db: psycopg.Connectio
         " last_test_ok = true where id = %s",
         (key,),
     )
+    # Revoking without wiping the sealed key is refused; with the tombstone it works.
+    with pytest.raises(errors.InsufficientPrivilege), admin_db.transaction():
+        admin_db.execute(
+            "update website_secret set revoked_at = now(), revoked_by = %s where id = %s",
+            (user, key),
+        )
     admin_db.execute(
-        "update website_secret set revoked_at = now(), revoked_by = %s where id = %s", (user, key)
+        "update website_secret set revoked_at = now(), revoked_by = %s,"
+        " sealed = website_secret_tombstone() where id = %s",
+        (user, key),
     )
     for query in (
         "update website_secret set revoked_at = null, revoked_by = null where id = %s",
@@ -410,3 +420,15 @@ def test_secret_checks(admin_db: psycopg.Connection) -> None:
             )
     with pytest.raises(errors.InvalidTextRepresentation), admin_db.transaction():
         add_secret(admin_db, user, provider="mistral")
+
+
+def test_secret_reseal_only_under_new_master_key(admin_db: psycopg.Connection) -> None:
+    user = add_user(admin_db, "k@example.com")
+    key = add_secret(admin_db, user)
+    with pytest.raises(errors.InsufficientPrivilege), admin_db.transaction():
+        admin_db.execute(
+            "update website_secret set sealed = %s where id = %s", (SEALED + b" ", key)
+        )
+    admin_db.execute(
+        "update website_secret set sealed = %s, kek_id = 'k2' where id = %s", (SEALED + b" ", key)
+    )

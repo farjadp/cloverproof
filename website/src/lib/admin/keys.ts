@@ -1,6 +1,7 @@
 // AI-provider API keys (ADR 0013). Write-only in the admin: after saving, only the provider, the
 // last 4 characters and test results are ever shown. Plaintext exists only inside this module,
 // in server memory, for the test call (and later the P4 agents). Never sent to the browser or logged.
+import "server-only";
 import { open, seal } from "./envelope.ts";
 import { writeLog, type AdminConfig, type Current, type Db, type RequestMeta } from "./service.ts";
 
@@ -71,6 +72,8 @@ export async function saveKey(
   const key = rawKey.trim();
   const problem = keyProblem(key);
   if (problem) return { ok: false, error: problem };
+  // One save per provider at a time (also covers the very first key, where FOR UPDATE locks nothing).
+  await db.query("select pg_advisory_xact_lock(hashtext('website_secret|' || $1))", [provider]);
   const { rows: prev } = await db.query<{ id: string; version: number; monthly_budget_usd: string | null }>(
     `select id, version, monthly_budget_usd from website_secret
       where provider = $1 order by version desc limit 1 for update`,
@@ -78,7 +81,7 @@ export async function saveKey(
   );
   const version = (prev[0]?.version ?? 0) + 1;
   await db.query(
-    "update website_secret set revoked_at = $2, revoked_by = $3 where provider = $1 and revoked_at is null",
+    "update website_secret set revoked_at = $2, revoked_by = $3, sealed = website_secret_tombstone() where provider = $1 and revoked_at is null",
     [provider, now, actor.user.id],
   );
   const kek = config.keks[0];
@@ -110,7 +113,7 @@ export async function saveKey(
 export async function revokeKey(db: Db, actor: Current, provider: string, meta: RequestMeta, now: Date): Promise<KeyResult> {
   if (!isProvider(provider)) return { ok: false, error: "Unknown provider." };
   const { rows } = await db.query<{ last4: string }>(
-    "update website_secret set revoked_at = $2, revoked_by = $3 where provider = $1 and revoked_at is null returning last4",
+    "update website_secret set revoked_at = $2, revoked_by = $3, sealed = website_secret_tombstone() where provider = $1 and revoked_at is null returning last4",
     [provider, now, actor.user.id],
   );
   if (!rows[0]) return { ok: false, error: "There is no active key for this provider." };
@@ -200,4 +203,27 @@ export async function testKey(
           ? "the provider couldn't be reached"
           : `the provider answered ${status}`;
   return { ok: false, error: `Test failed: ${why}.` };
+}
+
+/**
+ * Master-key rotation (ADR 0013): re-seal every active key under the current KEK (config.keks[0]),
+ * opening with any configured KEK (current + previous). Revoked keys hold only a tombstone.
+ * Run in one transaction (npm run secrets:rewrap).
+ */
+export async function rewrapAll(db: Db, config: AdminConfig): Promise<number> {
+  const current = config.keks[0];
+  const { rows } = await db.query<{ id: string; provider: Provider; version: number; sealed: Buffer }>(
+    "select id, provider, version, sealed from website_secret where revoked_at is null and kek_id <> $1 for update",
+    [current.id],
+  );
+  for (const row of rows) {
+    const plain = open(row.sealed, aad(row.provider, row.version), config.keks);
+    await db.query("update website_secret set sealed = $2, kek_id = $3 where id = $1", [
+      row.id,
+      seal(plain, aad(row.provider, row.version), current),
+      current.id,
+    ]);
+  }
+  await writeLog(db, { kind: "secret", action: "key.rewrap", outcome: "ok", detail: { count: rows.length, via: "cli" } });
+  return rows.length;
 }

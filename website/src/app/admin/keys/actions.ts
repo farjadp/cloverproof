@@ -16,6 +16,12 @@ export async function keyAction(_prev: KeyState, form: FormData): Promise<KeySta
   const provider = String(form.get("provider") ?? "");
   const op = String(form.get("op") ?? "");
   const now = new Date();
+  if (op === "test") {
+    // Not inside a transaction: the provider call can take up to 10 s.
+    const result = await testKey(db, config, current, provider, meta, now);
+    revalidatePath("/admin/keys");
+    return { result };
+  }
   const run = () => inTransaction(db, (tx): Promise<KeyResult> => {
     switch (op) {
       case "save":
@@ -24,8 +30,6 @@ export async function keyAction(_prev: KeyState, form: FormData): Promise<KeySta
         return revokeKey(tx, current, provider, meta, now);
       case "budget":
         return setBudget(tx, current, provider, String(form.get("budget") ?? ""), meta);
-      case "test":
-        return testKey(tx, config, current, provider, meta, now);
       default:
         return Promise.resolve({ ok: false, error: "Unknown action." });
     }
