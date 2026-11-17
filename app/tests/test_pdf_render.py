@@ -13,6 +13,7 @@ import html
 import io
 import os
 import re
+import time
 from collections.abc import Iterator
 from datetime import UTC, date, datetime
 from typing import Any
@@ -356,7 +357,9 @@ def test_pdf_is_a4(render_pdf: Any) -> None:
 
 
 def test_pdf_hash_is_stable_for_identical_inputs(render_pdf: Any) -> None:
-    first, second = render_pdf(proof()), render_pdf(proof())
+    first = render_pdf(proof())
+    time.sleep(1.1)  # cross a second: font timestamps once leaked into the bytes
+    second = render_pdf(proof())
     assert sha256_hex(first) == sha256_hex(second)
     other = render_pdf(proof(document_id=UUID("33333333-3333-4333-8333-333333333333")))
     assert sha256_hex(other) != sha256_hex(first)

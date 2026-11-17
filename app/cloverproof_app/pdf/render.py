@@ -9,6 +9,7 @@ other URL (network, other files) stops the render.
 from __future__ import annotations
 
 import mimetypes
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
@@ -40,6 +41,14 @@ ALLOWED_ASSETS = frozenset(
 )
 FORM_LABELS = {"N": "N", "NO3-N": "NO3-N", "P": "P", "P2O5": "P2O5", "K": "K", "K2O": "K2O"}
 METHOD_LABELS = {"olsen": "Olsen", "bray-1": "Bray-1", "mehlich-3": "Mehlich-3", "other": "Other"}
+
+
+# fontTools (WeasyPrint's variable-font instancing and woff2 decoding) stamps the embedded
+# font's `head.modified` with the current time unless SOURCE_DATE_EPOCH is set, which made
+# identical inputs give different PDF bytes (and SHA-256) from one second to the next.
+# A fixed value keeps the bytes reproducible. It is process-wide, which is fine: nothing
+# else in the app reads it, and every render wants the same value.
+FONT_TIMESTAMP_EPOCH = "1767225600"  # 2026-01-01T00:00:00Z, arbitrary but fixed
 
 
 class PdfUnavailable(RuntimeError):
@@ -94,6 +103,7 @@ def render_html(proof: ProofInput) -> str:
 
 
 def load_weasyprint() -> ModuleType:
+    os.environ["SOURCE_DATE_EPOCH"] = FONT_TIMESTAMP_EPOCH
     try:
         import weasyprint
     except (ImportError, OSError) as error:
