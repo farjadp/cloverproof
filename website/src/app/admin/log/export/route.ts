@@ -1,10 +1,12 @@
+import { readForm } from "@/lib/admin/form";
 import { readLog, toCsv } from "@/lib/admin/log";
 import { guardAction } from "@/lib/admin/server";
 import { writeLog } from "@/lib/admin/service";
 
 // POST only (CSRF token + fresh step-up); a GET export would be a CSRF-able data leak.
 export async function POST(request: Request): Promise<Response> {
-  const form = await request.formData();
+  const form = await readForm(request);
+  if (!form) return new Response("Bad request.", { status: 400 });
   const guard = await guardAction("log.export", form, { stepUp: true });
   if (!guard.ok) {
     return new Response(guard.error === "STEP_UP" ? "Confirm with a new code first." : guard.error, { status: 403 });
