@@ -30,16 +30,22 @@ export function ipPrefix(raw: string | null | undefined): string | null {
   return null;
 }
 
+const HEADER_NAME = /^[a-z0-9-]{1,64}$/;
+
 /**
- * Client address as seen by Railway's edge: X-Real-IP first (the header Railway documents),
- * else the LAST X-Forwarded-For entry (the one the edge appended). The first XFF entry is
- * client-controlled and never used. Verify on staging with a spoofed header before relying on it.
+ * Client address from the ONE header the operator trusts (env TRUSTED_PROXY_HEADER; A-S2).
+ * Empty by default: then there is no client IP, the per-IP sign-in limit is off and the log
+ * stores no IP prefix. Set it only after a staging probe shows the proxy overwrites a
+ * client-sent value (runbook §5). For X-Forwarded-For only the LAST entry is used (the one
+ * the proxy appended); any other header must hold exactly one IP address.
  */
-export function clientIp(forwardedFor: string | null, realIp: string | null): string | null {
-  const real = realIp?.trim();
-  if (real) return real;
-  const parts = forwardedFor?.split(",").map((x) => x.trim()).filter(Boolean) ?? [];
-  return parts.at(-1) ?? null;
+export function clientIp(trustedHeader: string | null | undefined, get: (name: string) => string | null): string | null {
+  const name = trustedHeader?.trim().toLowerCase();
+  if (!name || !HEADER_NAME.test(name)) return null;
+  const raw = get(name);
+  if (!raw) return null;
+  const value = name === "x-forwarded-for" ? (raw.split(",").at(-1) ?? "").trim() : raw.trim();
+  return isIP(value) ? value : null;
 }
 
 /** Browser family only (no version, OS or device). */

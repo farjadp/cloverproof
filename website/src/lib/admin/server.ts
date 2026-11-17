@@ -52,7 +52,8 @@ export function adminReady(): boolean {
 
 export async function requestMeta(): Promise<RequestMeta> {
   const h = await headers();
-  return { ipPrefix: ipPrefix(clientIp(h.get("x-forwarded-for"), h.get("x-real-ip"))), uaFamily: uaFamily(h.get("user-agent")) };
+  const ip = clientIp(process.env.TRUSTED_PROXY_HEADER, (name) => h.get(name));
+  return { ipPrefix: ipPrefix(ip), uaFamily: uaFamily(h.get("user-agent")) };
 }
 
 export async function sessionToken(): Promise<string | undefined> {
