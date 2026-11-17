@@ -1,4 +1,4 @@
-// Master-key (KEK) rotation for website admin secrets (ADR 0013; runbook §6). Order:
+// Master-key (KEK) rotation for website admin secrets: API keys and two-step sign-in secrets (ADR 0013; runbook §6). Order:
 //   1. Railway: set the NEW key as WEBSITE_SECRETS_KEK + a NEW WEBSITE_SECRETS_KEK_ID, and the old
 //      key and its id as WEBSITE_SECRETS_KEK_PREVIOUS + WEBSITE_SECRETS_KEK_PREVIOUS_ID. Redeploy.
 //   2. In the website service shell: npm run secrets:rewrap
@@ -6,7 +6,7 @@
 // It refuses to commit if anything would stay under the old key.
 import pg from "pg";
 import { kekRingFromEnv } from "../src/lib/admin/kek-env.ts";
-import { rewrapAll } from "../src/lib/admin/keys.ts";
+import { rotateMasterKey } from "../src/lib/admin/rotation.ts";
 
 async function main(): Promise<void> {
   const url = process.env.ADMIN_DATABASE_URL;
@@ -19,9 +19,9 @@ async function main(): Promise<void> {
   await client.connect();
   try {
     await client.query("begin");
-    const n = await rewrapAll(client, { keks, hmacKey: Buffer.alloc(32), siteUrl: "" });
+    const n = await rotateMasterKey(client, { keks, hmacKey: Buffer.alloc(32), siteUrl: "" });
     await client.query("commit");
-    console.log(`Rotation complete: re-sealed ${n} active key(s) under ${keks[0].id}; every active key opens with it.`);
+    console.log(`Rotation complete: re-sealed ${n.keys} API key(s) and ${n.mfa} two-step sign-in secret(s) under ${keks[0].id}; every value opens with it.`);
     console.log("You can now remove WEBSITE_SECRETS_KEK_PREVIOUS and WEBSITE_SECRETS_KEK_PREVIOUS_ID and redeploy.");
   } catch (error) {
     await client.query("rollback");

@@ -8,6 +8,7 @@ export const DETAIL_KEYS = [
   "last4",
   "reason",
   "count",
+  "mfa_count",
   "status",
   "error_name",
   "error_code",

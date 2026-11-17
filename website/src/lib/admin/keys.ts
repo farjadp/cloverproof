@@ -214,13 +214,13 @@ export class RotationIncomplete extends Error {
 }
 
 /**
- * Master-key rotation (ADR 0013): re-seal every active key under the current KEK (config.keks[0]),
- * opening with any configured KEK (current + previous). Revoked keys hold only a tombstone.
- * Run in one transaction (npm run secrets:rewrap). Before returning it checks (D-S2) that no
- * active key is still under another KEK id AND that every active key opens with the current KEK
- * alone; otherwise it throws so the caller rolls back and the previous KEK must not be deleted.
+ * Master-key rotation, API-key half (ADR 0013): re-seal every active key under the current KEK
+ * (config.keks[0]), opening with any configured KEK. Revoked keys hold only a tombstone. Then
+ * checks (D-S2) that no active key is still under another KEK id AND that every active key opens
+ * with the current KEK alone; otherwise throws so the caller rolls back. Use rotateMasterKey()
+ * (rotation.ts), which also covers the TOTP secrets in the same transaction (D-S1).
  */
-export async function rewrapAll(db: Db, config: AdminConfig): Promise<number> {
+export async function rewrapKeys(db: Db, config: AdminConfig): Promise<number> {
   const current = config.keks[0];
   const { rows } = await db.query<{ id: string; provider: Provider; version: number; sealed: Buffer }>(
     "select id, provider, version, sealed from website_secret where revoked_at is null and kek_id <> $1 for update",
@@ -235,7 +235,6 @@ export async function rewrapAll(db: Db, config: AdminConfig): Promise<number> {
     ]);
   }
   await assertAllUnderCurrent(db, current);
-  await writeLog(db, { kind: "secret", action: "key.rewrap", outcome: "ok", detail: { count: rows.length, via: "cli" } });
   return rows.length;
 }
 
