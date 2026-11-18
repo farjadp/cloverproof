@@ -355,7 +355,8 @@ def validated_pack_with_placeholder_rules() -> Pack:
 
 def test_a_placeholder_product_rule_caps_confidence_at_low() -> None:
     pack = validated_pack_with_placeholder_rules()
-    assert recommend(inputs(None), pack).confidence == Confidence.MEDIUM
+    without = recommend(inputs(None), pack)  # already low: timing windows (C6)
+    assert C7 not in [h.rule_id for h in without.confidence_reasons]
     rec = recommend(inputs([product()]), pack)
     assert rec.confidence == Confidence.LOW
     hit = next(h for h in rec.confidence_reasons if h.rule_id == C7)
