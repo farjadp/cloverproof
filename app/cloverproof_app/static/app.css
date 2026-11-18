@@ -132,7 +132,9 @@ main > section, main > div > section { border-top: 1px solid var(--rule); paddin
 
 /* List or main task on the left, the short forms beside it on wide screens. */
 .split { display: grid; gap: var(--s6); }
+h1 + .split, .muted + .split { margin-top: var(--s5); }
 .split > * { min-width: 0; }
+.panel > .hint { margin: 0 0 var(--s4); }
 .split-main > section + section { border-top: 1px solid var(--rule); padding-top: var(--s6); margin-top: var(--s6); }
 .split-side { display: grid; gap: var(--s5); align-content: start; }
 .split-side .panel h2 { font-size: var(--fs-lg); }
@@ -191,7 +193,8 @@ input[type="date"], input[type="number"], select, textarea {
   border: 1px solid var(--border-input); border-radius: var(--radius);
 }
 input[inputmode="decimal"] { font-variant-numeric: tabular-nums; }
-[aria-invalid="true"] { border: 2px solid var(--error); }
+:is(input, select, textarea)[aria-invalid="true"] { border: 2px solid var(--error); }
+.hint code { white-space: nowrap; }
 .suffixed { position: relative; }
 .suffixed input { padding-right: 3.5rem; }
 .suffix { position: absolute; right: var(--s3); top: 50%; transform: translateY(-50%); color: var(--ink-soft); pointer-events: none; }
