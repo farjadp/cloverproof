@@ -232,6 +232,9 @@ SOIL_ESTIMATE_UNITS: dict[str, str] = {
     "silt": "%",
 }
 
+# The licence SoilGrids 2.0 is published under; its attribution must name it.
+SOIL_ESTIMATE_LICENCE = "CC BY 4.0"
+
 # Kept exactly as supplied (licence wording), so it is checked but never stripped.
 VerbatimText = Annotated[str, Field(pattern=r"\S")]
 
@@ -283,7 +286,7 @@ class SoilEstimate(_Frozen):
     """
 
     provider: Literal["SoilGrids"]
-    version: VerbatimText
+    version: Literal["2.0"]
     attribution: VerbatimText
     citation: VerbatimText
     values: list[SoilEstimateValue] = Field(min_length=1)
@@ -293,6 +296,8 @@ class SoilEstimate(_Frozen):
         keys = [(v.property, v.depth) for v in self.values]
         if len(keys) != len(set(keys)):
             raise ValueError("each property may appear only once per depth")
+        if SOIL_ESTIMATE_LICENCE not in self.attribution:
+            raise ValueError(f"attribution must name the licence ({SOIL_ESTIMATE_LICENCE})")
         return self
 
 

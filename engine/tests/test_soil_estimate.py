@@ -185,6 +185,16 @@ def test_provenance_must_not_be_blank(soil_estimate_data, field: str) -> None:
         SoilEstimate.model_validate(soil_estimate_data(**{field: "  "}))
 
 
+def test_only_soilgrids_version_2_0_is_accepted(soil_estimate_data) -> None:
+    with pytest.raises(ValidationError):
+        SoilEstimate.model_validate(soil_estimate_data(version="1.0"))
+
+
+def test_attribution_must_name_the_licence(soil_estimate_data) -> None:
+    with pytest.raises(ValidationError, match=r"CC BY 4\.0"):
+        SoilEstimate.model_validate(soil_estimate_data(attribution="SoilGrids 2.0, ISRIC"))
+
+
 # --- no number changes ---------------------------------------------------------------
 
 
