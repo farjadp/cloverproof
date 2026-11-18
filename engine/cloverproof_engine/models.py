@@ -7,6 +7,7 @@ import math
 from datetime import date
 from enum import StrEnum
 from typing import Annotated, Any, ClassVar, Literal, Self
+from urllib.parse import urlsplit
 
 from pydantic import (
     BaseModel,
@@ -250,11 +251,24 @@ class SoilEstimateValue(_Frozen):
     depth: SoilEstimateDepth
     value: NonNegativeFloat
     unit: str
+    statistic: Literal["mean"]
     q05: NonNegativeFloat | None = None
     q95: NonNegativeFloat | None = None
     uncertainty_ratio: NonNegativeFloat | None = None
+    # The source layer, not the field: no query or fragment, so no coordinates (rule 12).
+    url: str
     resolution_m: PositiveFloat
     retrieved_on: date
+
+    @field_validator("url")
+    @classmethod
+    def _check_url(cls, value: str) -> str:
+        parts = urlsplit(value)
+        if parts.scheme not in {"http", "https"} or not parts.netloc or " " in value:
+            raise ValueError("url must be the web address of the source layer")
+        if parts.query or parts.fragment:
+            raise ValueError("url must not have a query or fragment")
+        return value
 
     @model_validator(mode="after")
     def _check(self) -> Self:

@@ -54,6 +54,63 @@ def test_snapshot_keeps_version_and_retrieval_date(
     assert snapshot["values"][0]["resolution_m"] == 250.0
 
 
+def test_snapshot_keeps_statistic_and_layer_url(
+    make_input, soil_estimate_data, placeholder_pack
+) -> None:
+    inputs = make_input(soil_estimate=soil_estimate_data())
+    value = recommend(inputs, placeholder_pack).input_snapshot["soil_estimate"]["values"][0]
+    assert value["statistic"] == "mean"
+    assert value["url"] == soil_estimate_data()["values"][0]["url"]
+
+
+def test_snapshot_holds_no_coordinates(make_input, soil_estimate_data, placeholder_pack) -> None:
+    inputs = make_input(soil_estimate=soil_estimate_data())
+    snapshot = recommend(inputs, placeholder_pack).input_snapshot["soil_estimate"]
+    for mapping in (snapshot, *snapshot["values"]):
+        assert not {"lon", "lat", "longitude", "latitude"} & set(mapping)
+
+
+@pytest.mark.parametrize("field", ["lon", "lat"])
+def test_coordinates_are_refused(soil_estimate_data, field: str) -> None:
+    with pytest.raises(ValidationError):
+        SoilEstimate.model_validate(soil_estimate_data(**{field: -80.0}))
+    data = soil_estimate_data(values=[_value(soil_estimate_data, **{field: -80.0})])
+    with pytest.raises(ValidationError):
+        SoilEstimate.model_validate(data)
+
+
+@pytest.mark.parametrize("field", ["statistic", "url"])
+def test_statistic_and_url_are_required(soil_estimate_data, field: str) -> None:
+    value = _value(soil_estimate_data)
+    del value[field]
+    with pytest.raises(ValidationError):
+        SoilEstimate.model_validate(soil_estimate_data(values=[value]))
+
+
+@pytest.mark.parametrize("statistic", ["Q0.05", "Q0.95", "uncertainty", "median"])
+def test_only_the_mean_layer_is_accepted(soil_estimate_data, statistic: str) -> None:
+    data = soil_estimate_data(values=[_value(soil_estimate_data, statistic=statistic)])
+    with pytest.raises(ValidationError):
+        SoilEstimate.model_validate(data)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "",
+        "not a url",
+        "ftp://files.isric.org/soilgrids/x.vrt",
+        "https://files.isric.org/soilgrids/x.vrt?lon=-80.1&lat=43.5",
+        "https://files.isric.org/soilgrids/x.vrt#lat=43.5",
+    ],
+)
+def test_layer_url_must_be_a_plain_web_address(soil_estimate_data, url: str) -> None:
+    """A query or fragment could carry the field's coordinates into the snapshot."""
+    data = soil_estimate_data(values=[_value(soil_estimate_data, url=url)])
+    with pytest.raises(ValidationError, match="url"):
+        SoilEstimate.model_validate(data)
+
+
 @pytest.mark.parametrize(
     "name", ["phosphorus", "potassium", "P", "K", "P2O5", "K2O", "olsen_p", "nitrate", "NO3-N"]
 )
@@ -117,6 +174,8 @@ def _percent_value(prop: str = "clay", **overrides: Any) -> dict[str, Any]:
         "depth": "0-5cm",
         "value": 30.0,
         "unit": "%",
+        "statistic": "mean",
+        "url": f"https://files.isric.org/soilgrids/latest/data/{prop}/{prop}_0-5cm_mean.vrt",
         "resolution_m": 250.0,
         "retrieved_on": "2026-11-18",
         **overrides,

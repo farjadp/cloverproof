@@ -137,7 +137,8 @@ def lab_soil_test() -> Callable[..., SoilTest]:
 
 def _soil_estimate_data(**overrides: Any) -> dict[str, Any]:
     """SYNTHETIC estimate in the input shape. Values are invented, not read from SoilGrids."""
-    common = {"resolution_m": 250.0, "retrieved_on": "2026-11-18"}
+    common = {"statistic": "mean", "resolution_m": 250.0, "retrieved_on": "2026-11-18"}
+    base = "https://files.isric.org/soilgrids/latest/data"
     data: dict[str, Any] = {
         "provider": "SoilGrids",
         "version": "2.0",
@@ -152,9 +153,17 @@ def _soil_estimate_data(**overrides: Any) -> dict[str, Any]:
                 "q05": 5.8,
                 "q95": 7.2,
                 "uncertainty_ratio": 0.2,
+                "url": f"{base}/phh2o/phh2o_0-5cm_mean.vrt",
                 **common,
             },
-            {"property": "nitrogen", "depth": "0-5cm", "value": 1500.0, "unit": "mg/kg", **common},
+            {
+                "property": "nitrogen",
+                "depth": "0-5cm",
+                "value": 1500.0,
+                "unit": "mg/kg",
+                "url": f"{base}/nitrogen/nitrogen_0-5cm_mean.vrt",
+                **common,
+            },
         ],
     }
     data.update(overrides)
