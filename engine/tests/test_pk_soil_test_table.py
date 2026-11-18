@@ -14,7 +14,7 @@ from cloverproof_engine import recommend, units
 from cloverproof_engine.confidence import Confidence
 from cloverproof_engine.golden import ExpectedCase, compare, parse_golden_case
 from cloverproof_engine.loaders import load_golden_case, load_pack
-from cloverproof_engine.methods import get_method
+from cloverproof_engine.methods import MissingInputError, OutOfScopeError, get_method
 from cloverproof_engine.models import NutrientForm, RecommendationInput, SoilTest
 from cloverproof_engine.pack import Pack, parse_pack
 from cloverproof_engine.results import ExplainedNumber, PkRecommended, PkRefused, Recommendation
@@ -320,6 +320,18 @@ def test_note_text_quotes_no_rate(pack: Pack) -> None:
     assert "kg P2O5" not in text
     assert "kg K2O" not in text
     assert "the agronomist decides P and K" in text
+
+
+def test_manure_applied_gives_no_p_or_k_result(pack: Pack) -> None:
+    inputs = _input(_soil(OLSEN_P, ACETATE_K)).model_copy(update={"manure_applied": True})
+    with pytest.raises(OutOfScopeError, match="manure"):
+        recommend(inputs, pack)
+
+
+def test_manure_not_answered_gives_no_p_or_k_result(pack: Pack) -> None:
+    inputs = _input(_soil(OLSEN_P, ACETATE_K)).model_copy(update={"manure_applied": None})
+    with pytest.raises(MissingInputError, match="manure_applied"):
+        recommend(inputs, pack)
 
 
 NITROGEN_ONLY_NOTE = (

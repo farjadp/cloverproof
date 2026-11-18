@@ -68,10 +68,9 @@
     {% endif %}
     {% if needs.manure %}
     <div class="field" role="radiogroup" aria-labelledby="manure_applied-label" id="manure_applied">
-      <p class="label" id="manure_applied-label">Manure applied for this crop?</p>
+      <p class="label" id="manure_applied-label">Manure or other organic amendment applied for this crop?</p>
       <label class="choice"><input type="radio" name="manure_applied" value="no"{% if f.manure_applied == "no" %} checked{% endif %}> No</label>
       <label class="choice"><input type="radio" name="manure_applied" value="yes"{% if f.manure_applied == "yes" %} checked{% endif %}> Yes</label>
-      <p class="hint">Includes other organic amendments.</p>
       {{ error(errors, "manure_applied") }}
     </div>
     {% endif %}

@@ -544,6 +544,8 @@ def edited_document(doc: Mapping[str, Any], edit: EditParsed, reason: str) -> di
     typed or rescaled, loses its product outcome: it was worked out from the old rate.
     """
     new = copy.deepcopy(dict(doc))
+    # Unreviewed engine results, not plan lines: a reviewed version does not carry them.
+    new.pop("phosphorus_potassium_rates", None)
     nitrogen = new["nitrogen"]
     area = float(new["input_snapshot"]["area_ha"])
     note = f"Set by reviewer: {reason.strip()}"

@@ -219,3 +219,42 @@ def test_ca_on_v2_lab_test_plan_page_covers_nitrogen_only(
     assert PK_RATE_TEXT.search(approved) is None
     assert "the agronomist decides" not in approved
     assert "no P or K decision is recorded in this plan" in approved
+
+
+def test_edited_ca_on_v2_plan_drops_p_and_k_rates(db: psycopg.Connection, org_a: Org) -> None:
+    client, csrf = ca_on_client(db, org_a.agronomist, CA_ON_V2)
+    plan_url = post_v2_lab_plan(client, csrf)
+    rec = re.search(  # type: ignore[union-attr]
+        r'name="recommendation_id" value="([^"]+)"', client.get(plan_url).text
+    ).group(1)
+    r = client.post(
+        plan_url + "/edit",
+        data={"csrf_token": csrf, "recommendation_id": rec, "n_rate": "100",
+              "split_rate": ["100"], "reason": "Local trial history"},
+    )  # fmt: skip
+    assert r.status_code == 303, r.text
+    page = client.get(plan_url).text
+    final = re.search(r'name="recommendation_id" value="([^"]+)"', page).group(1)  # type: ignore[union-attr]
+    assert final != rec
+    r = client.post(
+        plan_url + "/review",
+        data={"csrf_token": csrf, "recommendation_id": final, "decision": "approve"},
+    )
+    assert r.status_code == 303, r.text
+    assert PK_RATE_TEXT.search(client.get(plan_url).text) is None
+    stored = dict(
+        db.execute(
+            "select kind::text, result ? 'phosphorus_potassium_rates' from recommendation"
+            " where crop_plan_id = %s",
+            (UUID(plan_url.rsplit("/", 1)[1]),),
+        ).fetchall()
+    )
+    assert stored == {"engine": True, "agronomist": False}
+
+
+def test_plan_form_asks_about_manure_and_other_organic_amendments(
+    db: psycopg.Connection, org_a: Org
+) -> None:
+    client, csrf = ca_on_client(db, org_a.agronomist, CA_ON_V2)
+    form = client.get(new_field(client, csrf) + "/plans/new").text
+    assert "Manure or other organic amendment applied for this crop?" in form

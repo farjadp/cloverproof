@@ -21,6 +21,7 @@ from uuid import UUID
 
 import pytest
 
+from cloverproof_app import planning
 from cloverproof_app.db.migrate import REPO_ROOT
 from cloverproof_app.pdf import (
     AGRONOMIST_APPROVED,
@@ -747,3 +748,16 @@ def test_ca_on_v2_lab_test_proofs_cover_nitrogen_only(
     assert "no P or K decision is recorded in this plan" in agronomist
     for text in (superadmin, draft):
         assert "an agronomist must decide P and K" in text
+
+
+def test_edited_ca_on_v2_document_renders_no_p_or_k_rate() -> None:
+    doc = ca_on_v2_doc(OLSEN_P, ACETATE_K)
+    rate = float(doc["nitrogen"]["rate"]["value"]) + 5
+    reason = "Local trial history"
+    edit, errors = planning.parse_edit(doc, f"{rate:g}", [f"{rate:g}"], reason)
+    assert errors == {} and edit is not None
+    edited = planning.edited_document(doc, edit, reason)
+    assert "phosphorus_potassium_rates" not in edited
+    for text in (proof_text(edited), proof_text(edited, SUPERADMIN)):
+        assert "This plan covers nitrogen only." in text
+        assert PK_RATE_TEXT.search(text) is None
