@@ -292,19 +292,113 @@ def test_update_refreshes_updated_at(db: psycopg.Connection, actors: Actors) -> 
     assert row == (True,)
 
 
-@pytest.mark.parametrize("role", [None, "cp_admin"])
-def test_nobody_can_delete(db: psycopg.Connection, actors: Actors, role: str | None) -> None:
+# --- Discarding a draft (migration 0030) ---------------------------------------------------
+
+
+def remove(db: psycopg.Connection, product_id: UUID) -> int:
+    return db.execute("delete from fertilizer_product where id = %s", (product_id,)).rowcount
+
+
+def back_to_draft(db: psycopg.Connection, product_id: UUID) -> int:
+    cur = db.execute("update fertilizer_product set status = 'draft' where id = %s", (product_id,))
+    return cur.rowcount
+
+
+def stored_status(db: psycopg.Connection, product_id: UUID) -> str | None:
+    with as_owner(db):
+        row = db.execute(
+            "select status from fertilizer_product where id = %s", (product_id,)
+        ).fetchone()
+    return row[0] if row else None
+
+
+def test_superadmin_deletes_a_draft_and_it_is_gone(db: psycopg.Connection, actors: Actors) -> None:
     draft = seed(db, actors, "draft")
     use_context(db, actors.superadmin, None, "superadmin")
+    assert remove(db, draft) == 1
+    assert stored_status(db, draft) is None
 
-    def delete() -> None:
-        db.execute("delete from fertilizer_product where id = %s", (draft,))
 
-    if role is None:
-        denied(db, delete)
+def test_cli_deletes_a_draft(db: psycopg.Connection, actors: Actors) -> None:
+    without_context = seed(db, actors, "draft")
+    with_context = seed(db, actors, "draft")
+    use_context(db, None)
+    with as_role(db, "cp_admin"):
+        assert remove(db, without_context) == 1
+    use_context(db, actors.superadmin, None, "superadmin")
+    with as_role(db, "cp_admin"):
+        assert remove(db, with_context) == 1
+    assert stored_status(db, without_context) is None
+    assert stored_status(db, with_context) is None
+
+
+@pytest.mark.parametrize("db_role", [None, "cp_admin"])
+@pytest.mark.parametrize("superadmin_context", [True, False])
+def test_active_product_cannot_be_deleted_or_changed(
+    db: psycopg.Connection, actors: Actors, db_role: str | None, superadmin_context: bool
+) -> None:
+    active = seed(db, actors, "active")
+    if superadmin_context:
+        use_context(db, actors.superadmin, None, "superadmin")
     else:
-        with as_role(db, role):
-            denied(db, delete)
+        use_context(db, None)
+    with as_role(db, db_role or "cp_app"):
+        assert remove(db, active) == 0
+        assert rename(db, active) == 0
+        assert back_to_draft(db, active) == 0
+    assert stored_status(db, active) == "active"
+
+
+@pytest.mark.parametrize("role", ORG_ROLES)
+@pytest.mark.parametrize("claims_superadmin", [False, True])
+def test_org_roles_cannot_delete(
+    db: psycopg.Connection, actors: Actors, role: str, claims_superadmin: bool
+) -> None:
+    draft = seed(db, actors, "draft")
+    active = seed(db, actors, "active")
+    use_context(db, actors.roles[role], actors.org.id, "superadmin" if claims_superadmin else None)
+    assert remove(db, draft) == 0
+    assert remove(db, active) == 0
+    assert stored_status(db, draft) == "draft"
+
+
+@pytest.mark.parametrize("context", ["service", "disabled", "unknown", "none", "not_claimed"])
+def test_other_contexts_cannot_delete(db: psycopg.Connection, actors: Actors, context: str) -> None:
+    draft = seed(db, actors, "draft")
+    if context == "service":
+        use_context(db, actors.service, actors.org.id, "superadmin")
+    elif context == "disabled":
+        with as_owner(db):
+            db.execute(
+                "update app_user set disabled_at = now() where id = %s", (actors.superadmin,)
+            )
+        use_context(db, actors.superadmin, None, "superadmin")
+    elif context == "unknown":
+        use_context(db, uuid4(), None, "superadmin")
+    elif context == "not_claimed":
+        use_context(db, actors.superadmin)
+    else:
+        use_context(db, None)
+    assert remove(db, draft) == 0
+    assert stored_status(db, draft) == "draft"
+
+
+def test_cli_with_a_service_context_cannot_delete(db: psycopg.Connection, actors: Actors) -> None:
+    draft = seed(db, actors, "draft")
+    use_context(db, actors.service, actors.org.id)
+    with as_role(db, "cp_admin"):
+        assert remove(db, draft) == 0
+    assert stored_status(db, draft) == "draft"
+
+
+def test_nothing_references_the_catalog_yet(db: psycopg.Connection) -> None:
+    """Discarding is safe only while this holds. A future foreign key makes the delete fail,
+    and the page then refuses it (test_products_web.py)."""
+    row = db.execute(
+        "select count(*) from pg_constraint"
+        " where contype = 'f' and confrelid = 'fertilizer_product'::regclass"
+    ).fetchone()
+    assert row == (0,)
 
 
 # --- Writes: denied -----------------------------------------------------------------------
