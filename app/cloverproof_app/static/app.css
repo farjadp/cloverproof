@@ -217,6 +217,15 @@ main.login { max-width: var(--content); }
 .org-list li + li { margin-top: var(--s2); }
 .org-list button { width: 100%; justify-content: flex-start; }
 
+/* One N line's timing and product outcome, under its numbers. */
+.line-detail { display: grid; gap: var(--s1); }
+.line-detail p, .line-detail .explained { margin: 0; }
+.line-detail .line-fact { margin-top: var(--s2); }
+.line-detail > .why { font-size: var(--fs-sm); color: var(--ink-soft); }
+.line-label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); margin-right: var(--s1); }
+.line-warning { font-size: var(--fs-sm); font-weight: 600; color: var(--warn); }
+.line-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--s2) var(--s4); }
+
 /* Small screens: tables become stacked rows, columns stack. */
 @media (max-width: 720px) {
   main { padding: var(--s4); }

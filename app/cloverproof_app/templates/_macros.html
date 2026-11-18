@@ -18,14 +18,64 @@
 </div>
 {%- endmacro %}
 
-{% macro share(n) -%}
+{# Same format as the engine's explanations (12.5%, 40%). `whole`: a document from engine
+   0.2/0.3, which keeps the whole percents it has always been shown with. #}
+{% macro share_value(n, whole=false) -%}
+{% if whole %}{{ num(n.value * 100, 0) }}%{% else %}{{ split_text.share_text(n.value) }}{% endif %}
+{%- endmacro %}
+
+{% macro share(n, whole=false) -%}
 <div class="explained">
   {%- if n.explanation %}
-  <span class="value">{{ num(n.value * 100, 0) }}%</span>{% if n.uses_placeholder %} {{ placeholder() }}{% endif %}
+  <span class="value">{{ share_value(n, whole) }}</span>{% if n.uses_placeholder %} {{ placeholder() }}{% endif %}
   <p class="why">{{ n.explanation }}</p>
   {%- else %}
   <span class="value">—</span>
   <p class="why">No explanation recorded</p>
+  {%- endif %}
+</div>
+{%- endmacro %}
+
+{# A label grade: printed as on the label (21.25 stays 21.25), with its explanation. #}
+{% macro grade_number(g) -%}
+<div class="explained">
+  <span class="value">{{ "%g" | format(g.value) }} {{ g.unit }}</span>
+  <p class="why">{{ g.explanation or "No explanation recorded" }}</p>
+</div>
+{%- endmacro %}
+
+{# One N line's timing and product outcome, under its numbers. Old documents have none. #}
+{% macro line_detail(s) -%}
+{% set m = split_text.outcome(s) %}
+<div class="line-detail">
+  {%- if not split_text.is_old_line(s) %}
+  {% set w = s.timing_window %}
+  <p class="line-fact"><span class="line-label">Timing</span> {% if w %}{{ w.label }}{% if w.status == "PLACEHOLDER" %} {{ placeholder() }}{% endif %}{% else %}{{ split_text.NO_TIMING_SET }}{% endif %}</p>
+  {%- endif %}
+  {%- if s.explanation %}
+  <p class="why">{{ s.explanation }}</p>
+  {%- endif %}
+  {%- if m and m.matched %}
+  <p class="line-fact"><span class="line-label">Product</span> <strong>{{ m.product_name }}</strong> ({{ m.form }})</p>
+  {%- if split_text.selected_by_placeholder_rule(m) %}
+  <p class="line-warning">{{ split_text.PLACEHOLDER_RULE }}</p>
+  {%- endif %}
+  <p class="why">{{ m.explanation }}</p>
+  <div class="line-numbers">
+    {{ explained(m.rate) }}
+    {%- if m.volume_rate %}{{ explained(m.volume_rate) }}{% endif %}
+    {%- if m.sulphur_rate %}{{ explained(m.sulphur_rate) }}{% endif %}
+  </div>
+  <p class="why">Grade source: {{ m.grade_source }}</p>
+  <div class="line-numbers">
+    {{ grade_number(m.grade.n) }}{{ grade_number(m.grade.p2o5) }}{{ grade_number(m.grade.k2o) }}{{ grade_number(m.grade.s) }}
+  </div>
+  {%- elif m %}
+  <p class="line-fact"><span class="line-label">Product</span> {{ split_text.not_matched_title(m) }}</p>
+  <p class="why">{{ m.explanation }}</p>
+  {%- if m.fitting_products %}
+  <p class="why">{{ split_text.UNCHOSEN_PRODUCTS }}: {{ m.fitting_products | join(", ") }}</p>
+  {%- endif %}
   {%- endif %}
 </div>
 {%- endmacro %}
