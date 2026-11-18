@@ -103,8 +103,13 @@
     <p class="notice-title">Get a soil test for P and K</p>
     <p>This plan covers nitrogen only. Send a sample to a lab{% if snap.soil_test is not none %} (a lab test with P or K values){% endif %} to get phosphorus and potassium advice.</p>
   </div>
+  {% elif doc.phosphorus_potassium.code in ("PK_FROM_LAB_TEST", "PK_NOT_CALCULATED_LAB_TEST") %}
+  <div class="notice info">
+    <p class="notice-title">P and K are not part of this plan</p>
+    <p>This plan covers nitrogen only. It has no phosphorus or potassium rate.</p>
+  </div>
   {% endif %}
-  <p class="measure">{{ doc.phosphorus_potassium.text }}</p>
+  <p class="measure">{{ planning.pk_note_text(doc.phosphorus_potassium.text, v.final_review) }}</p>
   {% if v.soil %}
   <p class="muted">Soil test: {{ v.soil.sample_date }}, {{ v.soil.depth_top_cm | float }}–{{ v.soil.depth_bottom_cm | float }} cm, {{ v.soil.source }}{% if v.soil.lab %} ({{ v.soil.lab }}){% endif %}.
   {% for sv in snap.soil_test["values"] %}{{ planning.FORM_LABELS[sv.form] }} {{ "%g" | format(sv.value) }} {{ sv.unit }} ({{ planning.METHOD_LABELS[sv.extraction_method] }}{% if sv.extraction_method_detail %}: {{ sv.extraction_method_detail }}{% endif %}){% if not loop.last %}; {% endif %}{% endfor %}</p>

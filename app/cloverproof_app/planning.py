@@ -17,6 +17,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from cloverproof_app import split_display
 from cloverproof_engine import explain, recommend
 from cloverproof_engine.methods import MissingInputError, OutOfScopeError
 from cloverproof_engine.methods._shared import (
@@ -525,6 +526,13 @@ def parse_edit(
     if errors:
         return None, errors
     return EditParsed(rate, final_splits, changed, typed), {}
+
+
+def pk_note_text(text: str, final_review: Any | None) -> str:
+    """The P/K note for the plan page, with the same wording rules as the proof."""
+    if final_review is not None and final_review.review_kind == "agronomist_approved":
+        return split_display.without_line_choice_claim(text)
+    return split_display.without_agronomist_claim(text)
 
 
 def edited_document(doc: Mapping[str, Any], edit: EditParsed, reason: str) -> dict[str, Any]:

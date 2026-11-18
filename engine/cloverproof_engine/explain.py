@@ -457,26 +457,29 @@ def _with_reasons(text: str, reasons: Sequence[str]) -> str:
 def pk_from_lab_test(refusals: Sequence[str]) -> str:
     """Quotes no rate: this text stays true when a reviewer changes the plan's numbers."""
     return _with_reasons(
-        "The engine worked out P and K from the lab soil test, using the pack table for each "
-        "value's extraction method. These results are not plan lines yet: the agronomist "
-        "decides P and K from the soil test.",
+        "This plan covers nitrogen only: it has no P or K rate. The engine checked the lab "
+        "soil test against the pack's P and K tables, but those results are unreviewed, are "
+        "not shown and are not part of this plan; the agronomist decides P and K from the "
+        "soil test.",
         refusals,
     )
 
 
 def pk_lab_test_no_rate(refusals: Sequence[str]) -> str:
     return _with_reasons(
-        "The engine gives no P or K rate from this lab soil test: "
-        "the agronomist decides P and K from the soil test.",
+        "This plan covers nitrogen only: it has no P or K rate. No value from this lab soil "
+        "test could be checked against the pack's P and K tables; the agronomist decides P "
+        "and K from the soil test.",
         refusals,
     )
 
 
-_PK_NAME = {"P": "phosphorus (P)", "K": "potassium (K)"}
+_PK_NAME = {"P": "Phosphorus (P)", "K": "Potassium (K)"}
 
 
 def _pk_no_rate(nutrient: str) -> str:
-    return f"No {_PK_NAME[nutrient]} rate:"
+    """Says nothing about the other nutrient: no P or K rate is shown in a plan."""
+    return f"{_PK_NAME[nutrient]} was not checked against a pack table:"
 
 
 def _methods(methods: Sequence[str]) -> str:

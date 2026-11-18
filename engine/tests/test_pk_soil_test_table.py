@@ -322,6 +322,36 @@ def test_note_text_quotes_no_rate(pack: Pack) -> None:
     assert "the agronomist decides P and K" in text
 
 
+NITROGEN_ONLY_NOTE = (
+    "This plan covers nitrogen only: it has no P or K rate. The engine checked the lab soil "
+    "test against the pack's P and K tables, but those results are unreviewed, are not shown "
+    "and are not part of this plan; the agronomist decides P and K from the soil test."
+)
+
+
+def test_note_says_the_plan_is_nitrogen_only(pack: Pack) -> None:
+    assert _run(pack, OLSEN_P, ACETATE_K).phosphorus_potassium.text == NITROGEN_ONLY_NOTE
+
+
+def test_a_refusal_does_not_imply_the_other_nutrient_has_a_shown_rate(pack: Pack) -> None:
+    note = _run(pack, OLSEN_P, {**ACETATE_K, "extraction_method": None}).phosphorus_potassium
+    assert note.code == "PK_FROM_LAB_TEST"
+    assert note.text.startswith(NITROGEN_ONLY_NOTE)
+    assert "Potassium (K) was not checked against a pack table:" in note.text
+    assert "No potassium" not in note.text and "No phosphorus" not in note.text
+
+
+def test_note_without_any_table_result_is_nitrogen_only_too(pack: Pack) -> None:
+    note = _run(
+        pack,
+        {**OLSEN_P, "extraction_method": None},
+        {**ACETATE_K, "extraction_method": None},
+    ).phosphorus_potassium
+    assert note.code == "PK_NOT_CALCULATED_LAB_TEST"
+    assert note.text.startswith("This plan covers nitrogen only: it has no P or K rate.")
+    assert "the agronomist decides P and K from the soil test" in note.text
+
+
 def test_a_pack_without_pk_config_keeps_the_old_note(
     lab_soil_test, make_input, placeholder_pack
 ) -> None:

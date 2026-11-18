@@ -562,7 +562,8 @@ def test_only_an_agronomist_approval_may_name_the_agronomist(tmp_path: Any) -> N
     assert "an agronomist must confirm" in draft_text(matched)
     lab = engine_doc()
     assert "the agronomist decides P and K" in lab["phosphorus_potassium"]["text"]
-    assert "the agronomist decides P and K" in proof_text(lab)
+    assert "no P or K decision is recorded in this plan" in proof_text(lab)
+    assert "the agronomist decides P and K" not in proof_text(lab)
     assert "an agronomist must decide P and K" in proof_text(lab, SUPERADMIN)
     assert "an agronomist must decide P and K" in draft_text(lab)
 
@@ -678,3 +679,71 @@ def test_pdf_text_explanations_banner_wording(render_pdf: Any) -> None:
                    "not yet validated"):  # fmt: skip
         assert compact(needle) in flat, needle
     assert_wording(text)
+
+
+# --- ca-on v2: P and K checked against the tables, not part of the plan ------------------
+
+PK_RATE_TEXT = re.compile(r"kg\s*(P2O5|K2O|P₂O₅|K₂O|P\b|K\b)")
+OLSEN_P = {"form": "P", "value": 7, "unit": "mg/kg", "extraction_method": "olsen"}
+ACETATE_K = {"form": "K", "value": 40, "unit": "ppm", "extraction_method": "ammonium-acetate"}
+
+
+def ca_on_v2_doc(*values: dict[str, Any]) -> dict[str, Any]:
+    inputs = RecommendationInput.model_validate(
+        {
+            "crop": "wheat",
+            "target_yield_t_ha": 6,
+            "previous_crop": "corn",
+            "area_ha": 12.5,
+            "plan_date": "2027-03-01",
+            "n_price": {
+                "n_price_per_kg_n": 1.5,
+                "grain_price_per_kg": 0.25,
+                "currency": "CAD",
+                "source": "TEST FIXTURE",
+                "price_date": "2027-01-20",
+            },
+            "wheat_class": "pastry",
+            "manure_applied": False,
+            "soil_test": {
+                "sample_date": "2026-10-01",
+                "depth_top_cm": 0,
+                "depth_bottom_cm": 15,
+                "source": "lab",
+                "lab": "Test Lab",
+                "values": list(values),
+            },
+        }
+    )
+    pack = load_pack(REPO_ROOT / "packs" / "ca-on" / "v2.yaml")
+    return recommend(inputs, pack).model_dump(mode="json")
+
+
+@pytest.mark.parametrize(
+    ("values", "code"),
+    [
+        ((OLSEN_P, ACETATE_K), "PK_FROM_LAB_TEST"),
+        ((OLSEN_P, {**ACETATE_K, "extraction_method": "mehlich-3"}), "PK_FROM_LAB_TEST"),
+        (
+            ({**OLSEN_P, "extraction_method": "bray-1"},
+             {**ACETATE_K, "extraction_method": "mehlich-3"}),
+            "PK_NOT_CALCULATED_LAB_TEST",
+        ),
+    ],
+)  # fmt: skip
+def test_ca_on_v2_lab_test_proofs_cover_nitrogen_only(
+    values: tuple[dict[str, Any], ...], code: str
+) -> None:
+    doc = ca_on_v2_doc(*values)
+    assert doc["phosphorus_potassium"]["code"] == code
+    agronomist = proof_text(doc)
+    superadmin = proof_text(doc, SUPERADMIN)
+    draft = draft_text(doc)
+    for text in (agronomist, superadmin, draft):
+        assert "This plan covers nitrogen only." in text
+        assert NO_SOIL_TEST not in text  # the plan has a lab test
+        assert PK_RATE_TEXT.search(text) is None, PK_RATE_TEXT.search(text)
+        assert "the agronomist decides" not in text
+    assert "no P or K decision is recorded in this plan" in agronomist
+    for text in (superadmin, draft):
+        assert "an agronomist must decide P and K" in text

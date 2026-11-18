@@ -5,6 +5,7 @@ Engine refusals are form errors (422), never a 500, and nothing is saved."""
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from uuid import UUID
 
 import psycopg
@@ -20,13 +21,17 @@ from .test_web_auth import build_client, email_of, login, page_csrf, with_passwo
 pytestmark = pytest.mark.db
 
 CA_ON = REPO_ROOT / "packs" / "ca-on" / "v1.yaml"
+CA_ON_V2 = REPO_ROOT / "packs" / "ca-on" / "v2.yaml"
+PK_RATE_TEXT = re.compile(r"kg\s*(P2O5|K2O|P₂O₅|K₂O|P\b|K\b)")
 PACK_FIELDS = ("wheat_class", "manure_applied", "n_price", "grain_price", "price_source",
                "price_date")  # fmt: skip
 
 
-def ca_on_client(db: psycopg.Connection, user_id: UUID) -> tuple[TestClient, str]:
+def ca_on_client(
+    db: psycopg.Connection, user_id: UUID, pack: Path = CA_ON
+) -> tuple[TestClient, str]:
     with_password(db, user_id)
-    client = build_client(db, pack_path=str(CA_ON))
+    client = build_client(db, pack_path=str(pack))
     assert login(client, email_of(db, user_id)).status_code == 303
     return client, page_csrf(client)
 
@@ -178,3 +183,39 @@ def test_previous_crop_soybean_states_zero_credit(db: psycopg.Connection, org_a:
     assert "Soybean" in credit["explanation"]
     page = client.get(plan_url).text
     assert "Soybean" in page
+
+
+def post_v2_lab_plan(client: TestClient, csrf: str) -> str:
+    r = post_plan(
+        client, csrf, new_field(client, csrf), has_soil="yes", sample_date="2026-10-01",
+        depth_top="0", depth_bottom="15", source="lab", lab="Test Lab",
+        v_form=["P", "K", ""], v_value=["7", "40", ""], v_unit=["mg/kg", "ppm", "mg/kg"],
+        v_method=["olsen", "ammonium-acetate", ""], v_detail=["", "", ""],
+    )  # fmt: skip
+    assert r.status_code == 303, r.text
+    return str(r.headers["location"])
+
+
+def test_ca_on_v2_lab_test_plan_page_covers_nitrogen_only(
+    db: psycopg.Connection, org_a: Org
+) -> None:
+    client, csrf = ca_on_client(db, org_a.agronomist, CA_ON_V2)
+    plan_url = post_v2_lab_plan(client, csrf)
+    page = client.get(plan_url).text
+    assert "This plan covers nitrogen only." in page
+    assert "Get a soil test for P and K" not in page
+    assert PK_RATE_TEXT.search(page) is None
+    assert "the agronomist decides" not in page
+    assert "an agronomist must decide P and K" in page
+
+    rec = re.search(r'name="recommendation_id" value="([^"]+)"', page).group(1)  # type: ignore[union-attr]
+    r = client.post(
+        plan_url + "/review",
+        data={"csrf_token": csrf, "recommendation_id": rec, "decision": "approve"},
+    )
+    assert r.status_code == 303, r.text
+    approved = client.get(plan_url).text
+    assert "This plan covers nitrogen only." in approved
+    assert PK_RATE_TEXT.search(approved) is None
+    assert "the agronomist decides" not in approved
+    assert "no P or K decision is recorded in this plan" in approved

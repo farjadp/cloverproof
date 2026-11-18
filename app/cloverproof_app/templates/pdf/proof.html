@@ -236,6 +236,11 @@
     <p class="title">{{ no_soil_test }}</p>
     <p>This plan covers nitrogen only. Send a sample to a lab to get phosphorus and potassium advice.</p>
   </div>
+  {% elif doc.phosphorus_potassium.code in ("PK_FROM_LAB_TEST", "PK_NOT_CALCULATED_LAB_TEST") %}
+  <div class="notice">
+    <p class="title">P and K are not part of this plan</p>
+    <p>This plan covers nitrogen only. It has no phosphorus or potassium rate.</p>
+  </div>
   {% endif %}
   <p>{{ p.product_text(doc.phosphorus_potassium.text) }}</p>
 </section>
