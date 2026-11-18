@@ -1,6 +1,6 @@
 # Runbook — move to the shared PostGIS database on Railway
 
-Status: NOT RUN. Each step needs the named owner; the website switch needs an agreed window with `cp-website`.
+Status: NOT RUN. Each step needs the named owner; the website switch (step 3) needs Farjad Iranmehr's go and `cp-website` on hand; no write pause is needed.
 Decisions: ADR 0002, ADR 0004, ADR 0007 (database roles), `docs/plans/webapp-v1.md` §5. Never commit passwords or URLs with credentials.
 
 **The superuser URL is never a variable of the app or the website service.** It is used only by an operator to run migrations (step 2). Each service logs in with its own least-privilege login (ADR 0007):
@@ -43,19 +43,37 @@ Service variables (Railway reference syntax; password variables set by hand, nev
 - App service: `DATABASE_URL=postgresql://cp_app_login:${{CP_APP_DB_PASSWORD}}@${{postgis.RAILWAY_PRIVATE_DOMAIN}}:5432/${{postgis.POSTGRES_DB}}`.
 - Admin CLI: not a service. Run `make user-create` from the operator's machine (TCP proxy) or `railway run`, with `DATABASE_URL` for `cp_admin_login` set in that shell only. Adding or removing `agronomist`/`owner` is done only here.
 
-## 3. Move `pilot_request` (with `cp-website`, in an agreed window of a few minutes)
-1. Pause website writes (maintenance flag or accept a short failure window).
-2. `pg_dump --data-only --table=pilot_request <old URL> | psql <postgis URL>` (table already exists from 0001).
-3. Check row counts match on both sides.
+## 3. Switch the website, then copy `pilot_request` (`cp-website`; rehearsed locally 2026-11-17)
+Order: **switch first, copy after.** Once the website points at `postgis`, the old database gets no more writes, so no write pause is needed and no request is lost. Rows the website writes to `postgis` after the switch are kept: the copy skips existing ids.
 
-## 4. Switch the website (`cp-website`)
-Precondition: `cp_website_login` exists (step 2). Never point the website at `${{postgis.DATABASE_URL}}` (that is the superuser).
-1. Website `DATABASE_URL` → `postgresql://cp_website_login:${{CP_WEBSITE_DB_PASSWORD}}@${{postgis.RAILWAY_PRIVATE_DOMAIN}}:5432/${{postgis.POSTGRES_DB}}`.
-   The form's insert must not use `RETURNING` (the role has no SELECT).
-2. Remove the website pre-deploy `npm run db:migrate`; `db/migrations/` is now the single source and the Python runner applies it.
-   (If left in place it is harmless: it only sees `website/db/migrations/0001`, already recorded in `schema_migrations`.)
-3. Delete `website/db/migrations/` in a later PR, once the website no longer runs it.
-4. Deploy, submit a test pilot request, confirm it lands in `postgis` (check as the operator; the website login cannot read the table).
+### 3a. Switch the website
+Precondition: `cp_website_login` exists (step 2). Never point the website at `${{postgis.DATABASE_URL}}` or `DATABASE_PRIVATE_URL` (both are the superuser).
+1. Write down the website's current `DATABASE_URL` value (needed for rollback).
+2. **Remove the website pre-deploy command `npm run db:migrate`** (Settings → Deploy) before or together with the variable change. It is NOT harmless: its first statement is `create table if not exists schema_migrations`, and `cp_website` has no CREATE on schema `public`, so it fails with `permission denied for schema public` (42501) and Railway fails the deploy. `db/migrations/` is the single source; the operator applies it with the Python runner (step 2).
+3. Website variables: `CP_WEBSITE_DB_PASSWORD` (sealed) and
+   `DATABASE_URL=postgresql://cp_website_login:${{CP_WEBSITE_DB_PASSWORD}}@${{postgis.RAILWAY_PRIVATE_DOMAIN}}:5432/railway`.
+   No other variable changes. The form's insert has no `RETURNING` (the role has no SELECT).
+4. Deploy, then run the smoke tests in step 4.
+
+### 3b. Copy the old rows
+In a shell that reaches both databases (e.g. `railway ssh` into `postgis`, where `DATABASE_URL` is that service's own superuser URL), with credentials only in that shell:
+```sh
+OLD_DB_URL='<old Postgres private URL>' NEW_DB_URL="$DATABASE_URL" sh ops/copy-pilot-requests.sh
+```
+(Copy the script into the shell first if the repo is not there; it needs only `psql`.) It reads the old database only and writes `postgis` in one transaction, copying all 13 columns (incl. `status`, `deleted_at`). It is idempotent (`ON CONFLICT (id) DO NOTHING`).
+**Verify:** it prints `old|N|<md5>`, `staged|N|<md5>`, `landed|N|<md5>` — all three equal — then `copy: committed`. On any difference it prints `mismatch: rolled back` and writes nothing.
+
+### 3c. Rollback
+1. Put the old `DATABASE_URL` back and restore the pre-deploy command, then redeploy.
+2. Copy requests received on `postgis` since the switch back to the old database: run the same script with the URLs swapped (`OLD_DB_URL` = postgis, `NEW_DB_URL` = old).
+
+## 4. Smoke tests after the switch (`cp-website` + operator)
+1. Health check `/en` returns 200, and the deploy log shows no pre-deploy step.
+2. Submit the pilot form on `/en` and on one other locale (e.g. `/ar`) and check the success message. As the operator, confirm the rows landed in `postgis` (`select locale, created_at from pilot_request order by created_at desc limit 2`; the website login cannot read the table), then remove or mark the test rows.
+3. `site_event`: the website does not write it yet, so check the grant as the operator in a rolled-back transaction:
+   `begin; set local role cp_website; insert into site_event (event, locale, path, is_test) values ('page_view', 'en', '/en', true); rollback;`
+4. `/admin/login` still shows "Admin not configured" (admin variables come later, under ciso's conditions).
+5. Delete `website/db/migrations/` and the `db:migrate` script in a later PR, once the website no longer runs them.
 
 ## 5. Old `Postgres` service
 Keep it until Farjad Iranmehr approves deletion (at least one week after the switch, with a final `pg_dump` saved).
