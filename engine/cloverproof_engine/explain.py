@@ -14,7 +14,8 @@ def num(x: float) -> str:
 
 
 def pct(x: float) -> str:
-    return f"{x:.0%}"
+    """A percentage with one decimal, dropped when it is zero: 12.5%, 40%."""
+    return f"{x:.1%}".replace(".0%", "%")
 
 
 def cited(citation: Citation) -> str:
@@ -126,6 +127,12 @@ def split_rate(index: int, fraction: float, rate: float, split: float) -> str:
 def split_total(index: int, split: float, area_ha: float, total: float) -> str:
     return (
         f"Application {index} total = {num(split)} kg N/ha x {num(area_ha)} ha = {num(total)} kg N."
+    )
+
+
+def rounded_for_display() -> str:
+    return (
+        " These lines do not add up exactly as shown: rounded for display; stored values are exact."
     )
 
 

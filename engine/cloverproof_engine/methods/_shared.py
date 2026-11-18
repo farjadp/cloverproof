@@ -3,6 +3,8 @@
 No agronomy here: every number comes from the pack or the inputs.
 """
 
+from collections.abc import Callable
+from decimal import Decimal
 from typing import Literal
 
 from cloverproof_engine import explain
@@ -125,6 +127,16 @@ def any_placeholder(constants: list[UsedConstant]) -> bool:
     return any(c.is_placeholder for c in constants)
 
 
+def _rounding_note(values: list[float], whole: float, shown: Callable[[float], str]) -> str:
+    """The rounding sentence when the lines, as displayed, do not add up to the whole."""
+
+    def displayed(value: float) -> Decimal:
+        return Decimal(shown(value).replace(",", "").removesuffix("%"))
+
+    adds_up = sum(displayed(v) for v in values) == displayed(whole)
+    return "" if adds_up else explain.rounded_for_display()
+
+
 def build_splits(
     inputs: RecommendationInput,
     pack: Pack,
@@ -135,8 +147,9 @@ def build_splits(
 
     A pack with no split plan gives one full-rate line with no timing window.
 
-    Rates are exact (rate x pack fraction): no pack has a rounding rule, so nothing is
-    rounded and no residual is moved between lines (engine choice, not from a source).
+    Rates are exact (rate x pack fraction): no pack has a rounding rule, so stored rates
+    are not rounded and no residual is moved between lines (engine choice, not from a
+    source). Explanations round for display and say so when lines stop adding up.
     TODO(agronomist): say whether split rates should be rounded, and to what step
     (docs/agronomist-todo.md #21).
     """
@@ -154,6 +167,10 @@ def build_splits(
     window_status = ConstantStatus.PLACEHOLDER
     area = inputs.area_ha
     count = len(specs)
+    rates = [rate * c.value for c in fractions]
+    share_note = _rounding_note([c.value for c in fractions], 1.0, explain.pct)
+    rate_note = _rounding_note(rates, rate, explain.num)
+    total_note = _rounding_note([r * area for r in rates], rate * area, explain.num)
     splits: list[SplitApplication] = []
     for index, (spec, fraction_c) in enumerate(zip(specs, fractions, strict=True), 1):
         fraction = fraction_c.value
@@ -175,21 +192,23 @@ def build_splits(
                     unit="fraction",
                     explanation=explain.split_fraction(
                         index, count, spec.stage_label, spec.fraction, spec.timing_citation
-                    ),
+                    )
+                    + share_note,
                     uses_placeholder=any_placeholder([fraction_c]),
                 ),
                 rate=ExplainedNumber(
                     name=f"split_{index}_rate",
                     value=split_rate,
                     unit=KG_N_PER_HA,
-                    explanation=explain.split_rate(index, fraction, rate, split_rate),
+                    explanation=explain.split_rate(index, fraction, rate, split_rate) + rate_note,
                     uses_placeholder=any_placeholder(split_inputs),
                 ),
                 total=ExplainedNumber(
                     name=f"split_{index}_total",
                     value=split_total,
                     unit=KG_N,
-                    explanation=explain.split_total(index, split_rate, area, split_total),
+                    explanation=explain.split_total(index, split_rate, area, split_total)
+                    + total_note,
                     uses_placeholder=any_placeholder(split_inputs),
                 ),
             )

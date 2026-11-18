@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 
-from cloverproof_engine import recommend
+from cloverproof_engine import explain, recommend
 from cloverproof_engine.golden import ExpectedCase, compare
 from cloverproof_engine.loaders import load_golden_case, load_pack, pack_path, read_yaml
 from cloverproof_engine.models import RecommendationInput
@@ -175,6 +175,38 @@ def test_awkward_shares_sum_to_the_rate_without_rounding(
     assert math.isclose(sum(s.rate.value for s in n.splits), n.rate.value, rel_tol=1e-9)
     for line, fraction in zip(n.splits, fractions, strict=True):
         assert line.rate.value == n.rate.value * fraction  # exact: nothing rounded or moved
+
+
+ROUNDED = "rounded for display; stored values are exact"
+
+
+@pytest.mark.parametrize(
+    ("share", "shown"),
+    [(0.125, "12.5%"), (0.4, "40%"), (0.07, "7%"), (1.0, "100%"), (0.3333333333, "33.3%")],
+)
+def test_percentages_show_one_decimal_only_when_not_whole(share: float, shown: str) -> None:
+    assert explain.pct(share) == shown
+
+
+def test_lines_that_do_not_add_up_as_shown_say_they_are_rounded(make_input) -> None:
+    pack = _with_fractions(0.3333333333, 0.3333333333, 0.3333333334)
+    # Shown: 58.3 x 3 = 174.9 of 175.0; 2,333.3 x 3 = 6,999.9 of 7,000.0; 33.3% x 3 = 99.9%.
+    for line in recommend(make_input(), pack).nitrogen.splits:
+        assert ROUNDED in line.rate.explanation
+        assert ROUNDED in line.total.explanation
+        assert ROUNDED in line.fraction.explanation
+        assert ROUNDED not in line.explanation  # this text must survive an edit
+
+
+def test_lines_that_add_up_as_shown_carry_no_rounding_note(make_input) -> None:
+    lines = recommend(make_input(), _with_fractions(0.125, 0.875)).nitrogen.splits
+    assert lines[0].fraction.explanation.startswith(
+        "Application 1 of 2 (Stage 1 (TEST)) gets 12.5%"
+    )
+    assert "= 12.5% x 175.0 kg N/ha = 21.9 kg N/ha." in lines[0].rate.explanation
+    for line in lines:
+        for number in (line.rate, line.total, line.fraction):
+            assert ROUNDED not in number.explanation
 
 
 # --- pack without splits ----------------------------------------------------------
