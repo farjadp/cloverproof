@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
-from cloverproof_app import nav, security, split_display
+from cloverproof_app import display_units, nav, security, split_display
 from cloverproof_app.auth import (
     LOGIN_CSRF_COOKIE,
     ORG_COOKIE,
@@ -35,6 +35,7 @@ log = logging.getLogger(__name__)
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.globals["split_text"] = split_display
+templates.env.globals["display_units"] = display_units
 router = APIRouter()
 
 # Copy from docs/design/webapp-ui.md §3.1. One generic failure message (unknown email,

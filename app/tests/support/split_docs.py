@@ -82,8 +82,11 @@ def old_document() -> dict[str, Any]:
     return doc
 
 
-def plan_page(doc: dict[str, Any], engine: dict[str, Any] | None = None) -> str:
-    """plan.html for `doc`, read-only, with the same context keys as the plan route."""
+def plan_page(doc: dict[str, Any], engine: dict[str, Any] | None = None, *,
+              unit_system: str = "metric", can_review: bool = False) -> str:  # fmt: skip
+    """plan.html for `doc`, with the same context keys as the plan route.
+
+    Read-only unless `can_review`, which shows the review form."""
     field = SimpleNamespace(id=1, name="North 40", farmer_id=2, farmer_name="Test Farmer")
     review = SimpleNamespace(
         decision="approve", reviewer_name="Agro Tester", review_kind="agronomist_approved",
@@ -92,13 +95,14 @@ def plan_page(doc: dict[str, Any], engine: dict[str, Any] | None = None) -> str:
     view = SimpleNamespace(
         number=2 if engine else 1, field=field, plan=SimpleNamespace(id=PLAN_ID),
         status="approved", final_review=review, ai_reviews=[], reviews=[], soil=None,
-        read_only=True, latest=SimpleNamespace(id=PLAN_ID),
+        read_only=not can_review, latest=SimpleNamespace(id=PLAN_ID),
     )  # fmt: skip
     diff = LineDiff(1, 2, 1, diff_lines(engine, doc)) if engine is not None else None
     limit = SimpleNamespace(value=0.0)
     return templates.get_template("plan.html").render(
         v=view, doc=doc, n_limits=(limit, limit), n_outside_limits=False, line_diff=diff,
-        minutes=None, can_review=False, decision_labels={}, ai_decision_labels={},
+        minutes=None, can_review=can_review, unit_system=unit_system,
+        decision_labels={}, ai_decision_labels={},
         reviewer_labels={"agronomist_approved": "Agronomist"}, errors={}, values={},
         status_labels={"approved": "Approved"}, previous_crop_label="Wheat", planning=planning,
         request=SimpleNamespace(url=SimpleNamespace(path="/plans/x")), csrf_token="",

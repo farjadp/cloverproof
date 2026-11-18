@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import explained, share, line_detail, num, placeholder, placeholder_pack_banner, n_limits_note, confidence, status, error, invalid, error_summary, breadcrumb %}
+{% from "_macros.html" import explained, share, line_detail, num, placeholder, placeholder_pack_banner, n_limits_note, confidence, status, error, invalid, error_summary, breadcrumb, unit_control with context %}
 {% set n = doc.nitrogen %}
 {% set snap = doc.input_snapshot %}
 {% block title %}Plan v{{ v.number }} · {{ v.field.name }}{% endblock %}
@@ -10,12 +10,13 @@
      or (n.constants_used | selectattr("status", "equalto", "PLACEHOLDER") | list)
      or split_text.has_placeholder(n.splits) %}
 {% set placeholder_pack = doc.pack_status == "placeholder" %}
+{% set imperial = unit_system | default("metric") == "imperial" %}
 {{ placeholder_pack_banner(doc) }}
 
 <div class="strip">
   <div>
     <h1>Nitrogen plan for {{ v.field.name }}</h1>
-    <p class="muted">{{ doc.crop | capitalize }} · target {{ snap.target_yield_t_ha }} t/ha · after {{ previous_crop_label }} · {{ snap.area_ha }} ha · plan date {{ snap.plan_date }}{% if v.number > 1 %} · v{{ v.number }} (edited){% endif %}</p>
+    <p class="muted">{{ doc.crop | capitalize }} · target {{ snap.target_yield_t_ha }} t/ha · after {{ previous_crop_label }} · {{ snap.area_ha }} ha{% if imperial %} ({{ "{:,.1f}".format(display_units.acres(snap.area_ha)) }} ac){% endif %} · plan date {{ snap.plan_date }}{% if v.number > 1 %} · v{{ v.number }} (edited){% endif %}</p>
     {% if snap.wheat_class is defined or snap.manure_applied is defined or snap.n_price is defined %}
     <p class="muted">
       {%- if snap.wheat_class is defined %}{{ planning.WHEAT_CLASS_LABELS.get(snap.wheat_class, snap.wheat_class) }} wheat{% endif %}
@@ -29,6 +30,17 @@
     {% include "_timer.html" %}
   </div>
 </div>
+
+<div class="unit-bar">{{ unit_control(v.plan.id, "plan") }}</div>
+{% if imperial %}
+<div class="notice info" role="note" id="unit-note">
+  <p class="notice-title">Showing lb/ac. Stored values stay in kg/ha.</p>
+  <p>Each converted number shows its stored value beside it. This view changes nothing that is saved.</p>
+  <p>Explanations are shown as stored, so they still quote kg/ha. Pack constants are shown as stored, except the N-rate limits in the warning, which show both units. Soil-test values and prices are shown as stored too.</p>
+  <p>Target yield stays in t/ha: there is no bushel conversion for it. Field area is stored in ha, with acres beside it; liquid volume stays in L product/ha.</p>
+  <p>The proof PDF always shows the stored kg/ha values.</p>
+</div>
+{% endif %}
 
 {% if v.final_review %}
   {% if v.final_review.decision == "approve" %}
@@ -172,6 +184,7 @@
     {% else %}
     <p class="confirm">Approving releases these numbers for the proof document. You are the reviewer of record.</p>
     {% endif %}
+    {% if imperial %}<p class="confirm">You approve the stored kg/ha values. The lb/ac figures on this page are only a view of them.</p>{% endif %}
     <div class="actions">
       <button class="button" type="submit" data-loading="Saving review…">Save review</button>
       <a class="button secondary" href="/plans/{{ v.plan.id }}/edit">Edit numbers</a>
@@ -189,6 +202,7 @@
 {% if v.status == "approved" %}
 <section aria-labelledby="proof-h" class="proof">
   <h2 id="proof-h">Proof PDF</h2>
+  {% if imperial %}<p class="hint">The proof PDF always shows the stored kg/ha values, not the lb/ac view.</p>{% endif %}
   <div hx-get="/plans/{{ v.plan.id }}/proof" hx-trigger="load" hx-swap="outerHTML">
     <form method="post" action="/plans/{{ v.plan.id }}/proof">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

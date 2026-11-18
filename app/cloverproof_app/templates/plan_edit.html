@@ -7,6 +7,7 @@
 {{ placeholder_pack_banner(doc) }}
 <h1>Edit plan v{{ v.number }}</h1>
 <p class="muted">Saving creates v{{ v.number + 1 }}. The engine numbers stay on record.</p>
+<p class="hint" id="edit-units">Type every rate in kg N/ha, even if the plan page is showing lb/ac. What you type is saved as typed and never converted.</p>
 {{ error_summary(errors, "saving") }}
 {{ n_limits_note(n_limits, n_outside_limits) }}
 <form class="form wide" method="post" action="/plans/{{ v.plan.id }}/edit" novalidate>

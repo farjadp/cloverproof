@@ -4,12 +4,44 @@
 {{ "{:,.{}f}".format(value | float, digits) }}
 {%- endmacro %}
 
+{# Pages that offer lb/ac import these macros `with context` and pass `unit_system`; any
+   other page gets the stored kg/ha. Conversion is display only (display_units.py). #}
+{% macro amount(value, unit, digits=1) -%}
+{% set shown = display_units.convert(value, unit, unit_system | default("metric")) -%}
+{% if shown %}<span class="value">{{ num(shown.value, digits) }} {{ shown.unit }}</span> <span class="stored-as">(stored as {{ num(value, digits) }} {{ unit }})</span>{% else %}<span class="value">{{ num(value, digits) }} {{ unit }}</span>{% endif %}
+{%- endmacro %}
+
+{% macro amount_text(value, unit, digits=1) -%}
+{% set shown = display_units.convert(value, unit, unit_system | default("metric")) -%}
+{% if shown %}{{ num(shown.value, digits) }} {{ shown.unit }} (stored as {{ num(value, digits) }} {{ unit }}){% else %}{{ num(value, digits) }} {{ unit }}{% endif %}
+{%- endmacro %}
+
+{% macro range_text(low, high, unit) -%}
+{% set shown_low = display_units.convert(low, unit, unit_system | default("metric")) -%}
+{% set shown_high = display_units.convert(high, unit, unit_system | default("metric")) -%}
+{% if shown_low and shown_high %}{{ num(shown_low.value) }}–{{ num(shown_high.value) }} {{ shown_low.unit }}, stored as {{ num(low) }}–{{ num(high) }} {{ unit }}{% else %}{{ num(low) }}–{{ num(high) }} {{ unit }}{% endif %}
+{%- endmacro %}
+
+{# The kg/ha | lb/ac switch. `place` keeps ids unique and brings a no-JS visitor back. #}
+{% macro unit_control(plan_id, place) -%}
+{% set current = unit_system | default("metric") %}
+<form class="unit-control" method="post" action="/plans/{{ plan_id }}/units" hx-post="/plans/{{ plan_id }}/units" hx-target="#main" hx-select="#main" hx-swap="outerHTML" hx-include="#reason, #decision input:checked">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="place" value="{{ place }}">
+  <span class="unit-label" id="units-{{ place }}-label">Units:</span>
+  <span class="unit-choices" role="group" aria-labelledby="units-{{ place }}-label">
+    <button type="submit" id="units-{{ place }}-metric" name="unit_system" value="metric" aria-pressed="{{ 'true' if current != 'imperial' else 'false' }}">kg/ha</button>
+    <button type="submit" id="units-{{ place }}-imperial" name="unit_system" value="imperial" aria-pressed="{{ 'true' if current == 'imperial' else 'false' }}">lb/ac</button>
+  </span>
+</form>
+{%- endmacro %}
+
 {# An explained number: value + unit + placeholder badge, explanation directly below.
    Takes an ExplainedNumber dict, so a value can never render without its explanation. #}
 {% macro explained(n, size="", digits=1) -%}
 <div class="explained {{ size }}">
   {%- if n.explanation %}
-  <span class="value">{{ num(n.value, digits) }} {{ n.unit }}</span>{% if n.uses_placeholder %} {{ placeholder() }}{% endif %}
+  {{ amount(n.value, n.unit, digits) }}{% if n.uses_placeholder %} {{ placeholder() }}{% endif %}
   <p class="why">{{ split_text.neutral_edit_text(n.explanation) }}</p>
   {%- else %}
   <span class="value">—</span>
@@ -96,7 +128,7 @@
 {% set low, high = limits %}
 {% if outside %}
 <div class="notice warn" role="status">
-  <p class="notice-title">N rate{% if rate is not none %} {{ num(rate) }} kg N/ha{% endif %} is outside the pack limits ({{ num(low.value) }}–{{ num(high.value) }} kg N/ha).</p>
+  <p class="notice-title">N rate{% if rate is not none %} {{ amount_text(rate, "kg N/ha") }}{% endif %} is outside the pack limits ({{ range_text(low.value, high.value, "kg N/ha") }}){% if low.is_placeholder or high.is_placeholder %} {{ placeholder() }}{% endif %}.</p>
   <p>Check the number and say why in the reason.</p>
 </div>
 {% endif %}
