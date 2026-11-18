@@ -1,5 +1,6 @@
 """Immutable tables: triggers raise for everyone, cp_app lacks UPDATE/DELETE grants."""
 
+from datetime import UTC, datetime
 from typing import Any
 
 import psycopg
@@ -10,7 +11,7 @@ from .conftest import Org, as_owner, insert
 
 pytestmark = pytest.mark.db
 
-IMMUTABLE = ["recommendation", "recommendation_line", "review", "proof_document"]
+IMMUTABLE = ["recommendation", "recommendation_line", "review", "proof_document", "soil_estimate"]
 
 
 @pytest.fixture
@@ -47,11 +48,32 @@ def approved(db: psycopg.Connection, org_a: Org) -> dict[str, Any]:
         confidence="low",
         created_by=org_a.staff,
     )
+    estimate = insert(
+        db,
+        "soil_estimate",
+        organisation_id=org_a.id,
+        field_id=org_a.fields[0],
+        season_id=org_a.season,
+        property="nitrogen",
+        value=1500,
+        unit="mg/kg",
+        uncertainty_ratio=0.9,
+        source="soilgrids",
+        source_version="2.0",
+        resolution_m=250,
+        depth_top_cm=0,
+        depth_bottom_cm=5,
+        retrieved_at=datetime(2026, 11, 1, tzinfo=UTC),
+        licence="CC BY 4.0",
+        attribution="SoilGrids 2.0, ISRIC - World Soil Information, CC BY 4.0",
+        created_by=org_a.staff,
+    )
     return {
         "recommendation": org_a.engine_rec,
         "recommendation_line": line,
         "review": review,
         "proof_document": proof,
+        "soil_estimate": estimate,
     }
 
 

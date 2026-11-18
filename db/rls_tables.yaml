@@ -28,6 +28,7 @@ tenant:
   field_geometry_version: organisation_id
   soil_test: organisation_id
   soil_test_value: organisation_id
+  soil_estimate: organisation_id
   crop_plan: organisation_id
   recommendation: organisation_id
   recommendation_line: organisation_id

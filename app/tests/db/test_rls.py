@@ -15,7 +15,7 @@ ciso §1 are at the end.
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -115,6 +115,28 @@ def _line(org: Org, recommendation: UUID) -> dict[str, Any]:
     }
 
 
+def _soil_estimate(org: Org, field: UUID) -> dict[str, Any]:
+    return {
+        "organisation_id": org.id,
+        "field_id": field,
+        "season_id": org.season,
+        "property": "nitrogen",
+        "value": 1500,
+        "unit": "mg/kg",
+        "value_q05": 900,
+        "value_q95": 2300,
+        "source": "soilgrids",
+        "source_version": "2.0",
+        "resolution_m": 250,
+        "depth_top_cm": 0,
+        "depth_bottom_cm": 5,
+        "retrieved_at": datetime(2026, 11, 1, tzinfo=UTC),
+        "licence": "CC BY 4.0",
+        "attribution": "SoilGrids 2.0, ISRIC - World Soil Information, CC BY 4.0",
+        "created_by": org.staff,
+    }
+
+
 Builder = Callable[[psycopg.Connection, Org, dict[str, Any]], dict[str, Any]]
 
 # table -> (fresh row builder, column cp_app may UPDATE or None, cp_app may DELETE)
@@ -164,6 +186,7 @@ TENANT_CASES: dict[str, tuple[Builder, str | None, bool]] = {
         "value",
         True,
     ),
+    "soil_estimate": (lambda db, o, r: _soil_estimate(o, o.fields[1]), None, False),
     "crop_plan": (
         lambda db, o, r: {
             "organisation_id": o.id,
@@ -257,6 +280,7 @@ def complete(db: psycopg.Connection, org: Org, result: dict[str, Any]) -> None:
         unit="mg/kg",
         extraction_method="olsen",
     )
+    insert(db, "soil_estimate", **_soil_estimate(org, org.fields[0]))
     insert(
         db,
         "application_log",
