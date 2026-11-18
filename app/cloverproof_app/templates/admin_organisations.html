@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Organisations{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Organisations</h1>
+    <p class="muted page-sub">Create an organisation, or join one to work in it</p>
+  </div>
+</div>
+
+{% if done %}
+<p class="notice success" role="status">{{ done }}{% if org_context %} Current organisation: <strong>{{ org_context.org.name }}</strong>.{% endif %}</p>
+{% endif %}
+
+<div class="notice warn org-join-note">
+  <p class="notice-title">What joining means</p>
+  <p>Joining gives you access to that organisation's farmers, fields, plans and users. As a superadmin member you can also approve, edit and reject its plans. Those reviews are recorded as superadmin reviews, not agronomist reviews, and never enter the calibration data.</p>
+  <p>Every join is recorded under your account in the audit log. This page cannot remove you again.</p>
+</div>
+
+<div class="split">
+  <div class="split-main">
+    <section aria-label="All organisations">
+      {% if organisations %}
+      <table class="stack">
+        <thead><tr><th scope="col">Organisation</th><th scope="col">Your access</th><th scope="col">Action</th></tr></thead>
+        <tbody>
+          {% for org in organisations %}
+          {% set is_current = org_context and org_context.org.id == org.id %}
+          {% set open_roles = join_roles | reject("in", org.my_roles) | list %}
+          {% set failed = join_error and join_error[0] == org.id %}
+          <tr>
+            <td data-label="Organisation">{{ org.name }}{% if is_current %} <span class="muted">(current)</span>{% endif %}</td>
+            <td data-label="Your access">{% if org.my_roles %}Member: {{ role_label(org.my_roles) }}{% else %}Not a member{% endif %}</td>
+            <td data-label="Action">
+              <div class="org-actions">
+                {% if org.my_roles and not is_current %}
+                <form method="post" action="/orgs/choose">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                  <button class="button secondary" type="submit" name="org_id" value="{{ org.id }}">Work here</button>
+                </form>
+                {% endif %}
+                {% if open_roles %}
+                <form class="org-join" method="post" action="/admin/organisations/{{ org.id }}/join">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                  <label class="sr-only" for="role-{{ org.id }}">Role in {{ org.name }}</label>
+                  <select id="role-{{ org.id }}" name="role"{% if failed %} aria-invalid="true" aria-describedby="join-error-{{ org.id }}"{% endif %}>
+                    {% for value in open_roles %}
+                    <option value="{{ value }}"{% if value == "advisor" %} selected{% endif %}>{{ role_names[value] }}</option>
+                    {% endfor %}
+                  </select>
+                  <button class="button secondary" type="submit">{% if org.my_roles %}Add role{% else %}Join{% endif %}<span class="sr-only"> {{ org.name }}</span></button>
+                </form>
+                {% endif %}
+              </div>
+              {% if failed %}<p class="field-error" id="join-error-{{ org.id }}">Error: {{ join_error[1] }}</p>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty">No organisations yet. Create the first one with the form on this page.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="split-side">
+    <section class="panel" aria-labelledby="create-heading">
+      <h2 id="create-heading">Create organisation</h2>
+      <p class="hint">You become its first member. Add other people on its Users page.</p>
+      <form method="post" action="/admin/organisations" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        {% if errors %}<p class="alert" role="alert">Fix the marked fields before creating the organisation.</p>{% endif %}
+        <div class="field">
+          <label for="name">Name</label>
+          <input id="name" name="name" type="text" required maxlength="200" autocomplete="off" value="{{ form.name }}"
+                 {% if errors.name %}aria-invalid="true" aria-describedby="name-error"{% endif %}>
+          {% if errors.name %}<p class="field-error" id="name-error">Error: {{ errors.name }}</p>{% endif %}
+        </div>
+        <div class="field">
+          <label for="role">Your role</label>
+          <select id="role" name="role" aria-describedby="role-hint{% if errors.role %} role-error{% endif %}"{% if errors.role %} aria-invalid="true"{% endif %}>
+            {% for value in join_roles %}
+            <option value="{{ value }}"{% if form.role == value %} selected{% endif %}>{{ role_names[value] }}</option>
+            {% endfor %}
+          </select>
+          <p class="hint" id="role-hint">Org admin can manage its users. Advisor enters farm data. The Agronomist role is not offered here: it is added with the <code>user-create</code> command.</p>
+          {% if errors.role %}<p class="field-error" id="role-error">Error: {{ errors.role }}</p>{% endif %}
+        </div>
+        <button class="button" type="submit">Create organisation</button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

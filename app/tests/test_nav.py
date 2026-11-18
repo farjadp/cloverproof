@@ -65,9 +65,24 @@ def test_service_account_is_not_offered_the_review_queue() -> None:
 
 def test_superadmin_without_organisation_gets_what_works() -> None:
     nav = build_nav("/products", person("superadmin"), None)
-    assert labels(nav) == ["Products"]
+    assert labels(nav) == ["Products", "Organisations"]
     assert nav is not None and nav.home == "/products" and nav.org_name is None
+    assert nav.can_manage_orgs
     assert nav.account is not None and nav.account.href == "/account/password"
+
+
+def test_only_a_human_superadmin_is_offered_organisations() -> None:
+    plain = person()
+    service = person(actor_kind="service")
+    assert "Organisations" not in labels(build_nav("/farmers", plain, org_of(plain, "org_admin")))
+    assert "Organisations" not in labels(build_nav("/farmers", service, None))
+    nav = build_nav("/admin/organisations", person("superadmin"), None)
+    assert current(nav) == ["Organisations"]
+
+
+def test_locked_superadmin_is_not_offered_organisations() -> None:
+    nav = build_nav("/account/password", person("superadmin"), None, locked=True)
+    assert nav is not None and nav.links == () and not nav.can_manage_orgs
 
 
 def test_undecided_organisation_offers_the_chooser() -> None:

@@ -402,3 +402,9 @@ label.choice input[type="checkbox"] { width: 1.25rem; height: 1.25rem; flex-shri
   .product-facts > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
 }
 /* ==== End products page ==== */
+
+/* Organisations (superadmin) */
+.org-join-note { margin-bottom: var(--s5); }
+.org-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); }
+.org-join { display: flex; align-items: center; gap: var(--s2); }
+.org-join select { width: auto; }

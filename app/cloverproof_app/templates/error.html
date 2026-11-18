@@ -6,9 +6,14 @@
 {% if needs_org %}
 <p class="notice warn" role="status">{{ detail }}</p>
 <p>Farmers, plans and the review queue belong to an organisation. The product catalog and your password do not need one.</p>
+{% if nav and nav.can_manage_orgs %}
+<p class="muted">As a superadmin you can create an organisation or join an existing one.</p>
+{% else %}
 <p class="muted">To work with farmers, ask an administrator to add your account to an organisation.</p>
+{% endif %}
 <div class="actions">
-  <a class="button" href="/products">Open Products</a>
+  {% if nav and nav.can_manage_orgs %}<a class="button" href="/admin/organisations">Create or join an organisation</a>{% endif %}
+  <a class="button{% if nav and nav.can_manage_orgs %} secondary{% endif %}" href="/products">Open Products</a>
   <a class="button secondary" href="/account/password">Change password</a>
 </div>
 {% else %}

@@ -33,6 +33,7 @@ from cloverproof_app.auth import (
 from cloverproof_app.config import DEPLOYED_ENVS, ConfigError, Settings
 from cloverproof_app.db.migrate import REPO_ROOT
 from cloverproof_app.db.pool import Database, PooledDatabase, check_least_privilege
+from cloverproof_app.orgs_web import router as orgs_router
 from cloverproof_app.plan_web import router as plan_router
 from cloverproof_app.products_web import router as products_router
 from cloverproof_app.proof_web import router as proof_router
@@ -276,5 +277,6 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
     app.include_router(proof_router)
     app.include_router(review_queue_router)
     app.include_router(products_router)
+    app.include_router(orgs_router)
     account.register(app)
     return app
