@@ -63,6 +63,7 @@
   <p class="why">{{ m.explanation }}</p>
   <div class="line-numbers">
     {{ explained(m.rate) }}
+    {%- if m.total %}{{ explained(m.total) }}{% endif %}
     {%- if m.volume_rate %}{{ explained(m.volume_rate) }}{% endif %}
     {%- if m.sulphur_rate %}{{ explained(m.sulphur_rate) }}{% endif %}
   </div>

@@ -51,7 +51,7 @@
   <p class="why">Grade source: {{ m.grade_source }}</p>
   {#- Its own table: under the split table's headers these would read as Timing, Share... -#}
   <table class="product-numbers">
-    <tr><td>{{ explained(m.rate) }}</td><td>{% if m.get("volume_rate") %}{{ explained(m.volume_rate) }}{% endif %}</td><td>{% if m.get("sulphur_rate") %}{{ explained(m.sulphur_rate) }}{% endif %}</td><td></td></tr>
+    <tr><td>{{ explained(m.rate) }}</td><td>{% if m.get("total") %}{{ explained(m.total) }}{% endif %}</td><td>{% if m.get("volume_rate") %}{{ explained(m.volume_rate) }}{% endif %}</td><td>{% if m.get("sulphur_rate") %}{{ explained(m.sulphur_rate) }}{% endif %}</td></tr>
     <tr><td>{{ grade_number(m.grade.n) }}</td><td>{{ grade_number(m.grade.p2o5) }}</td><td>{{ grade_number(m.grade.k2o) }}</td><td>{{ grade_number(m.grade.s) }}</td></tr>
   </table>
 {% elif m %}

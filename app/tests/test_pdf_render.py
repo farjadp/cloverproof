@@ -344,7 +344,10 @@ DRAFT_OVERRIDE: dict[str, Any] = {"approval": None}
 NO_TIMING = "No timing set: the pack has no split plan"
 RULE_WARNING = "Selected by a PLACEHOLDER pack rule, not validated"
 WITHDRAWN = "Any product outcome withdrawn: the N rate was edited"
-UNCHOSEN = "Products the pack rules did not choose between"
+UNCHOSEN = (
+    "Not selected, not recommended (passed only the N-only and pack checks;"
+    " timing and N losses not judged)"
+)
 TIMING_SENTENCE = (
     "Timing is the growth-stage text from the country pack (no weather-based window in this"
     " version)."
@@ -429,6 +432,14 @@ def test_matched_granular_product_on_the_proof() -> None:
     assert f"{match['rate']['value']:,.1f} kg product/ha" in text
     assert "40 % N" in text and "0 % P2O5" in text and "0 % K2O" in text and "0 % S" in text
     assert "L product/ha" not in text and "kg S/ha" not in text
+
+
+def test_product_total_on_the_proof_with_its_explanation() -> None:
+    doc = split_docs.build(products=[split_docs.product()])
+    total = doc["nitrogen"]["splits"][0]["product_match"]["total"]
+    text = proof_text(doc)
+    assert f"{total['value']:,.1f} kg product " in text
+    assert squash(total["explanation"]) in text
 
 
 def test_product_numbers_are_not_under_the_split_table_headers() -> None:

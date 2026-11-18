@@ -17,7 +17,10 @@ NO_PRODUCT_YET = "No product matched yet"  # the document has no product outcome
 NO_PRODUCT_MATCHED = "No product matched"
 PRODUCT_WITHDRAWN = "Any product outcome withdrawn: the N rate was edited"
 PLACEHOLDER_RULE = "Selected by a PLACEHOLDER pack rule, not validated"
-UNCHOSEN_PRODUCTS = "Products the pack rules did not choose between"
+UNCHOSEN_PRODUCTS = (
+    "Not selected, not recommended (passed only the N-only and pack checks;"
+    " timing and N losses not judged)"
+)
 PROOF_TIMING_NOTE = (
     "Timing is the growth-stage text from the country pack (no weather-based window in this"
     " version)."
@@ -92,7 +95,7 @@ def product_numbers(split: Mapping[str, Any]) -> Iterator[Mapping[str, Any]]:
         return
     yield from match["grade"].values()
     yield match["rate"]
-    for key in ("volume_rate", "sulphur_rate"):
+    for key in ("total", "volume_rate", "sulphur_rate"):
         if match.get(key):
             yield match[key]
 
@@ -119,7 +122,10 @@ def product_label(split: Mapping[str, Any]) -> str:
     match = outcome(split)
     if match is None:
         return NO_PRODUCT_YET
-    return str(match["product_name"]) if match.get("matched") else NO_PRODUCT_MATCHED
+    if not match.get("matched"):
+        return not_matched_title(match)
+    name = str(match["product_name"])
+    return f"{name} ({PLACEHOLDER_RULE})" if selected_by_placeholder_rule(match) else name
 
 
 def timing_label(split: Mapping[str, Any]) -> str:

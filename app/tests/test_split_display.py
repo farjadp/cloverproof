@@ -33,8 +33,12 @@ from .support.split_docs import (
 NO_TIMING = "No timing set: the pack has no split plan"
 RULE_WARNING = "Selected by a PLACEHOLDER pack rule, not validated"
 WITHDRAWN = "Any product outcome withdrawn: the N rate was edited"
-UNCHOSEN = "Products the pack rules did not choose between"
+UNCHOSEN = (
+    "Not selected, not recommended (passed only the N-only and pack checks;"
+    " timing and N losses not judged)"
+)
 OTHERS = [product("TEST other A"), product("TEST other B")]
+GRANULAR_LABEL = f"{GRANULAR} ({RULE_WARNING})"
 NEW_WORDING = (NO_TIMING, RULE_WARNING, WITHDRAWN, UNCHOSEN, "No product matched", "Grade source")
 
 
@@ -122,6 +126,22 @@ def test_matched_granular_product() -> None:
     assert RULE_WARNING in text
     assert squash(match["explanation"]) in text
     assert "L product/ha" not in text and "kg S/ha" not in text
+
+
+def test_matched_product_shows_the_field_total_with_its_explanation() -> None:
+    doc = build(products=[product()])
+    total = doc["nitrogen"]["splits"][0]["product_match"]["total"]
+    assert total["unit"] == "kg product"
+    text = page(doc)
+    assert f"{total['value']:,.1f} kg product " in text
+    assert squash(total["explanation"]) in text
+
+
+def test_product_total_counts_as_a_product_number() -> None:
+    split = build(products=[product()])["nitrogen"]["splits"][0]
+    assert split["product_match"]["total"] in list(split_display.product_numbers(split))
+    del split["product_match"]["total"]  # a stored match without one still reads
+    assert len(list(split_display.product_numbers(split))) == 5
 
 
 def test_matched_liquid_product_shows_litres() -> None:
@@ -249,14 +269,22 @@ def test_every_engine_agronomist_sentence_has_a_neutral_form() -> None:
 def test_diff_reads_the_matched_product_name() -> None:
     doc = build(products=[product()])
     cell = cells(doc, doc, "Nitrogen, split 1")["Product"]
-    assert cell.engine == GRANULAR and cell.final == GRANULAR and not cell.changed
+    assert cell.engine == GRANULAR_LABEL and cell.final == GRANULAR_LABEL and not cell.changed
+
+
+def test_diff_names_a_product_chosen_by_a_validated_rule_plainly() -> None:
+    doc = build(products=[product()])
+    for split in doc["nitrogen"]["splits"]:
+        for rule in split["product_match"]["rules_used"]:
+            rule["status"] = "VALIDATED"
+    assert cells(doc, doc, "Nitrogen, split 1")["Product"].final == GRANULAR
 
 
 def test_diff_shows_the_withdrawn_product_as_a_change() -> None:
     engine = build(products=[product()])
     final = edited(engine, "120", ["60", "60"])
     cell = cells(engine, final, "Nitrogen, split 1")["Product"]
-    assert (cell.engine, cell.final) == (GRANULAR, "No product matched")
+    assert (cell.engine, cell.final) == (GRANULAR_LABEL, WITHDRAWN)
     assert cell.changed
     line = next(x for x in diff_lines(engine, final) if x.title == "Nitrogen, split 1")
     assert "product" in line.changed
