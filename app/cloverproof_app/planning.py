@@ -272,7 +272,9 @@ def _validate_pack_inputs(f: PlanForm, needs: PackInputs, errors: dict[str, str]
             extra["wheat_class"] = WheatClass(f.wheat_class)
     if needs.manure:
         if f.manure_applied not in {"yes", "no"}:
-            errors["manure_applied"] = "Say whether manure was applied for this crop."
+            errors["manure_applied"] = (
+                "Say whether manure or another organic amendment was applied for this crop."
+            )
         else:
             extra["manure_applied"] = f.manure_applied == "yes"
     if needs.n_price:

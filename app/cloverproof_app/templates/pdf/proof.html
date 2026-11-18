@@ -164,8 +164,8 @@
       <tr><th>Nitrogen</th><td>{{ form_labels.get(n.nutrient, n.nutrient) }} (elemental)</td>
           <td>{{ n.rate.value | num(1) }} kg/ha{{ placeholder_mark(n.rate.uses_placeholder) }}</td>
           <td><span class="badge conf-{{ doc.confidence }}">{{ doc.confidence | capitalize }}</span></td></tr>
-      <tr><th>Phosphorus</th><td>P / P2O5</td><td colspan="2">Not recommended in this plan (see “Phosphorus and potassium”).</td></tr>
-      <tr><th>Potassium</th><td>K / K2O</td><td colspan="2">Not recommended in this plan (see “Phosphorus and potassium”).</td></tr>
+      <tr><th>Phosphorus</th><td>P / P2O5</td><td colspan="2">No rate in this plan (see “Phosphorus and potassium”).</td></tr>
+      <tr><th>Potassium</th><td>K / K2O</td><td colspan="2">No rate in this plan (see “Phosphorus and potassium”).</td></tr>
     </tbody>
   </table>
 

@@ -202,8 +202,9 @@ def assess(
         )
 
     # C8 — TODO(agronomist): review, including the draft cap.
+    # Table level only: the exact row would reveal the rate this plan does not show.
     pk_placeholders = dict.fromkeys(
-        c.path
+        c.path.split(".bands[")[0]
         for line in (pk.lines if pk is not None else ())
         if line.outcome == "recommended"
         for c in line.constants_used

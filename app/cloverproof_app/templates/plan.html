@@ -20,7 +20,7 @@
     {% if snap.wheat_class is defined or snap.manure_applied is defined or snap.n_price is defined %}
     <p class="muted">
       {%- if snap.wheat_class is defined %}{{ planning.WHEAT_CLASS_LABELS.get(snap.wheat_class, snap.wheat_class) }} wheat{% endif %}
-      {%- if snap.manure_applied is defined %} · manure applied: {{ "yes" if snap.manure_applied else "no" }}{% endif %}
+      {%- if snap.manure_applied is defined %} · manure or other organic amendment applied: {{ "yes" if snap.manure_applied else "no" }}{% endif %}
       {%- if snap.n_price is defined %} · N price {{ "%g" | format(snap.n_price.n_price_per_kg_n) }} {{ snap.n_price.currency }}/kg N, wheat {{ "%g" | format(snap.n_price.grain_price_per_kg) }} {{ snap.n_price.currency }}/kg, price ratio {{ "%.2f" | format(snap.n_price.ratio) }} ({{ snap.n_price.source }}, {{ snap.n_price.price_date }}){% endif -%}
     </p>
     {% endif %}
