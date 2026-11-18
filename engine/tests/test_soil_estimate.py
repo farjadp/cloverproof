@@ -17,6 +17,9 @@ from cloverproof_engine.results import Recommendation
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CA_ON_V2 = REPO_ROOT / "packs" / "ca-on" / "v2.yaml"
 ATTRIBUTION = "SoilGrids 2.0, ISRIC - World Soil Information, CC BY 4.0"
+LAB_TEST_SENTENCE = (
+    "A lab soil test was also given; the estimate does not replace it and is context only."
+)
 
 
 def _without_estimate(doc: dict[str, Any]) -> dict[str, Any]:
@@ -176,13 +179,23 @@ def test_pack_with_pk_tables_gives_no_rate_from_an_estimate(make_input, soil_est
     assert "soil test" in doc["phosphorus_potassium"]["text"].lower()
 
 
-def test_lab_test_decides_when_both_are_given(make_input, soil_estimate_data) -> None:
+def test_estimate_does_not_replace_a_lab_test(make_input, soil_estimate_data) -> None:
     without = _ca_on(make_input, soil_test=_lab_test())
     both = _ca_on(make_input, soil_test=_lab_test(), soil_estimate=soil_estimate_data())
     assert _without_estimate(both) == without
     assert both["phosphorus_potassium"]["code"] == "PK_FROM_LAB_TEST"
     assert both["soil_estimate"]["lab_test_given"] is True
-    assert "lab soil test" in both["soil_estimate"]["explanation"]
+    explanation = both["soil_estimate"]["explanation"]
+    assert LAB_TEST_SENTENCE in explanation
+    assert "decides" not in explanation
+
+
+def test_lab_test_without_values_is_not_reported_as_given(make_input, soil_estimate_data) -> None:
+    empty = {**_lab_test(), "values": []}
+    block = _ca_on(make_input, soil_test=empty, soil_estimate=soil_estimate_data())["soil_estimate"]
+    assert block["lab_test_given"] is False
+    assert LAB_TEST_SENTENCE not in block["explanation"]
+    assert "do not count as a soil test" in block["explanation"]
 
 
 def test_estimate_sourced_soil_test_is_not_a_lab_test(

@@ -1,11 +1,11 @@
 # SAMPLE golden case - NOT agronomist-approved. SYNTHETIC soil values (estimate invented for this case, not read from SoilGrids).
 # N side worked out by hand from packs/ca-on/v2.yaml (PLACEHOLDER constants): yield
 # 6.5 t/ha, price ratio 5.5, after corn -> 115.0 kg N/ha; 20 ha -> 2300 kg N.
-# P and K as in sample_ca_on_pk_olsen_ammonium_acetate: the lab test decides, the
-# estimate is context only and changes no number.
+# P and K as in sample_ca_on_pk_olsen_ammonium_acetate: the estimate does not replace
+# the lab test, is context only and changes no number.
 id: sample_ca_on_lab_test_with_estimate
 kind: sample  # not agronomist-approved; never counts toward the agreement gate
-description: Lab test and estimate together. The lab test decides; the estimate is context only.
+description: Lab test and estimate together. The estimate does not replace the lab test and is context only.
 pack:
   id: ca-on
   version: v2

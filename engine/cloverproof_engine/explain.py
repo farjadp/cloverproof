@@ -510,7 +510,7 @@ def soil_estimate_uncertainty(prop: str, depth: str) -> str:
 def soil_estimate_context(source: str, version: str, lab_test_given: bool) -> str:
     opening = f"These values are a modelled estimate from {source} {version}, not a lab soil test."
     role = (
-        "A lab soil test was given and it decides this plan; the estimate is context only."
+        "A lab soil test was also given; the estimate does not replace it and is context only."
         if lab_test_given
         else "They are context only and do not count as a soil test."
     )

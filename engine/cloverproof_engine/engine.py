@@ -83,7 +83,7 @@ def _soil_estimate_context(inputs: RecommendationInput) -> SoilEstimateContext |
     if estimate is None:
         return None
     soil = inputs.soil_test
-    lab_test_given = soil is not None and soil.source is SoilTestSource.LAB
+    lab_test_given = soil is not None and soil.source is SoilTestSource.LAB and bool(soil.values)
     return SoilEstimateContext(
         source=estimate.provider,
         version=estimate.version,
