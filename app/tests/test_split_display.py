@@ -261,6 +261,12 @@ def test_every_engine_agronomist_sentence_has_a_neutral_form() -> None:
         for m in claim.finditer(split_display.without_agronomist_claim(text))
     }
     assert {x for x in left if not x.startswith(NEVER_ON_A_PROOF)} == set()
+    left_on_agronomist_proof = {
+        m.group()
+        for text in literals
+        for m in claim.finditer(split_display.without_line_choice_claim(text))
+    }
+    assert {x for x in left_on_agronomist_proof if not x.startswith(NEVER_ON_A_PROOF)} == set()
 
 
 # --- engine vs final diff -----------------------------------------------------------

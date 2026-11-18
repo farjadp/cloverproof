@@ -88,7 +88,7 @@ Loading: any HTMX request sets `aria-busy="true"` on its target and disables the
 Server error (any screen): an error notice reading "Something went wrong and nothing was saved. Try again. If it keeps happening, note the time: {HH:MM}." Values the user typed stay in the form.
 
 ### 3.1 Login `/login`
-- Two columns at ≥ 960px, one column below. **Left** (ink-soft, `--measure`): the kicker "Internal tool" (xs caps), the h1 "Fertilizer plans, reviewed by an agronomist", and the line "Sign in to prepare and review field plans. Accounts are created by an administrator." **Right**: a panel containing the h2 "Sign in", the fields "Email" and "Password", and a full-width primary button "Sign in".
+- Two columns at ≥ 960px, one column below. **Left** (ink-soft, `--measure`): the kicker "Internal tool" (xs caps), the h1 "Fertilizer plans, reviewed by a person before release", and the line "Sign in to prepare and review field plans. Accounts are created by an administrator." **Right**: a panel containing the h2 "Sign in", the fields "Email" and "Password", and a full-width primary button "Sign in".
 - There is no "create account", no "forgot password" (accounts are created by CLI) and no "remember me".
 - Errors (one generic message, so nobody can tell whether an account exists): "Email or password is incorrect." Rate-limited: "Too many attempts. Wait 15 minutes and try again." Session expired, shown as an info notice after a redirect: "You were signed out. Sign in again to continue." CSRF failure: "This form expired. Reload the page and sign in again."
 - Loading: "Signing in…".

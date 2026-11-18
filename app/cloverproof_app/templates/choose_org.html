@@ -16,7 +16,15 @@
 </form>
 {% else %}
 <p class="notice warn" role="status">Your account is not a member of any organisation yet.</p>
+{% if nav and nav.can_manage_orgs %}
+<p class="muted">As a superadmin you can create an organisation or join an existing one. The product catalog does not need an organisation.</p>
+<div class="actions">
+  <a class="button" href="/admin/organisations">Create or join an organisation</a>
+  <a class="button secondary" href="/products">Open Products</a>
+</div>
+{% else %}
 <p class="muted">Ask an administrator to add you. The product catalog does not need an organisation.</p>
 <div class="actions"><a class="button" href="/products">Open Products</a></div>
+{% endif %}
 {% endif %}
 {% endblock %}

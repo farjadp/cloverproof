@@ -139,3 +139,10 @@ def test_country_list_starts_with_canada_and_uses_alpha_2() -> None:
     assert COUNTRIES["CA"] == "Canada" and COUNTRIES["US"] == "United States"
     assert len(COUNTRIES) == 249
     assert all(len(code) == 2 and code.isascii() and code.isupper() for code in COUNTRIES)
+
+
+def test_a_preset_source_must_say_it_is_unconfirmed() -> None:
+    rows = yaml.safe_load(PRESETS_PATH.read_text(encoding="utf-8"))
+    rows[0]["source"] = "TEST reference, p. 1"
+    with pytest.raises(PresetError, match="source must say"):
+        parse_presets(rows)

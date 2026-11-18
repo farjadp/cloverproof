@@ -33,3 +33,10 @@ Farms without a soil test still need context (pH, organic carbon, total N, textu
 - Mapping `SoilEstimate` to the engine's `SoilTest(source="estimate")` (depth, form, units) is a separate adapter step, not part of this ADR.
 - Left to `cp-engine`: an engine-side golden test asserting that a soil test with `source = estimate` never yields a P or K rate (and caps confidence per rule 3). Not written here.
 - Not verified live: files.isric.org did not answer from our network on 2026-11-16; the file layout was confirmed from archived directory listings (phh2o, soc, nitrogen, clay). The first real fetch should be checked by hand.
+
+
+## Note 2026-11-18 (S3-ENG-01)
+Additions; the decision above stands.
+- `fetch --region ontario` clips one named bbox (`-95.2,41.6,-74.3,56.9`) and is the only way past the 1 degree cap. `--bbox` keeps the cap. Operator steps: `docs/runbook-soilgrids-cache.md`.
+- `lookup_estimate` returns `NoEstimate(reason="outside_cache" | "nodata")` where `estimate_at` raises. A missing or damaged cache still raises.
+- `SoilEstimate.attribution` is now exactly the `docs/data-sources.md` string; the paper citation moved to `SoilEstimate.citation`.

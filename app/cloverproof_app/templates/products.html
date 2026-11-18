@@ -22,7 +22,7 @@
 <section aria-labelledby="catalog-title">
   <h2 id="catalog-title">Catalog</h2>
   {% if products %}
-  <p class="muted measure">Grades are percentages as printed on the product label: N and S elemental, P as P₂O₅, K as K₂O.{% if manage %} Only superadmins see drafts. An active product is visible to every user and can't be edited.{% endif %}</p>
+  <p class="muted measure">Grades are percentages as printed on the product label: N and S elemental, P as P₂O₅, K as K₂O.{% if manage %} Only superadmins see drafts. A draft can be edited or discarded. An active product is visible to every user and can't be changed.{% endif %}</p>
   <table class="stack products-table">
     <caption class="sr-only">Fertilizer products in the catalog</caption>
     <thead>
@@ -50,6 +50,8 @@
           {% if p.status == "draft" %}
           <span class="badge status-draft">Draft</span>
           <a class="status-action" href="/products/{{ p.id }}/activate" aria-label="Check and activate {{ p.name }}">Check and activate</a>
+          <a class="status-action" href="/products/{{ p.id }}/edit" aria-label="Edit {{ p.name }}">Edit</a>
+          <a class="status-action" href="/products/{{ p.id }}/discard" aria-label="Discard {{ p.name }}">Discard</a>
           {% else %}Active{% endif %}
         </td>
         {% endif %}

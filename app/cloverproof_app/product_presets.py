@@ -27,6 +27,8 @@ DENSITY_MAX = Decimal("999.999")
 QUERY_MAX = 100
 
 GRADE_FIELDS = ("n", "p2o5", "k2o", "s")
+# Ends every preset citation. Activation asks for the label actually checked when it is there.
+UNCONFIRMED_SOURCE = "unconfirmed, check the product label"
 TEXT_FIELDS = ("slug", "name", "group", "form", "source", "url", "printed", "notes")
 FIELDS = frozenset((*TEXT_FIELDS, *GRADE_FIELDS, "density_kg_per_l"))
 KEY = re.compile(r"[a-z0-9_]+")
@@ -128,6 +130,8 @@ def _preset(row: Any, position: int) -> Preset:
         raise PresetError(f"{where}: name is longer than {NAME_MAX} characters")
     if len(row["source"]) > SOURCE_MAX:
         raise PresetError(f"{where}: source is longer than {SOURCE_MAX} characters")
+    if UNCONFIRMED_SOURCE not in row["source"].lower():
+        raise PresetError(f"{where}: source must say {UNCONFIRMED_SOURCE!r}")
     if not row["url"].startswith("https://"):
         raise PresetError(f"{where}: url must start with https://")
     if row["group"] not in GROUPS:

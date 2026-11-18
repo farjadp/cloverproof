@@ -1,12 +1,14 @@
 """Product catalog page (`/products`, story S2-APP-09, GL-09: label facts, nothing commercial).
 
-Any signed-in user reads active products. A human superadmin also sees drafts, adds drafts
-and activates them. The same rules are enforced again by RLS and CHECK constraints in
-migration 0027; a refusal there becomes a plain error page, never a 500.
+Any signed-in user reads active products. A human superadmin also sees drafts, adds, edits,
+discards and activates them; an active product never changes. The same rules are enforced
+again by RLS and CHECK constraints in migrations 0027 and 0030; a refusal there becomes a
+plain error page, never a 500.
 
 Adding a product can start from a published fertilizer type (`product_presets`). A preset only
 fills the form on a GET: the values come back through the normal POST and are validated like
-typed ones, and activating needs a separate confirmation that the label was checked.
+typed ones, and activating needs a separate confirmation that the label was checked. Editing
+such a draft keeps its "unconfirmed" note, so an edit cannot skip that confirmation.
 
 The catalog is global, so no organisation is required: one is resolved only for the header.
 """
@@ -40,6 +42,7 @@ from cloverproof_app.product_presets import (
     GRADE_PLACES,
     NAME_MAX,
     SOURCE_MAX,
+    UNCONFIRMED_SOURCE,
     Preset,
     decimal_places,
     plain_number,
@@ -60,8 +63,6 @@ DUPLICATE_ON_ACTIVATE = (
 )
 ALREADY_ACTIVE = "This product is already active."
 UNKNOWN_PRESET = "That fertilizer type is not in the list. Choose another or enter it manually."
-# Ends every preset citation: an active product must name the label actually checked.
-UNCONFIRMED_SOURCE = "unconfirmed, check the product label"
 CHECKED_SOURCE_MISSING = (
     "Enter the product label or data sheet you checked, with its edition or date."
 )
@@ -69,10 +70,21 @@ LABEL_NOT_CONFIRMED = (
     "Tick the box to confirm you checked these values against the product label."
     " The product stays a draft."
 )
+KEEP_UNCONFIRMED = (
+    f'Keep "{UNCONFIRMED_SOURCE}" in the source. You name the label you checked when you'
+    " activate this draft."
+)
+ACTIVE_NOT_EDITABLE = "This product is active, so it can't be edited."
+ACTIVE_NOT_DISCARDABLE = "This product is active, so it can't be discarded."
+DRAFT_IN_USE = "This draft is used elsewhere, so it can't be discarded. Nothing was changed."
 DONE_MESSAGES = {
     "added": "Saved as a draft. Only superadmins can see it.",
     "activated": "Product activated. Every signed-in user can now see it.",
+    "edited": "Draft updated. It stays a draft until you check and activate it.",
+    "discarded": "Draft discarded.",
 }
+# Notices about drafts: people who can't see drafts never get them.
+DRAFT_ONLY_MESSAGES = {"edited", "discarded"}
 
 FORMS = {"granular": "Granular", "liquid": "Liquid"}
 GRADES = {"n": "N", "p2o5": "P₂O₅", "k2o": "K₂O", "s": "S"}
@@ -271,7 +283,8 @@ def products_list(
 ) -> Response:
     message = DONE_MESSAGES.get(done)
     if not may_manage(user):  # Readers get the catalog, whatever the address asks for.
-        return catalog_page(request, conn, user, done=message)
+        shown = None if done in DRAFT_ONLY_MESSAGES else message
+        return catalog_page(request, conn, user, done=shown)
     chosen = presets.BY_KEY.get(preset)
     return catalog_page(
         request,
@@ -323,6 +336,157 @@ async def product_add(request: Request, conn: Conn, user: CatalogAdmin) -> Respo
     return RedirectResponse(f"/products?done=added&draft={draft_id}", status_code=303)
 
 
+def is_unconfirmed(source: str) -> bool:
+    return UNCONFIRMED_SOURCE in source.lower()
+
+
+def draft_or_refusal(
+    request: Request,
+    conn: psycopg.Connection,
+    user: CurrentUser,
+    product_id: UUID,
+    active_message: str,
+) -> repo.Product | Response:
+    """The draft to work on, or the page that says why not. 404 also covers a draft RLS hides."""
+    product = repo.get_product(conn, product_id)
+    if product is None:
+        raise not_found("Product")
+    if product.status != "draft":
+        return catalog_page(request, conn, user, problem=active_message, status=409)
+    return product
+
+
+def form_values_of(product: repo.Product) -> dict[str, str]:
+    density = product.density_kg_per_l
+    return {
+        "country_code": product.country_code,
+        "name": product.name,
+        "n": plain_number(product.n),
+        "p2o5": plain_number(product.p2o5),
+        "k2o": plain_number(product.k2o),
+        "s": plain_number(product.s),
+        "product_form": product.form,
+        "density_kg_per_l": "" if density is None else plain_number(density),
+        "grade_source": product.grade_source,
+    }
+
+
+def edit_page(
+    request: Request,
+    product: repo.Product,
+    values: dict[str, str],
+    *,
+    errors: dict[str, str] | None = None,
+    problem: str | None = None,
+    status: int = 200,
+) -> Response:
+    ctx = {
+        "product": product,
+        "values": values,
+        "errors": errors or {},
+        "problem": problem,
+        "source_unconfirmed": is_unconfirmed(product.grade_source),
+        "unconfirmed_note": UNCONFIRMED_SOURCE,
+        "form_labels": FORMS,
+        "grades": GRADES,
+        "countries": COUNTRIES,
+    }
+    return render(request, "product_edit.html", ctx, status)
+
+
+@router.get("/products/{product_id}/edit", dependencies=[Depends(page_org)])
+def product_edit_form(
+    request: Request, conn: Conn, user: CatalogAdmin, product_id: UUID
+) -> Response:
+    product = draft_or_refusal(request, conn, user, product_id, ACTIVE_NOT_EDITABLE)
+    if isinstance(product, Response):
+        return product
+    return edit_page(request, product, form_values_of(product))
+
+
+@router.post("/products/{product_id}/edit", dependencies=[Depends(page_org)])
+async def product_edit(
+    request: Request, conn: Conn, user: CatalogAdmin, product_id: UUID
+) -> Response:
+    form = await form_data(request)
+    draft = draft_or_refusal(request, conn, user, product_id, ACTIVE_NOT_EDITABLE)
+    if isinstance(draft, Response):
+        return draft
+    product, values, errors = validate(form)
+    # Without this, an edit could turn a published reference into a confirmed-looking source
+    # and activation would no longer ask which label was checked.
+    if (
+        "grade_source" not in errors
+        and is_unconfirmed(draft.grade_source)
+        and not is_unconfirmed(values["grade_source"])
+    ):
+        errors["grade_source"] = KEEP_UNCONFIRMED
+    if product is None or errors:
+        return edit_page(request, draft, values, errors=errors, status=422)
+
+    def refused(problem: str, status: int) -> Response:
+        return edit_page(request, draft, values, problem=problem, status=status)
+
+    if repo.active_name_exists(conn, product.country_code, product.name):
+        return refused(DUPLICATE_ON_ADD.format(country=product.country_code), 409)
+    try:
+        outcome = repo.update_draft(conn, product_id, product)
+    except pg_errors.InsufficientPrivilege:
+        return refused(DB_DENIED, 403)
+    except (psycopg.IntegrityError, psycopg.DataError):
+        return refused(DB_REFUSED, 422)
+    if outcome is repo.DraftChange.NOT_FOUND:
+        raise not_found("Product")
+    if outcome is repo.DraftChange.NOT_A_DRAFT:
+        return catalog_page(request, conn, user, problem=ACTIVE_NOT_EDITABLE, status=409)
+    if outcome is repo.DraftChange.REFUSED:
+        return refused(DB_DENIED, 403)
+    return RedirectResponse("/products?done=edited", status_code=303)
+
+
+def discard_page(
+    request: Request, product: repo.Product, *, problem: str | None = None, status: int = 200
+) -> Response:
+    ctx = {
+        "product": product,
+        "problem": problem,
+        "form_labels": FORMS,
+        "country": COUNTRIES.get(product.country_code, product.country_code),
+        "number": plain_number,
+    }
+    return render(request, "product_discard.html", ctx, status)
+
+
+@router.get("/products/{product_id}/discard", dependencies=[Depends(page_org)])
+def product_discard_form(
+    request: Request, conn: Conn, user: CatalogAdmin, product_id: UUID
+) -> Response:
+    product = draft_or_refusal(request, conn, user, product_id, ACTIVE_NOT_DISCARDABLE)
+    if isinstance(product, Response):
+        return product
+    return discard_page(request, product)
+
+
+@router.post("/products/{product_id}/discard", dependencies=[Depends(page_org)])
+def product_discard(request: Request, conn: Conn, user: CatalogAdmin, product_id: UUID) -> Response:
+    draft = draft_or_refusal(request, conn, user, product_id, ACTIVE_NOT_DISCARDABLE)
+    if isinstance(draft, Response):
+        return draft
+    try:
+        outcome = repo.delete_draft(conn, product_id)
+    except pg_errors.ForeignKeyViolation:
+        return discard_page(request, draft, problem=DRAFT_IN_USE, status=409)
+    except pg_errors.InsufficientPrivilege:
+        return discard_page(request, draft, problem=DB_DENIED, status=403)
+    if outcome is repo.DraftChange.NOT_FOUND:
+        raise not_found("Product")
+    if outcome is repo.DraftChange.NOT_A_DRAFT:
+        return catalog_page(request, conn, user, problem=ACTIVE_NOT_DISCARDABLE, status=409)
+    if outcome is repo.DraftChange.REFUSED:
+        return discard_page(request, draft, problem=DB_DENIED, status=403)
+    return RedirectResponse("/products?done=discarded", status_code=303)
+
+
 def activation_page(
     request: Request,
     product: repo.Product,
@@ -335,7 +499,7 @@ def activation_page(
     ctx = {
         "product": product,
         "errors": errors or {},
-        "needs_checked_source": UNCONFIRMED_SOURCE in product.grade_source.lower(),
+        "needs_checked_source": is_unconfirmed(product.grade_source),
         "checked_source": checked_source,
         "problem": problem,
         "form_labels": FORMS,
@@ -370,11 +534,11 @@ async def product_activate(
         return catalog_page(request, conn, user, problem=ALREADY_ACTIVE, status=409)
     errors: dict[str, str] = {}
     checked_source = ""
-    if UNCONFIRMED_SOURCE in product.grade_source.lower():
+    if is_unconfirmed(product.grade_source):
         checked_source = clean_text(
             form, "grade_source", SOURCE_MAX, "Source", errors, CHECKED_SOURCE_MISSING
         )
-        if UNCONFIRMED_SOURCE in checked_source.lower():
+        if is_unconfirmed(checked_source):
             errors["grade_source"] = CHECKED_SOURCE_MISSING
     if text(form, "label_checked", 10) != "yes":
         errors["label_checked"] = LABEL_NOT_CONFIRMED
