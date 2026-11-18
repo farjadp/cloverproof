@@ -137,26 +137,26 @@ def _timing_tag(citation: Citation | None) -> str:
 def split_line(index: int, count: int, window: str, citation: Citation | None) -> str:
     return (
         f"Application {index} of {count} in the pack's split plan. "
-        f"Timing window: {window} {_timing_tag(citation)}."
+        f"Pack timing wording: {window} {_timing_tag(citation)}."
     )
 
 
 def no_split_stage_label() -> str:
-    return "Single application (no split defined in the pack; timing not set)"
+    return "Full N rate, not split (no split plan in the pack; timing not set)"
 
 
 def no_split_fraction(pack_id: str, version: str, crop: str) -> str:
     return (
         f"No split is defined in pack '{pack_id}' {version} for {crop}: "
-        "this one application gets the full N rate."
+        "this line carries the full N rate."
     )
 
 
 def no_split_line(pack_id: str, version: str, crop: str) -> str:
     return (
-        f"No split is defined in pack '{pack_id}' {version} for {crop}, so the N is one "
-        "application. The pack gives no timing window and the engine does not invent one; "
-        "the agronomist sets the timing."
+        f"Pack '{pack_id}' {version} defines no split plan for {crop}, so the engine shows the "
+        "N rate as one line. This is not advice to apply it in one pass. The pack gives no "
+        "timing window and the engine does not invent one."
     )
 
 

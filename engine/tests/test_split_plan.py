@@ -132,6 +132,31 @@ def test_window_stays_placeholder_even_in_a_validated_pack(make_input, validated
         assert "validated pack" not in line.explanation
 
 
+def test_line_calls_the_stage_label_pack_wording_not_a_timing_window(make_input) -> None:
+    line = recommend(make_input(), load_pack(V0_PATH)).nitrogen.splits[0]
+    assert f"Pack timing wording: {line.stage_label} (" in line.explanation
+    assert "Timing window:" not in line.explanation
+
+
+@pytest.mark.parametrize("basis", ["derived", "inferred"])
+def test_unstated_window_citation_never_says_read_from(make_input, basis: str) -> None:
+    data = _raw()
+    data["crops"]["wheat"]["nitrogen"]["splits"][0]["timing_citation"] = {
+        "title": "TEST FIXTURE",
+        "publisher": "TEST FIXTURE",
+        "year": 2026,
+        "locator": "p. 1",
+        "url": "https://example.invalid/",
+        "accessed_on": "2026-11-17",
+        "basis": basis,
+        "note": "TEST FIXTURE: how the wording was reached.",
+    }
+    line = recommend(make_input(), parse_pack(data)).nitrogen.splits[0]
+    for text in (line.explanation, line.fraction.explanation):
+        assert f"{basis} by the engine" in text
+        assert "read from" not in text
+
+
 # --- rounding: no pack rule, so rates stay exact ----------------------------------
 
 
@@ -170,6 +195,19 @@ def test_no_splits_gives_one_full_rate_line_without_timing(
         assert "no split" in text.lower() and "pack" in text.lower()
     assert "no split" in line.stage_label.lower()
     assert "timing not set" in line.stage_label.lower()
+
+
+def test_no_split_wording_is_not_advice_to_apply_in_one_pass(make_input) -> None:
+    pack = _without_splits()
+    line = recommend(make_input(), pack).nitrogen.splits[0]
+    who = f"Pack '{pack.id}' {pack.version} defines no split plan for wheat"
+    assert line.stage_label == "Full N rate, not split (no split plan in the pack; timing not set)"
+    assert line.explanation == (
+        f"{who}, so the engine shows the N rate as one line. This is not advice to apply it "
+        "in one pass. The pack gives no timing window and the engine does not invent one."
+    )
+    assert line.fraction.explanation.endswith(": this line carries the full N rate.")
+    assert "agronomist sets the timing" not in line.explanation
 
 
 def test_no_split_line_flags_follow_the_rate(make_input) -> None:
