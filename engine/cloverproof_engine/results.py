@@ -177,7 +177,8 @@ class PkRecommended(_Frozen):
     """A P or K rate read from the pack table for the soil test's extraction method.
 
     Every amount is given as the element and as the oxide. `rate_form` says which of the
-    two the pack table states; the other is converted through `units.py`.
+    two the pack table states; the other is converted through `units.py`. `assumes` is
+    what the table's rates are conditional on; every rate and total explanation says it.
     """
 
     outcome: Literal["recommended"] = "recommended"
@@ -189,6 +190,7 @@ class PkRecommended(_Frozen):
     table_band: str
     response: str
     response_label: str
+    assumes: str
     rate_form: NutrientForm
     rate_elemental: FormAmount  # kg/ha
     rate_oxide: FormAmount  # kg/ha

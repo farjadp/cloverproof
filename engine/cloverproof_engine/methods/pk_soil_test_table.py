@@ -3,7 +3,7 @@
 For guidance published as tables of rate by soil-test band, valid for one extraction
 method each (e.g. Ontario Publication 811, Tables 4-20 and 4-21; pack ca-on).
 
-    soil-test level = the lab value, as the element (converted through `units.py`)
+    soil-test level = the lab value, in the table's `soil_test_form` (through `units.py`)
     rate            = the rate of the band that level falls in, in the pack table
                       for that value's own extraction method
     total           = rate x area
@@ -126,17 +126,16 @@ class PkSoilTestTable(NutrientMethod[PkResults]):
 
         elemental_form = units.elemental_form(nutrient)
         oxide_form = units.oxide_form(nutrient)
-        level = units.convert_form(value.value_mg_per_kg, value.form, elemental_form)
+        level = units.convert_form(value.value_mg_per_kg, value.form, table.soil_test_form)
         index = _band_index(table, level)
-        unit = table.soil_test_unit.value
         if index is None:
             return refuse(
                 "outside_table",
                 explain.pk_outside_table(
                     nutrient,
                     level,
-                    table.bands[0].label(unit),
-                    table.bands[-1].label(unit),
+                    table.band_label(table.bands[0]),
+                    table.band_label(table.bands[-1]),
                 ),
             )
         return self._recommended(
@@ -159,7 +158,7 @@ class PkSoilTestTable(NutrientMethod[PkResults]):
         base = f"crops.{inputs.crop.value}.phosphorus_potassium"
         method_key = value.extraction_method.value
         band = table.bands[index]
-        band_label = band.label(table.soil_test_unit.value)
+        band_label = table.band_label(band)
         response_label = table.response_legend[band.response]
         cell = table.cell(index)
         used = [
@@ -199,6 +198,7 @@ class PkSoilTestTable(NutrientMethod[PkResults]):
                     amount,
                     table.label,
                     band_label,
+                    band.response,
                     response_label,
                     cell,
                     table.assumes,
@@ -206,7 +206,7 @@ class PkSoilTestTable(NutrientMethod[PkResults]):
                 )
             else:
                 text = explain.pk_converted_rate(
-                    form.value, amount, table.rate_form.value, band.rate
+                    form.value, amount, table.rate_form.value, band.rate, table.assumes
                 )
             return FormAmount(
                 form=form,
@@ -228,7 +228,7 @@ class PkSoilTestTable(NutrientMethod[PkResults]):
                     value=total,
                     unit=f"kg {rate.form.value}",
                     explanation=explain.pk_total(
-                        rate.form.value, rate.amount.value, inputs.area_ha, total
+                        rate.form.value, rate.amount.value, inputs.area_ha, total, table.assumes
                     ),
                     uses_placeholder=placeholder,
                 ),
@@ -245,6 +245,7 @@ class PkSoilTestTable(NutrientMethod[PkResults]):
             table_band=band_label,
             response=band.response,
             response_label=response_label,
+            assumes=table.assumes,
             rate_form=table.rate_form,
             rate_elemental=rate_elemental,
             rate_oxide=rate_oxide,

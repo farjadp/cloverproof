@@ -324,6 +324,7 @@ crops:
               # (docs/agronomist-todo.md #35).
               label: "sodium bicarbonate (Olsen) phosphorus soil test"
               soil_test_unit: ppm
+              soil_test_form: P
               rate_form: P2O5
               status: PLACEHOLDER
               source: null
@@ -337,9 +338,11 @@ crops:
                 basis: stated
                 note: "All 13 rows of the column, kg/ha of P2O5 with the response rating. Row label = the band shown with each rate."
               assumes: >-
-                winter wheat not seeded down (Pub 811 has a separate, higher column for
-                winter or spring grains seeded down), with no manure or other organic
-                amendment applied
+                winter wheat not seeded down (Pub 811 has a separate column for winter or
+                spring grains seeded down, higher in many rows); no manure or other organic
+                amendment applied; an OMAFRA-accredited soil test, or the identical test
+                reported in the same units; the rate says nothing about placement (with
+                the seed or broadcast)
               response_legend:
                 HR: high response
                 MR: medium response
@@ -362,7 +365,16 @@ crops:
                 - low: 61
                   rate: 0
                   response: NR
-                  caution: "Pub 811 Table 4-20 footnote 2: at a no-response rating, application of phosphorus in fertilizer or manure may reduce crop yield or quality, and may increase the risk of water pollution."
+                  caution:
+                    text: "When the response rating for a nutrient is “NR,” application of phosphorus in fertilizer or manure may reduce crop yield or quality. For example, phosphate applications may induce zinc deficiency on soils low in zinc and may increase the risk of water pollution."
+                    citation:
+                      title: "Agronomy Guide for Field Crops (Publication 811), Chapter 4: Cereals (PDF edition 2022-10-13)"
+                      publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+                      year: 2022
+                      locator: "Table 4-20, footnote 2, p. 131"
+                      url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-4-en-2022-10-13.pdf"
+                      accessed_on: 2026-11-18
+                      basis: stated
         K:
           tables:
             ammonium-acetate:
@@ -370,6 +382,7 @@ crops:
               # (docs/agronomist-todo.md #36).
               label: "ammonium acetate potassium soil test"
               soil_test_unit: ppm
+              soil_test_form: K
               rate_form: K2O
               status: PLACEHOLDER
               source: null
@@ -383,9 +396,11 @@ crops:
                 basis: stated
                 note: "All 12 rows of the column, kg/ha of K2O with the response rating. Row label = the band shown with each rate. In this PDF edition the first column header reads 'Ammonium Acetate Potassium Soil Test'."
               assumes: >-
-                winter wheat not seeded down (Pub 811 has a separate, higher column for
-                winter or spring grains seeded down), with no manure or other organic
-                amendment applied
+                winter wheat not seeded down (Pub 811 has a separate column for winter or
+                spring grains seeded down, higher in many rows); no manure or other organic
+                amendment applied; an OMAFRA-accredited soil test, or the identical test
+                reported in the same units; the rate says nothing about placement (with
+                the seed or broadcast)
               response_legend:
                 HR: high response
                 MR: medium response
@@ -407,7 +422,16 @@ crops:
                 - low: 251
                   rate: 0
                   response: NR
-                  caution: "Pub 811 Table 4-21 footnote 1: at a no-response rating, application of potash in fertilizer or manure may reduce crop yield or quality."
+                  caution:
+                    text: "When the response rating for a nutrient is “NR,” application of potash in fertilizer or manure may reduce crop yield or quality. For example, potash application on soils low in magnesium may induce magnesium deficiency."
+                    citation:
+                      title: "Agronomy Guide for Field Crops (Publication 811), Chapter 4: Cereals (PDF edition 2022-10-13)"
+                      publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
+                      year: 2022
+                      locator: "Table 4-21, footnote 1, p. 132"
+                      url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-4-en-2022-10-13.pdf"
+                      accessed_on: 2026-11-18
+                      basis: stated
 
     # Soil tests the Ontario P and K guidance is calibrated for (OMAFA-accredited
     # tests; values in ppm = mg/kg, element form). The tables above are keyed to the

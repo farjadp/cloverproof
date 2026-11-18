@@ -20,14 +20,17 @@ Rules (each TODO(agronomist): review):
   (numbers built on unvalidated constants are never more than low; unused
   pack entries, e.g. credits for other previous crops, and the confidence
   thresholds themselves do not trigger C6). A PLACEHOLDER timing window counts
-  too, under the path `crops.<crop>.nitrogen.splits[i].timing`, and so do the
-  constants behind a P or K rate. A refused P or K line used none.
+  too, under the path `crops.<crop>.nitrogen.splits[i].timing`.
 - C6_TIMING_WINDOW_MISSING  a line has no timing window (the pack
                             defines no split plan)              -> cap low
 - C7_PLACEHOLDER_PRODUCT_RULE_USED a line's matched product relied
                             on a PLACEHOLDER pack product rule (its
                             `rules_used`)                       -> cap low
   (a line with no matched product does not trigger C7, even if rules were read)
+- C8_PK_PLACEHOLDER_NOT_IN_PLAN a P or K table check used a PLACEHOLDER
+                            constant; those results are not part of
+                            the plan, so this reason is separate
+                            from C6. A refused line used none   -> cap low
 
 Timing windows have no status of their own yet, so every window is PLACEHOLDER: a
 plan is `low` with or without a split plan, so removing timing can never raise confidence,
@@ -161,10 +164,6 @@ def assess(
         for i, window in enumerate(windows)
         if window is not None and window.status is ConstantStatus.PLACEHOLDER
     ]
-    for line in pk.lines if pk is not None else ():
-        if line.outcome == "recommended":
-            placeholders += [c.path for c in line.constants_used if c.is_placeholder]
-    placeholders = list(dict.fromkeys(placeholders))
     if placeholders:
         hits.append(
             ConfidenceRuleHit(
@@ -198,6 +197,25 @@ def assess(
                 cap=Confidence.LOW,
                 reason=explain.c7_placeholder_product_rule_used(
                     pack.id, pack.version, list(product_rules)
+                ),
+            )
+        )
+
+    # C8 — TODO(agronomist): review, including the draft cap.
+    pk_placeholders = dict.fromkeys(
+        c.path
+        for line in (pk.lines if pk is not None else ())
+        if line.outcome == "recommended"
+        for c in line.constants_used
+        if c.is_placeholder
+    )
+    if pk_placeholders:
+        hits.append(
+            ConfidenceRuleHit(
+                rule_id="C8_PK_PLACEHOLDER_NOT_IN_PLAN",
+                cap=Confidence.LOW,
+                reason=explain.c8_pk_placeholder_not_in_plan(
+                    pack.id, pack.version, list(pk_placeholders)
                 ),
             )
         )

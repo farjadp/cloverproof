@@ -23,6 +23,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CA_ON_PATH = REPO_ROOT / "packs" / "ca-on" / "v2.yaml"
 GOLDEN_DIR = REPO_ROOT / "engine" / "tests" / "golden"
 
+PK_RULE = "C8_PK_PLACEHOLDER_NOT_IN_PLAN"
 OLSEN_P = {"form": "P", "value": 7, "unit": "mg/kg", "extraction_method": "olsen"}
 ACETATE_K = {"form": "K", "value": 40, "unit": "mg/kg", "extraction_method": "ammonium-acetate"}
 
@@ -96,7 +97,7 @@ def test_olsen_p_and_acetate_k_read_their_own_tables(pack: Pack) -> None:
     k = _recommended(rec.phosphorus_potassium_rates.potassium)
     assert (p.method_id, p.extraction_method.value) == ("pk_soil_test_table", "olsen")
     assert k.extraction_method.value == "ammonium-acetate"
-    assert (p.table_band, p.response) == ("6-7 ppm", "HR")
+    assert (p.table_band, p.response) == ("6-7 ppm P", "HR")
     assert p.response_label == "high response"
     assert p.rate_oxide.amount.value == 50
     assert k.rate_oxide.amount.value == 30
@@ -131,8 +132,8 @@ def test_oxide_input_is_converted_before_the_table(pack: Pack) -> None:
     p = _recommended(rates.phosphorus)
     k = _recommended(rates.potassium)
     assert p.soil_test_elemental.amount.value == pytest.approx(7)
-    assert (p.table_band, p.rate_oxide.amount.value) == ("6-7 ppm", 50)
-    assert (k.table_band, k.rate_oxide.amount.value) == ("31-45 ppm", 30)
+    assert (p.table_band, p.rate_oxide.amount.value) == ("6-7 ppm P", 50)
+    assert (k.table_band, k.rate_oxide.amount.value) == ("31-45 ppm K", 30)
     assert "as reported" in p.soil_test_oxide.amount.explanation
     assert "converted" in p.soil_test_elemental.amount.explanation
 
@@ -150,14 +151,14 @@ def test_an_oxide_value_on_a_band_edge_stays_in_that_band(pack: Pack, element: f
 def test_ppm_and_mg_per_kg_read_the_same_band(pack: Pack) -> None:
     rates = _run(pack, {**OLSEN_P, "unit": "ppm"}).phosphorus_potassium_rates
     assert rates is not None
-    assert _recommended(rates.phosphorus).table_band == "6-7 ppm"
+    assert _recommended(rates.phosphorus).table_band == "6-7 ppm P"
 
 
 def test_value_between_printed_bands_takes_the_lower_band_and_says_so(pack: Pack) -> None:
     rates = _run(pack, {**OLSEN_P, "value": 7.5}).phosphorus_potassium_rates
     assert rates is not None
     p = _recommended(rates.phosphorus)
-    assert (p.table_band, p.rate_oxide.amount.value) == ("6-7 ppm", 50)
+    assert (p.table_band, p.rate_oxide.amount.value) == ("6-7 ppm P", 50)
     assert "engine choice" in p.rate_oxide.amount.explanation
     assert "no interpolation" in p.rate_oxide.amount.explanation
 
@@ -166,7 +167,7 @@ def test_top_open_band_covers_every_higher_value_and_carries_the_warning(pack: P
     rates = _run(pack, {**OLSEN_P, "value": 500}).phosphorus_potassium_rates
     assert rates is not None
     p = _recommended(rates.phosphorus)
-    assert (p.table_band, p.response, p.rate_oxide.amount.value) == ("61+ ppm", "NR", 0)
+    assert (p.table_band, p.response, p.rate_oxide.amount.value) == ("61+ ppm P", "NR", 0)
     assert "may reduce crop yield or quality" in p.rate_oxide.amount.explanation
 
 
@@ -291,7 +292,11 @@ def test_the_pk_config_accepts_only_a_pk_method(pack: Pack) -> None:
 def test_placeholder_tables_are_listed_and_force_low(pack: Pack) -> None:
     rec = _run(pack, OLSEN_P, ACETATE_K)
     assert rec.confidence is Confidence.LOW
-    reason = next(h for h in rec.confidence_reasons if h.rule_id.startswith("C6_PLACEHOLDER"))
+    nitrogen = next(h for h in rec.confidence_reasons if h.rule_id.startswith("C6_PLACEHOLDER"))
+    assert "phosphorus_potassium" not in nitrogen.reason
+    reason = next(h for h in rec.confidence_reasons if h.rule_id == PK_RULE)
+    assert reason.cap is Confidence.LOW
+    assert "not part of this plan" in reason.reason
     assert "phosphorus_potassium.nutrients.P.tables.olsen.bands[2].rate" in reason.reason
     assert "phosphorus_potassium.nutrients.K.tables.ammonium-acetate.bands[2].rate" in reason.reason
     assert "phosphorus_potassium.sample_depth_cm" in reason.reason
@@ -332,6 +337,91 @@ def test_manure_not_answered_gives_no_p_or_k_result(pack: Pack) -> None:
     inputs = _input(_soil(OLSEN_P, ACETATE_K)).model_copy(update={"manure_applied": None})
     with pytest.raises(MissingInputError, match="manure_applied"):
         recommend(inputs, pack)
+
+
+ASSUMPTIONS = (
+    "winter wheat not seeded down",
+    "no manure or other organic amendment",
+    "OMAFRA-accredited soil test, or the identical test reported in the same units",
+    "says nothing about placement",
+)
+
+
+def test_every_rate_and_total_states_what_it_assumes(pack: Pack) -> None:
+    rates = _run(pack, OLSEN_P, ACETATE_K).phosphorus_potassium_rates
+    assert rates is not None
+    for line in rates.lines:
+        recommended = _recommended(line)
+        for text in ASSUMPTIONS:
+            assert text in " ".join(recommended.assumes.split())
+        for amount in (
+            recommended.rate_elemental,
+            recommended.rate_oxide,
+            recommended.total_elemental,
+            recommended.total_oxide,
+        ):
+            assert recommended.assumes in amount.amount.explanation
+
+
+def test_rate_and_response_rating_are_stated_separately(pack: Pack) -> None:
+    rates = _run(pack, OLSEN_P).phosphorus_potassium_rates
+    assert rates is not None
+    text = _recommended(rates.phosphorus).rate_oxide.amount.explanation
+    assert "Table rate = 50.0 kg P2O5/ha" in text
+    assert "(high response)" not in text
+    assert "Response rating for this band, separate from the rate: high response (HR)." in text
+
+
+@pytest.mark.parametrize(("value", "rating"), [(35, "low response"), (45, "rare response")])
+def test_a_zero_rate_is_not_read_as_no_response(pack: Pack, value: int, rating: str) -> None:
+    rates = _run(pack, {**OLSEN_P, "value": value}).phosphorus_potassium_rates
+    assert rates is not None
+    line = _recommended(rates.phosphorus)
+    assert line.rate_oxide.amount.value == 0
+    text = line.rate_oxide.amount.explanation
+    assert f"separate from the rate: {rating}" in text
+    assert "A rate of 0 is the table's entry for this band, not a response rating" in text
+    assert "no response" not in text
+
+
+@pytest.mark.parametrize(
+    ("value", "locator", "printed"),
+    [
+        (
+            {**OLSEN_P, "value": 61},
+            "Table 4-20, footnote 2",
+            "phosphate applications may induce zinc deficiency on soils low in zinc",
+        ),
+        (
+            {**ACETATE_K, "value": 251},
+            "Table 4-21, footnote 1",
+            "potash application on soils low in magnesium may induce magnesium deficiency",
+        ),
+    ],
+)
+def test_no_response_band_carries_the_printed_caution_with_its_citation(
+    pack: Pack, value: dict[str, Any], locator: str, printed: str
+) -> None:
+    rates = _run(pack, value).phosphorus_potassium_rates
+    assert rates is not None
+    line = next(x for x in rates.lines if isinstance(x, PkRecommended))
+    assert line.response == "NR"
+    text = line.rate_oxide.amount.explanation
+    assert printed in text
+    assert "Caution printed with the table:" in text
+    assert "read from" in text.split("Caution printed with the table:")[1]
+    assert locator in text.split("Caution printed with the table:")[1]
+
+
+def test_the_band_is_read_in_the_table_soil_test_form(pack: Pack) -> None:
+    oxide = {
+        **OLSEN_P,
+        "form": "P2O5",
+        "value": units.convert_form(7, NutrientForm.P, NutrientForm.P2O5),
+    }
+    rates = _run(pack, oxide).phosphorus_potassium_rates
+    assert rates is not None
+    assert _recommended(rates.phosphorus).table_band == "6-7 ppm P"
 
 
 NITROGEN_ONLY_NOTE = (

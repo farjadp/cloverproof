@@ -14,6 +14,7 @@ from cloverproof_engine.pack import (
     CitationBasis,
     ConstantStatus,
     PackConstant,
+    PkCaution,
     RuleValue,
 )
 
@@ -558,30 +559,39 @@ def pk_table_rate(
     table_label: str,
     band: str,
     response: str,
+    response_label: str,
     cell: PackConstant,
     assumes: str,
-    caution: str | None,
+    caution: PkCaution | None,
 ) -> str:
-    text = (
-        f"Recommended rate = {num(rate)} kg {form}/ha: pack table for the {table_label}, band "
-        f"{band} ({response}) {tag(cell)}. Assumes {assumes}. The band is the last one whose "
-        "lower limit the soil-test level reaches, with no interpolation between bands "
-        "(engine choice, not stated by the table)."
-    )
-    return f"{text} {caution}" if caution else text
+    """The rate and the response rating are separate facts: neither is worded as the other."""
+    parts = [
+        f"Table rate = {num(rate)} kg {form}/ha: pack table for the {table_label}, band "
+        f"{band} {tag(cell)}. Assumes {assumes}. The band is the last one whose lower limit "
+        "the soil-test level reaches, with no interpolation between bands (engine choice, "
+        "not stated by the table).",
+        f"Response rating for this band, separate from the rate: {response_label} ({response}).",
+    ]
+    if rate == 0:
+        parts.append("A rate of 0 is the table's entry for this band, not a response rating.")
+    if caution is not None:
+        parts.append(f"Caution printed with the table: {caution.text} ({cited(caution.citation)}).")
+    return " ".join(parts)
 
 
-def pk_converted_rate(form: str, amount: float, table_form: str, table_rate: float) -> str:
+def pk_converted_rate(
+    form: str, amount: float, table_form: str, table_rate: float, assumes: str
+) -> str:
     return (
         f"The same rate as the element or oxide: {num(table_rate)} kg {table_form}/ha "
-        f"= {operand(amount)} kg {form}/ha, by atomic weights."
+        f"= {operand(amount)} kg {form}/ha, by atomic weights. Assumes {assumes}."
     )
 
 
-def pk_total(form: str, rate: float, area_ha: float, total: float) -> str:
+def pk_total(form: str, rate: float, area_ha: float, total: float, assumes: str) -> str:
     return (
         f"Total for the field = {operand(rate)} kg {form}/ha x {operand(area_ha)} ha "
-        f"= {num(total)} kg {form}."
+        f"= {num(total)} kg {form}. Assumes {assumes}."
     )
 
 
@@ -640,6 +650,14 @@ def c6_placeholder_constant_used(pack_id: str, version: str, paths: list[str]) -
         f"This recommendation uses PLACEHOLDER constants or timing windows from pack "
         f"'{pack_id}' {version}: {', '.join(paths)}. "
         "Confidence is low until a human agronomist validates them."
+    )
+
+
+def c8_pk_placeholder_not_in_plan(pack_id: str, version: str, paths: list[str]) -> str:
+    return (
+        f"The P and K table check used PLACEHOLDER constants from pack '{pack_id}' {version}: "
+        f"{', '.join(paths)}. Those P and K results are not part of this plan; this rule "
+        "still keeps confidence low until a human agronomist validates the constants."
     )
 
 

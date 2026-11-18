@@ -761,3 +761,14 @@ def test_edited_ca_on_v2_document_renders_no_p_or_k_rate() -> None:
     for text in (proof_text(edited), proof_text(edited, SUPERADMIN)):
         assert "This plan covers nitrogen only." in text
         assert PK_RATE_TEXT.search(text) is None
+
+
+def test_p_and_k_placeholder_reason_is_labelled_outside_the_plan() -> None:
+    doc = ca_on_v2_doc(OLSEN_P, ACETATE_K)
+    reasons = {r["rule_id"]: r["reason"] for r in doc["confidence_reasons"]}
+    assert "phosphorus_potassium" not in reasons["C6_PLACEHOLDER_CONSTANT_USED"]
+    pk_reason = reasons["C8_PK_PLACEHOLDER_NOT_IN_PLAN"]
+    assert "not part of this plan" in pk_reason
+    text = proof_text(doc)
+    assert "for the nitrogen line" in text
+    assert squash(pk_reason) in text

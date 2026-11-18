@@ -360,6 +360,19 @@ class SoilTestMethodSpec(_Frozen):
 SoilTestLevel = Annotated[float, Field(ge=0, allow_inf_nan=False)]
 
 
+class PkCaution(_Frozen):
+    """A warning printed with a table row, in the source's words, with where it is printed."""
+
+    text: NonBlankStr
+    citation: Citation
+
+    @model_validator(mode="after")
+    def _check_printed(self) -> Self:
+        if self.citation.basis is not CitationBasis.STATED:
+            raise ValueError("a caution must be printed in its source (basis: stated)")
+        return self
+
+
 class PkBand(_Frozen):
     """One row of a P or K table: a soil-test range and the rate it calls for.
 
@@ -373,7 +386,7 @@ class PkBand(_Frozen):
     high: SoilTestLevel | None = None
     rate: Annotated[float, Field(ge=0, allow_inf_nan=False)]
     response: NonBlankStr
-    caution: NonBlankStr | None = None
+    caution: PkCaution | None = None
 
     def label(self, unit: str) -> str:
         if self.high is None:
@@ -386,13 +399,14 @@ class PkRateTable(_Frozen):
 
     One label for the whole table (status / source / citation), as it is read from one
     source. `assumes` states the conditions the table's rates apply under; it is quoted
-    with every rate.
+    with every rate. `soil_test_form` is the form the bands are expressed in.
     """
 
     _OMIT_IF_NONE = ("citation",)
 
     label: NonBlankStr
     soil_test_unit: ConcentrationUnit
+    soil_test_form: Literal[NutrientForm.P, NutrientForm.K]
     rate_form: NutrientForm
     status: ConstantStatus
     source: str | None
@@ -419,6 +433,9 @@ class PkRateTable(_Frozen):
     @property
     def rate_unit(self) -> str:
         return f"kg {self.rate_form.value}/ha"
+
+    def band_label(self, band: PkBand) -> str:
+        return band.label(f"{self.soil_test_unit.value} {self.soil_test_form.value}")
 
     def cell(self, i: int) -> PackConstant:
         """The rate of band `i`, with the table's label."""
@@ -462,6 +479,10 @@ class PhosphorusPotassiumConfig(_Frozen):
             for table in cfg.tables.values():
                 if nutrient_of(table.rate_form) != nutrient:
                     raise ValueError(f"rate_form {table.rate_form.value} is not {nutrient}")
+                if nutrient_of(table.soil_test_form) != nutrient:
+                    raise ValueError(
+                        f"soil_test_form {table.soil_test_form.value} is not {nutrient}"
+                    )
         return self
 
 

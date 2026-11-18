@@ -16,7 +16,7 @@ CA_ON_PATH = CA_ON_DIR / "v2.yaml"
 
 # Fingerprints. v1 is frozen: recommendations may record it, so P/K went into a new version.
 CA_ON_V1_SHA256 = "84d874e7c6f0119cfeb44e5c5de8a9dfe04e3e9961a0dae0819cd856b1996e58"
-CA_ON_V2_SHA256 = "2f2c8cf38dba08d73e38d86ea8219664a8716fd99d5b3ed8c97e7cda3b77aca7"
+CA_ON_V2_SHA256 = "6bcb0d4a5cd2a843e34032cb423c879e1919baa5577d65da043b5fe9c1999fe0"
 
 # Second, separate entry of the winter wheat columns (low, high, kg/ha, rating), from
 # OMAFRA Pub 811 (PDF edition 2022-10-13) p. 131 Table 4-20 and p. 132 Table 4-21.
@@ -185,3 +185,38 @@ def test_v1_stays_frozen_without_p_and_k_tables() -> None:
 
 def test_v2_is_pinned(pack: Pack) -> None:
     assert (pack.id, pack.version, pack_sha256(pack)) == ("ca-on", "v2", CA_ON_V2_SHA256)
+
+
+def test_tables_name_the_form_of_their_soil_test(pack: Pack) -> None:
+    config = pack.crops[Crop.WHEAT].phosphorus_potassium
+    assert config is not None
+    p = config.nutrients["P"].tables[ExtractionMethod.OLSEN]
+    k = config.nutrients["K"].tables[ExtractionMethod.AMMONIUM_ACETATE]
+    assert (p.soil_test_form, k.soil_test_form) == (NutrientForm.P, NutrientForm.K)
+    assert p.band_label(p.bands[2]) == "6-7 ppm P"
+    assert k.band_label(k.bands[-1]) == "251+ ppm K"
+
+
+def test_soil_test_form_must_match_the_nutrient(pack: Pack) -> None:
+    data = pack.model_dump(mode="json")
+    table = data["crops"]["wheat"]["phosphorus_potassium"]["nutrients"]["P"]["tables"]["olsen"]
+    table["soil_test_form"] = "K"
+    with pytest.raises(ValueError, match="soil_test_form K is not P"):
+        parse_pack(data)
+
+
+def test_soil_test_form_must_be_the_element(pack: Pack) -> None:
+    data = pack.model_dump(mode="json")
+    table = data["crops"]["wheat"]["phosphorus_potassium"]["nutrients"]["P"]["tables"]["olsen"]
+    table["soil_test_form"] = "P2O5"
+    with pytest.raises(ValueError, match="soil_test_form"):
+        parse_pack(data)
+
+
+def test_a_caution_must_be_printed_in_its_source(pack: Pack) -> None:
+    data = pack.model_dump(mode="json")
+    table = data["crops"]["wheat"]["phosphorus_potassium"]["nutrients"]["P"]["tables"]["olsen"]
+    citation = table["bands"][-1]["caution"]["citation"]
+    citation.update(basis="inferred", note="TEST FIXTURE")
+    with pytest.raises(ValueError, match="printed"):
+        parse_pack(data)
