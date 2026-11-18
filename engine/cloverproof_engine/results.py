@@ -110,6 +110,7 @@ class ProductNotMatched(_Frozen):
         "no_choice_rule",
         "several_fit",
         "single_fit_not_allowed",
+        "rate_edited",  # set when an agronomist's edit changes the line's N rate
     ]
     # Products that fit but were not selected, sorted by name. Not a ranking.
     fitting_products: list[str]

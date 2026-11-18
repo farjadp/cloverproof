@@ -232,6 +232,13 @@ def no_n_needed(index: int) -> str:
     return f"Application {index} needs no N, so no product is named."
 
 
+def product_rate_edited(index: int) -> str:
+    return (
+        f"The N rate of application {index} was edited after matching, so the engine's product "
+        "quantity no longer applies and is withdrawn. The agronomist sets the product."
+    )
+
+
 def no_product_fits(excluded: list[str]) -> str:
     return (
         "No catalog product fits this N-only need, so this line stays nutrient-only."

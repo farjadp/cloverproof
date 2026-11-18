@@ -17,7 +17,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from cloverproof_engine import recommend
+from cloverproof_engine import explain, recommend
 from cloverproof_engine.methods import MissingInputError, OutOfScopeError
 from cloverproof_engine.methods._shared import (
     OutsideTableError,
@@ -532,7 +532,8 @@ def edited_document(doc: Mapping[str, Any], edit: EditParsed, reason: str) -> di
 
     Only numbers the agronomist typed say "Set by agronomist". Splits rescaled from the new
     N rate with the pack shares say so and keep the share's PLACEHOLDER flag. Every split
-    share is recomputed against the final N rate, typed or not.
+    share is recomputed against the final N rate, typed or not. A line whose rate changed,
+    typed or rescaled, loses its product outcome: it was worked out from the old rate.
     """
     new = copy.deepcopy(dict(doc))
     nitrogen = new["nitrogen"]
@@ -557,6 +558,14 @@ def edited_document(doc: Mapping[str, Any], edit: EditParsed, reason: str) -> di
     for i, split in enumerate(nitrogen["splits"]):
         key = f"split_{i}"
         rate = edit.split_rates[i]
+        if key in edit.changed and "product_match" in split:
+            split["product_match"] = {
+                "matched": False,
+                "code": "rate_edited",
+                "fitting_products": [],
+                "rules_used": [],
+                "explanation": explain.product_rate_edited(i + 1),
+            }
         share = rate / final_rate if final_rate > 0 else 0.0
         fraction = split["fraction"]
         if key in edit.typed:
