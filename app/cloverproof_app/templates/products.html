@@ -1,119 +1,71 @@
 {% extends "base.html" %}
-{% from "_macros.html" import error, error_summary, invalid %}
 {% block title %}Products{% endblock %}
+{% block main_class %}products-page{% endblock %}
 {% block content %}
 <div class="page-head">
   <h1>Products</h1>
+  {% if manage and not show_form %}<a class="button" href="/products?add=1#add-product">Add a product</a>{% endif %}
 </div>
-{% if done %}<div class="notice success" role="status"><p>{{ done }}</p></div>{% endif %}
+{% if done %}
+<div class="notice success" role="status">
+  <p>{{ done }}</p>
+  {% if new_draft %}
+  <p class="notice-links">
+    <a href="/products/{{ new_draft.id }}/activate">Check {{ new_draft.name }} and activate it</a>
+    <a href="/products?add=1#add-product">Add another product</a>
+  </p>
+  {% endif %}
+</div>
+{% endif %}
 {% if problem %}<div class="notice error" role="alert"><p>{{ problem }}</p></div>{% endif %}
-<p class="muted measure">Grades are percentages as printed on the product label: N and S elemental, P as P₂O₅, K as K₂O.</p>
-{% if products %}
-<table class="stack">
-  <caption class="sr-only">Fertilizer products in the catalog</caption>
-  <thead>
-    <tr>
-      <th scope="col">Name</th>
-      <th scope="col">Country</th>
-      <th scope="col">Grade N-P₂O₅-K₂O-S (label %)</th>
-      <th scope="col">Form</th>
-      <th scope="col">Density</th>
-      <th scope="col">Source of the grade</th>
-      {% if manage %}<th scope="col">Status</th>{% endif %}
-    </tr>
-  </thead>
-  <tbody>
-  {% for p in products %}
-    <tr>
-      <td data-label="Name">{{ p.name }}</td>
-      <td data-label="Country">{{ p.country_code }}</td>
-      <td data-label="Grade N-P₂O₅-K₂O-S (label %)">{{ number(p.n) }}-{{ number(p.p2o5) }}-{{ number(p.k2o) }}-{{ number(p.s) }}</td>
-      <td data-label="Form">{{ form_labels.get(p.form, p.form) }}</td>
-      <td data-label="Density">{% if p.density_kg_per_l is not none %}{{ number(p.density_kg_per_l) }} kg/L{% else %}<span class="muted">Not applicable</span>{% endif %}</td>
-      <td data-label="Source of the grade">{{ p.grade_source }}</td>
-      {% if manage %}
-      <td data-label="Status">
-        {% if p.status == "draft" %}
-        <span class="badge status-draft">Draft</span>
-        <form method="post" action="/products/{{ p.id }}/activate">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <button class="button text" type="submit" aria-label="Activate {{ p.name }}">Activate</button>
-        </form>
-        {% else %}Active{% endif %}
-      </td>
-      {% endif %}
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
-{% else %}
-<div class="empty">
-  <p class="notice-title">The catalog has no products yet.</p>
-  <p>Grades need a confirmed label source before a product is listed here.</p>
-</div>
-{% endif %}
-{% if manage %}
-<section aria-labelledby="add-product">
-  <h2 id="add-product">Add a draft product</h2>
-  <p class="muted measure">Copy the grade from the label. Activate a draft only after checking it against the source you name here. An active product can no longer be changed.</p>
-  {{ error_summary(errors, "adding this draft") }}
-  <form class="form" method="post" action="/products" novalidate>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <div class="field-row">
-      <div class="field">
-        <label for="name">Product name</label>
-        <input id="name" name="name" type="text" required maxlength="200" value="{{ values.name }}"{{ invalid(errors, "name") }}>
-        {{ error(errors, "name") }}
-      </div>
-      <div class="field">
-        <label for="country_code">Country code</label>
-        <input id="country_code" name="country_code" type="text" required maxlength="2" value="{{ values.country_code }}"{{ invalid(errors, "country_code") }}>
-        {{ error(errors, "country_code") }}
-      </div>
-    </div>
-    <fieldset id="grade">
-      <legend>Grade on the label</legend>
-      <div class="field-row">
-        {% for key, label in grades.items() %}
-        <div class="field">
-          <label for="{{ key }}">{{ label }}</label>
-          <div class="suffixed">
-            <input id="{{ key }}" name="{{ key }}" type="text" inputmode="decimal" required value="{{ values[key] }}"{{ invalid(errors, key) }}>
-            <span class="suffix">%</span>
-          </div>
-          {{ error(errors, key) }}
-        </div>
-        {% endfor %}
-      </div>
-      {{ error(errors, "grade") }}
-    </fieldset>
-    <div class="field-row">
-      <div class="field">
-        <label for="product_form">Form</label>
-        <select id="product_form" name="product_form"{{ invalid(errors, "product_form") }}>
-          {% for value, label in form_labels.items() %}<option value="{{ value }}"{% if values.product_form == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
-        </select>
-        {{ error(errors, "product_form") }}
-      </div>
-      <div class="field">
-        <label for="density_kg_per_l">Density (liquid only)</label>
-        <div class="suffixed">
-          <input id="density_kg_per_l" name="density_kg_per_l" type="text" inputmode="decimal" value="{{ values.density_kg_per_l }}"{{ invalid(errors, "density_kg_per_l") }}>
-          <span class="suffix">kg/L</span>
-        </div>
-        {{ error(errors, "density_kg_per_l") }}
-      </div>
-    </div>
-    <div class="field">
-      <label for="grade_source">Source of the grade</label>
-      <input id="grade_source" name="grade_source" type="text" required maxlength="500" value="{{ values.grade_source }}"{{ invalid(errors, "grade_source") }}>
-      <p class="hint">The label or data sheet, with its edition or date.</p>
-      {{ error(errors, "grade_source") }}
-    </div>
-    <div class="actions">
-      <button class="button" type="submit">Add draft</button>
-    </div>
-  </form>
+{% if show_form %}{% include "_product_add.html" %}{% endif %}
+<section aria-labelledby="catalog-title">
+  <h2 id="catalog-title">Catalog</h2>
+  {% if products %}
+  <p class="muted measure">Grades are percentages as printed on the product label: N and S elemental, P as P₂O₅, K as K₂O.{% if manage %} Only superadmins see drafts. An active product is visible to every user and can't be edited.{% endif %}</p>
+  <table class="stack products-table">
+    <caption class="sr-only">Fertilizer products in the catalog</caption>
+    <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">Country</th>
+        <th scope="col">Grade N-P₂O₅-K₂O-S (label %)</th>
+        <th scope="col">Form</th>
+        <th scope="col">Density</th>
+        <th scope="col">Source of the grade</th>
+        {% if manage %}<th scope="col">Status</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+    {% for p in products %}
+      <tr>
+        <td data-label="Name">{{ p.name }}</td>
+        <td data-label="Country">{{ countries.get(p.country_code, p.country_code) }}</td>
+        <td data-label="Grade N-P₂O₅-K₂O-S (label %)" class="grade-cell">{{ number(p.n) }}-{{ number(p.p2o5) }}-{{ number(p.k2o) }}-{{ number(p.s) }}</td>
+        <td data-label="Form">{{ form_labels.get(p.form, p.form) }}</td>
+        <td data-label="Density">{% if p.density_kg_per_l is not none %}{{ number(p.density_kg_per_l) }} kg/L{% else %}<span class="muted">Not applicable</span>{% endif %}</td>
+        <td data-label="Source of the grade" class="source-cell">{{ p.grade_source }}</td>
+        {% if manage %}
+        <td data-label="Status" class="status-cell">
+          {% if p.status == "draft" %}
+          <span class="badge status-draft">Draft</span>
+          <a class="status-action" href="/products/{{ p.id }}/activate" aria-label="Check and activate {{ p.name }}">Check and activate</a>
+          {% else %}Active{% endif %}
+        </td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">
+    <p class="notice-title">The catalog has no products yet.</p>
+    {% if manage %}
+    <p>Add the first one above. It stays a draft until you check it against the product label.</p>
+    {% else %}
+    <p>Grades need a confirmed label source before a product is listed here.</p>
+    {% endif %}
+  </div>
+  {% endif %}
 </section>
-{% endif %}
 {% endblock %}
