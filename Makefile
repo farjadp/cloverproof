@@ -1,3 +1,10 @@
+# macOS: `make` is SIP-protected and drops DYLD_* from the environment, so WeasyPrint could
+# not find Homebrew's pango and the PDF tests skipped. Set it in the recipe instead.
+# CP_PANGO_LIB_DIR overrides the directory (Intel Homebrew: /usr/local/lib).
+ifeq ($(shell uname -s),Darwin)
+PDF_ENV := DYLD_FALLBACK_LIBRARY_PATH=$(or $(CP_PANGO_LIB_DIR),/opt/homebrew/lib)
+endif
+
 .PHONY: help setup hooks test lint fmt dev golden db-up db-down db-migrate db-seed db-test user-create
 
 help:
@@ -33,7 +40,7 @@ fmt:
 	uv run ruff check --fix .
 
 test:
-	uv run pytest
+	$(PDF_ENV) uv run pytest
 
 dev:
 	uv run uvicorn cloverproof_app.main:create_app --factory --reload --host 127.0.0.1 --port 8000
@@ -57,7 +64,7 @@ db-seed:
 
 db-test:
 	@test -n "$$TEST_DATABASE_URL" || { echo "TEST_DATABASE_URL is not set"; exit 1; }
-	CP_DB_TESTS_REQUIRED=1 uv run pytest app/tests/db -rs
+	CP_DB_TESTS_REQUIRED=1 $(PDF_ENV) uv run pytest app/tests/db -rs
 
 # Password is asked interactively (getpass); it is never a make variable or argv.
 user-create:
