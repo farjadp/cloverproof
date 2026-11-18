@@ -50,6 +50,8 @@ from cloverproof_engine.models import (
     SoilTestValue,
 )
 
+from .support import split_docs
+
 PACK = load_pack(REPO_ROOT / "packs" / "placeholder" / "v0.yaml")
 DOC_ID = UUID("11111111-1111-4111-8111-111111111111")
 REC_ID = UUID("22222222-2222-4222-8222-222222222222")
@@ -333,6 +335,163 @@ def test_engine_vs_final_and_lineage() -> None:
     assert "Input snapshot SHA-256" in text and item.input_snapshot_sha256 in text
 
 
+# --- timing status and product outcome per N line ---------------------------------------
+
+
+DRAFT_OVERRIDE: dict[str, Any] = {"approval": None}
+NO_TIMING = "No timing set: the pack has no split plan"
+RULE_WARNING = "Selected by a PLACEHOLDER pack rule, not validated"
+WITHDRAWN = "Any product outcome withdrawn: the N rate was edited"
+UNCHOSEN = "Products the pack rules did not choose between"
+TIMING_SENTENCE = (
+    "Timing is the growth-stage text from the country pack (no weather-based window in this"
+    " version)."
+)
+NO_TIMING_SENTENCE = (
+    "No timing is set where the pack has no split plan (no weather-based window in this version)."
+)
+OTHERS = [split_docs.product("TEST other A"), split_docs.product("TEST other B")]
+
+
+def proof_text(doc: dict[str, Any], approval: Approval | None = None) -> str:
+    return visible_text(render_html(proof(doc, approval=approval)))
+
+
+def draft_text(doc: dict[str, Any]) -> str:
+    return visible_text(render_html(ProofInput(**{**proof(doc).__dict__, **DRAFT_OVERRIDE})))
+
+
+def test_split_line_timing_status_and_explanation() -> None:
+    doc = split_docs.build(split_docs.SPLITS)
+    text = proof_text(doc)
+    for split in doc["nitrogen"]["splits"]:
+        label = split["timing_window"]["label"]
+        assert f"Timing: {label} PLACEHOLDER — not yet validated" in text
+        assert squash(split["explanation"]) in text
+    assert TIMING_SENTENCE in text and NO_TIMING not in text
+
+
+def test_no_split_line_has_no_growth_stage_claim() -> None:
+    doc = split_docs.build(split_docs.NO_SPLITS)
+    text = proof_text(doc)
+    assert f"Timing: {NO_TIMING}" in text
+    assert NO_TIMING_SENTENCE in text
+    assert "growth-stage text" not in text
+    assert squash(doc["nitrogen"]["splits"][0]["explanation"]) in text
+
+
+def test_share_format_matches_the_engine_text() -> None:
+    doc = split_docs.build(split_docs.SPLITS)
+    doc["nitrogen"]["splits"][0]["fraction"]["value"] = 0.125
+    doc["nitrogen"]["splits"][1]["fraction"]["value"] = 0.4
+    markup = render_html(proof(doc))
+    assert '<span class="value">12.5%</span>' in markup
+    assert '<span class="value">40%</span>' in markup
+
+
+def test_matched_granular_product_on_the_proof() -> None:
+    doc = split_docs.build(products=[split_docs.product()])
+    match = doc["nitrogen"]["splits"][0]["product_match"]
+    text = proof_text(doc)
+    assert f"Product: {split_docs.GRANULAR} (granular)" in text
+    assert "Grade source: TEST label" in text
+    assert RULE_WARNING in text
+    for number in (match["rate"], *match["grade"].values()):
+        assert squash(number["explanation"]) in text
+    assert f"{match['rate']['value']:,.1f} kg product/ha" in text
+    assert "40 % N" in text and "0 % P2O5" in text and "0 % K2O" in text and "0 % S" in text
+    assert "L product/ha" not in text and "kg S/ha" not in text
+
+
+def test_product_numbers_are_not_under_the_split_table_headers() -> None:
+    markup = render_html(proof(split_docs.build(products=[split_docs.product()])))
+    blocks = re.findall(r'<table class="product-numbers">(.*?)</table>', markup, flags=re.S)
+    assert len(blocks) == 2
+    outside = re.sub(r'<table class="product-numbers">.*?</table>', "", markup, flags=re.S)
+    assert all("kg product/ha" in block and "<th" not in block for block in blocks)
+    assert "product rate" not in visible_text(outside)
+
+
+def test_matched_liquid_and_sulphur_quantities_on_the_proof(tmp_path: Any) -> None:
+    doc = split_docs.build(split_docs.sulphur_pack(tmp_path), [split_docs.liquid(s_pct=5)])
+    match = doc["nitrogen"]["splits"][0]["product_match"]
+    text = proof_text(doc)
+    assert f"Product: {split_docs.LIQUID} (liquid)" in text
+    assert f"{match['volume_rate']['value']:,.1f} L product/ha" in text
+    assert f"{match['sulphur_rate']['value']:,.1f} kg S/ha" in text
+    assert squash(match["sulphur_rate"]["explanation"]) in text
+
+
+def test_not_matched_on_the_proof_has_no_quantity() -> None:
+    doc = split_docs.build(products=OTHERS)
+    outcome = doc["nitrogen"]["splits"][0]["product_match"]
+    text = proof_text(doc)
+    assert "Product: No product matched" in text
+    assert squash(outcome["explanation"]) in text
+    assert f"{UNCHOSEN}: TEST other A, TEST other B" in text
+    assert "kg product/ha" not in text and RULE_WARNING not in text
+
+
+def test_rate_edit_withdrawal_on_the_proof() -> None:
+    final = split_docs.edited(
+        split_docs.build(products=[split_docs.product()]), "120", ["60", "60"]
+    )
+    text = proof_text(final)
+    assert f"Product: {WITHDRAWN}" in text
+    assert split_docs.GRANULAR not in text and "kg product/ha" not in text
+
+
+def test_old_document_proof_is_unchanged() -> None:
+    doc = split_docs.old_document()
+    markup = render_html(proof(doc))
+    text = visible_text(markup)
+    assert TIMING_SENTENCE in text
+    assert '<span class="value">12%</span>' in markup
+    assert '<span class="value">88%</span>' in markup
+    for wording in ("Timing:", "Product:", NO_TIMING, NO_TIMING_SENTENCE, "Grade source"):
+        assert wording not in text, wording
+
+
+def outcome_docs(tmp_path: Any) -> list[dict[str, Any]]:
+    matched = split_docs.build(products=[split_docs.product()])
+    return [
+        matched,
+        split_docs.build(split_docs.sulphur_pack(tmp_path), [split_docs.liquid(s_pct=5)]),
+        split_docs.build(products=OTHERS),
+        split_docs.build(split_docs.NO_SPLITS, OTHERS),
+        split_docs.edited(matched, "120", ["60", "60"]),
+    ]
+
+
+def test_product_outcomes_keep_the_wording_rules(tmp_path: Any) -> None:
+    for doc in outcome_docs(tmp_path):
+        for text in (proof_text(doc), proof_text(doc, SUPERADMIN), draft_text(doc)):
+            assert_wording(text)
+
+
+def test_only_an_agronomist_approval_keeps_the_agronomist_wording(tmp_path: Any) -> None:
+    for doc in outcome_docs(tmp_path):
+        for text in (proof_text(doc, SUPERADMIN), draft_text(doc)):
+            assert "the agronomist" not in text.lower()
+    matched = split_docs.build(products=[split_docs.product()])
+    assert "the agronomist confirms" in proof_text(matched)
+    assert "an agronomist must confirm" in proof_text(matched, SUPERADMIN)
+    assert "an agronomist must confirm" in draft_text(matched)
+
+
+def test_placeholder_product_rule_keeps_the_banner_on_a_validated_pack() -> None:
+    doc = validated(split_docs.build(split_docs.PRODUCT_RULES, [split_docs.product()]))
+    for split in doc["nitrogen"]["splits"]:
+        split["timing_window"] = None
+        for number in ("rate", "total"):
+            split["product_match"][number]["uses_placeholder"] = False
+    assert PLACEHOLDER_BANNER in render_html(proof(doc))
+    for split in doc["nitrogen"]["splits"]:
+        for rule in split["product_match"]["rules_used"]:
+            rule["status"] = "VALIDATED"
+    assert PLACEHOLDER_BANNER not in render_html(proof(doc))
+
+
 def test_user_text_is_escaped() -> None:
     markup = render_html(proof(field_name="<script>x</script>"))
     assert "<script>" not in markup and "&lt;script&gt;" in markup
@@ -395,6 +554,11 @@ def test_pdf_hash_is_stable_for_identical_inputs(render_pdf: Any) -> None:
     assert sha256_hex(first) == sha256_hex(second)
     other = render_pdf(proof(document_id=UUID("33333333-3333-4333-8333-333333333333")))
     assert sha256_hex(other) != sha256_hex(first)
+
+
+def test_pdf_builds_with_a_product_outcome(render_pdf: Any) -> None:
+    doc = split_docs.build(products=[split_docs.liquid()])
+    assert render_pdf(proof(doc)).startswith(b"%PDF-")
 
 
 def test_pdf_has_no_creation_timestamp(render_pdf: Any) -> None:
