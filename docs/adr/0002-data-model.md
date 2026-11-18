@@ -66,3 +66,12 @@ Enum labels are the engine's StrEnum values character for character (`bray-1`, `
 - No backfill: older recommendations keep their numbers in `result` and have no lines.
 - `product_id` is nullable with no FK until the product matching work.
 - Not in this migration (no S2-DB-09 criterion): P/K soil-test evidence, per-recommendation completeness, edit-keeps-form and the line diff view from `schema-gap-analysis.md` section 3.
+
+## Addendum (2026-11-18): `soil_estimate` (migration 0031, S3-DB-01)
+- One immutable row per field, season (`season_id`, the model's season key, instead of the plan's `season_year`), property, depth layer and retrieval. Separate from `soil_test`: an estimate is never a lab test.
+- `property` is limited by CHECK to the SoilGrids allowlist (`phh2o`, `soc`, `nitrogen`, `clay`, `sand`, `silt`), so no P or K can be stored (rule 3). `unit` must be the property's canonical unit (rule 7).
+- Every metadata column is NOT NULL (XD-08): `source`, `source_version`, `resolution_m`, `depth_top_cm`, `depth_bottom_cm`, `retrieved_at`, `licence`, `attribution`, `created_by`, `created_at`. Uncertainty is the Q0.05/Q0.95 pair, `uncertainty_ratio`, or both; a row with neither is refused, because a cache can lack a layer.
+- Refresh rule: no overwrite. A new retrieval adds rows and the current value is the latest `retrieved_at`; storing the same retrieval twice is a unique violation.
+- `soil_test.source = 'estimate'` rows are kept where they are, unchanged and not copied: they are hand-entered, have no source metadata to migrate, and remain the evidence of the plans that used them. That value stays valid for hand-entered estimates.
+- `source` accepts `soilgrids`, `lucas`, `wosis` (S3-DB-01). Only SoilGrids has a loader; the Data rules (licence checks, WoSIS per-profile filter, LUCAS EU only and no raw export) apply at import.
+- `retrieved_at` is a timestamp; the SoilGrids cache records a date (`retrieved_on`), so the adapter (not built yet) must store 00:00 UTC of that day.
