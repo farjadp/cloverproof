@@ -46,6 +46,11 @@ _NOT_RECORDED_PHRASES = (
     ("the agronomist confirms", "no line-level confirmation is recorded"),
     ("the agronomist chooses", "no product choice is recorded on this line"),
     ("The agronomist sets the product", "No product choice is recorded on this line"),
+    ("the agronomist sets the timing", "no timing choice is recorded on this line"),
+    (
+        "the agronomist decides P and K from the soil test",
+        "no P or K decision is recorded in this plan",
+    ),
 )
 
 # Stored edited numbers (before the wording became "reviewer") name an agronomist, though a
