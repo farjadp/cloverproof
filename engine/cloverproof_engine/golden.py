@@ -185,6 +185,8 @@ class GoldenExpected(_Frozen):
     # Optional: the P and K outcome. Both or neither.
     phosphorus: ExpectedPkLine | None = None
     potassium: ExpectedPkLine | None = None
+    # Optional: the confidence rules that must fire, in engine order.
+    confidence_rules: list[NonBlankStr] | None = None
     # Optional: the estimate block. An empty list means the result must have none.
     soil_estimate: list[ExpectedSoilEstimateValue] | None = None
     reason: str | None = None
@@ -482,6 +484,11 @@ def compare(case: ExpectedCase, rec: Recommendation) -> list[DiffRow]:
             a_p = actual_products[i] if i < len(actual_products) else None
             rows.extend(_product_rows(i + 1, e_p, a_p, tol))
     rows.append(_label("confidence", exp.confidence.value, rec.confidence.value))
+    if exp.confidence_rules is not None:
+        actual_rules = [hit.rule_id for hit in rec.confidence_reasons]
+        rows.append(
+            _label("confidence_rules", ", ".join(exp.confidence_rules), ", ".join(actual_rules))
+        )
     rows.append(_label("pk_note", exp.pk_note, rec.phosphorus_potassium.code))
     pk = rec.phosphorus_potassium_rates
     if exp.phosphorus is not None:

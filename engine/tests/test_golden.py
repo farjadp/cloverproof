@@ -20,7 +20,7 @@ from cloverproof_engine.golden import (
     parse_golden_case,
 )
 from cloverproof_engine.golden_report import main, run_report
-from cloverproof_engine.loaders import golden_paths, load_golden_cases
+from cloverproof_engine.loaders import golden_paths, load_golden_cases, load_pack
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GOLDEN_DIR = REPO_ROOT / "engine" / "tests" / "golden"
@@ -270,6 +270,20 @@ def test_loads_sample_cases() -> None:
     for path, case in cases:
         if path.name.startswith("sample_"):
             assert case.kind == GoldenKind.SAMPLE
+
+
+def test_lab_test_without_values_golden_case_fires_the_no_test_rule() -> None:
+    cases = dict((path.stem, case) for path, case in load_golden_cases(GOLDEN_DIR))
+    case = cases["sample_ca_on_lab_test_no_values"]
+    rec = recommend(case.input, load_pack(PACKS_DIR / "ca-on" / "v2.yaml"))
+    assert [r.field for r in compare(case, rec) if not r.ok] == []
+
+
+def test_compare_reports_unexpected_confidence_rules(placeholder_pack) -> None:
+    case = _case(confidence_rules=["C1_NO_SOIL_TEST"])
+    rows = {r.field: r for r in compare(case, recommend(case.input, placeholder_pack))}
+    assert rows["confidence_rules"].expected == "C1_NO_SOIL_TEST"
+    assert not rows["confidence_rules"].ok
 
 
 def test_compare_all_match(placeholder_pack) -> None:

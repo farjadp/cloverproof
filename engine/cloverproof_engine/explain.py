@@ -707,6 +707,13 @@ def c1_no_soil_test() -> str:
     return "No soil test: confidence is at most medium (N only; P and K need a soil test)."
 
 
+def c1_soil_test_without_values() -> str:
+    return (
+        "The soil test has no values, so it counts as no soil test: confidence is at most "
+        "medium (N only; P and K need a soil test)."
+    )
+
+
 def c2_soil_test_estimated() -> str:
     return "The soil test is an estimate, not a lab result: confidence is at most medium."
 

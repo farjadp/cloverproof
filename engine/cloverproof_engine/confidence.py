@@ -6,7 +6,7 @@ so the agronomist sees why. Thresholds come from the pack
 (`crops.<crop>.confidence`), never from code.
 
 Rules (each TODO(agronomist): review):
-- C1_NO_SOIL_TEST           no soil test                        -> cap medium
+- C1_NO_SOIL_TEST           no soil test, or one with no values -> cap medium
   (hard rule, CLAUDE.md #3: without a soil test, at most medium)
 - C2_SOIL_TEST_ESTIMATED    soil test source is `estimate`      -> cap medium
 - C3_SOIL_TEST_STALE        soil test older than pack
@@ -106,10 +106,17 @@ def assess(
     soil = inputs.soil_test
 
     # C1 — TODO(agronomist): review. Hard rule from CLAUDE.md #3.
-    if soil is None:
+    # A soil test with no values gives the plan nothing, so it counts as no test.
+    if soil is None or not soil.values:
         hits.append(
             ConfidenceRuleHit(
-                rule_id="C1_NO_SOIL_TEST", cap=Confidence.MEDIUM, reason=explain.c1_no_soil_test()
+                rule_id="C1_NO_SOIL_TEST",
+                cap=Confidence.MEDIUM,
+                reason=(
+                    explain.c1_no_soil_test()
+                    if soil is None
+                    else explain.c1_soil_test_without_values()
+                ),
             )
         )
     else:

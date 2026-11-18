@@ -59,6 +59,15 @@ def test_no_soil_test_caps_at_medium(make_input, validated_pack) -> None:
     assert _ids(hits) == ["C1_NO_SOIL_TEST"]
 
 
+def test_lab_test_without_values_caps_like_no_test(
+    lab_soil_test, make_input, validated_pack
+) -> None:
+    level, hits = _assess(make_input(soil_test=lab_soil_test(values=[])), validated_pack)
+    assert level is Confidence.MEDIUM
+    assert _ids(hits) == ["C1_NO_SOIL_TEST"]
+    assert "no values" in hits[0].reason
+
+
 def test_estimate_input_does_not_lift_the_no_test_cap(
     make_input, soil_estimate_data, validated_pack
 ) -> None:
