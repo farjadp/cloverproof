@@ -59,6 +59,23 @@ def test_no_soil_test_caps_at_medium(make_input, validated_pack) -> None:
     assert _ids(hits) == ["C1_NO_SOIL_TEST"]
 
 
+def test_estimate_input_does_not_lift_the_no_test_cap(
+    make_input, soil_estimate_data, validated_pack
+) -> None:
+    level, hits = _assess(make_input(soil_estimate=soil_estimate_data()), validated_pack)
+    assert level is Confidence.MEDIUM
+    assert _ids(hits) == ["C1_NO_SOIL_TEST"]
+
+
+def test_estimate_input_does_not_lower_a_lab_test_plan(
+    lab_soil_test, make_input, soil_estimate_data, validated_pack
+) -> None:
+    inputs = make_input(soil_test=lab_soil_test(), soil_estimate=soil_estimate_data())
+    level, hits = _assess(inputs, validated_pack)
+    assert level is Confidence.HIGH
+    assert hits == []
+
+
 def test_estimated_soil_test_caps_at_medium(lab_soil_test, make_input, validated_pack) -> None:
     inputs = make_input(soil_test=lab_soil_test(source=SoilTestSource.ESTIMATE))
     level, hits = _assess(inputs, validated_pack)

@@ -1,0 +1,43 @@
+# SAMPLE golden case - NOT agronomist-approved. SYNTHETIC soil values.
+# N side worked out by hand from packs/ca-on/v2.yaml (PLACEHOLDER constants): yield
+# 6.5 t/ha, price ratio 5.5, after corn -> 115.0 kg N/ha; 20 ha -> 2300 kg N.
+# No lab test and no estimate: N only, and no estimate block in the result.
+id: sample_ca_on_no_test_no_estimate
+kind: sample  # not agronomist-approved; never counts toward the agreement gate
+description: No lab test and no estimate. N only, no estimate block.
+pack:
+  id: ca-on
+  version: v2
+# TODO(agronomist): set agreement tolerances for real cases.
+tolerance:
+  kg_n_per_ha: 0.5
+  kg_n: 10
+  kg_pk_per_ha: 0.01
+  kg_pk: 0.1
+  mg_pk_per_kg: 0.01
+input:
+  crop: wheat
+  target_yield_t_ha: 6.5
+  previous_crop: corn
+  area_ha: 20.0
+  plan_date: "2027-03-15"
+  n_price:
+    n_price_per_kg_n: 1.375
+    grain_price_per_kg: 0.25
+    currency: CAD
+    source: SAMPLE (not a real price list)
+    price_date: "2027-01-20"
+  wheat_class: pastry
+  manure_applied: false
+expected:
+  n_rate_kg_ha: 115.0
+  n_total_kg: 2300.0
+  split_rates_kg_ha: [115.0]
+  confidence: low
+  pk_note: PK_SOIL_TEST_RECOMMENDED
+  phosphorus:
+    outcome: not_calculated
+  potassium:
+    outcome: not_calculated
+  soil_estimate: []
+  reason: SAMPLE derived from the ca-on v2 pack; not an agronomist decision.

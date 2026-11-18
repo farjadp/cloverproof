@@ -6,12 +6,22 @@ from cloverproof_engine.methods import get_method
 from cloverproof_engine.models import (
     NutrientForm,
     RecommendationInput,
+    SoilEstimate,
+    SoilEstimateValue,
     SoilTest,
     SoilTestSource,
 )
 from cloverproof_engine.pack import Pack, pack_sha256
 from cloverproof_engine.products import match_products
-from cloverproof_engine.results import Note, PkRefused, PkResults, Recommendation
+from cloverproof_engine.results import (
+    ExplainedNumber,
+    Note,
+    PkRefused,
+    PkResults,
+    Recommendation,
+    SoilEstimateContext,
+    SoilEstimateLine,
+)
 from cloverproof_engine.version import ENGINE_VERSION
 
 
@@ -59,6 +69,90 @@ def recommend(inputs: RecommendationInput, pack: Pack) -> Recommendation:
         confidence_reasons=hits,
         input_snapshot=inputs.model_dump(mode="json"),
         phosphorus_potassium_rates=pk_rates,
+        soil_estimate=_soil_estimate_context(inputs),
+    )
+
+
+def _soil_estimate_context(inputs: RecommendationInput) -> SoilEstimateContext | None:
+    """The estimate as labelled context. Nothing else in the engine reads it.
+
+    TODO(agronomist): should an estimate adjust the N rate or the confidence, and how?
+    No pack rule says so, so it does neither (docs/agronomist-todo.md #51).
+    """
+    estimate = inputs.soil_estimate
+    if estimate is None:
+        return None
+    soil = inputs.soil_test
+    lab_test_given = soil is not None and soil.source is SoilTestSource.LAB
+    return SoilEstimateContext(
+        source=estimate.provider,
+        version=estimate.version,
+        attribution=estimate.attribution,
+        citation=estimate.citation,
+        lab_test_given=lab_test_given,
+        values=[_soil_estimate_line(estimate, value) for value in estimate.values],
+        explanation=explain.soil_estimate_context(
+            estimate.provider, estimate.version, lab_test_given
+        ),
+    )
+
+
+def _soil_estimate_line(estimate: SoilEstimate, item: SoilEstimateValue) -> SoilEstimateLine:
+    def number(name: str, value: float, unit: str, explanation: str) -> ExplainedNumber:
+        # Read from the input, not from a pack: no pack constant feeds it.
+        return ExplainedNumber(
+            name=name, value=value, unit=unit, explanation=explanation, uses_placeholder=False
+        )
+
+    prop, depth, unit = item.property, item.depth, item.unit
+    q05, q95, ratio = item.q05, item.q95, item.uncertainty_ratio
+    return SoilEstimateLine(
+        property=prop,
+        depth=depth,
+        value=number(
+            explain.soil_estimate_name(prop),
+            item.value,
+            unit,
+            explain.soil_estimate_value(
+                prop,
+                depth,
+                item.value,
+                unit,
+                estimate.provider,
+                estimate.version,
+                item.resolution_m,
+                item.retrieved_on,
+            ),
+        ),
+        q05=None
+        if q05 is None
+        else number(
+            explain.soil_estimate_lower_name(prop),
+            q05,
+            unit,
+            explain.soil_estimate_range(prop, depth, "Lower end (Q0.05)"),
+        ),
+        q95=None
+        if q95 is None
+        else number(
+            explain.soil_estimate_upper_name(prop),
+            q95,
+            unit,
+            explain.soil_estimate_range(prop, depth, "Upper end (Q0.95)"),
+        ),
+        uncertainty_ratio=None
+        if ratio is None
+        else number(
+            explain.soil_estimate_uncertainty_name(prop),
+            ratio,
+            "ratio",
+            explain.soil_estimate_uncertainty(prop, depth),
+        ),
+        source=estimate.provider,
+        version=estimate.version,
+        resolution_m=item.resolution_m,
+        retrieved_on=item.retrieved_on,
+        attribution=estimate.attribution,
     )
 
 

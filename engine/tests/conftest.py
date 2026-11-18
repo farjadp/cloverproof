@@ -135,6 +135,38 @@ def lab_soil_test() -> Callable[..., SoilTest]:
     return _lab_soil_test
 
 
+def _soil_estimate_data(**overrides: Any) -> dict[str, Any]:
+    """SYNTHETIC estimate in the input shape. Values are invented, not read from SoilGrids."""
+    common = {"resolution_m": 250.0, "retrieved_on": "2026-11-18"}
+    data: dict[str, Any] = {
+        "provider": "SoilGrids",
+        "version": "2.0",
+        "attribution": "SoilGrids 2.0, ISRIC - World Soil Information, CC BY 4.0",
+        "citation": "Poggio et al. 2021, SOIL 7, 217-240, doi:10.5194/soil-7-217-2021",
+        "values": [
+            {
+                "property": "phh2o",
+                "depth": "0-5cm",
+                "value": 6.5,
+                "unit": "pH",
+                "q05": 5.8,
+                "q95": 7.2,
+                "uncertainty_ratio": 0.2,
+                **common,
+            },
+            {"property": "nitrogen", "depth": "0-5cm", "value": 1500.0, "unit": "mg/kg", **common},
+        ],
+    }
+    data.update(overrides)
+    return data
+
+
+@pytest.fixture
+def soil_estimate_data() -> Callable[..., dict[str, Any]]:
+    """Builder for a synthetic `soil_estimate` input mapping."""
+    return _soil_estimate_data
+
+
 @pytest.fixture
 def make_input() -> Callable[..., RecommendationInput]:
     def build(**overrides: Any) -> RecommendationInput:
