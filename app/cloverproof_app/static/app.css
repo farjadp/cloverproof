@@ -96,20 +96,21 @@ main.narrow { max-width: 32rem; }
 
 @media (min-width: 960px) {
   .with-nav .shell { display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); min-height: 100vh; }
-  .sidebar {
+  .sidebar { border-right: 1px solid var(--rule); }
+  .sidebar-inner {
     position: sticky; top: 0; height: 100vh; overflow-y: auto;
-    display: flex; flex-direction: column; gap: var(--s4);
-    padding: var(--s4); border-right: 1px solid var(--rule);
+    display: flex; flex-direction: column; gap: var(--s4); padding: var(--s4);
   }
   .primary-nav { flex: 1; }
   .primary-nav ul { display: grid; gap: var(--s1); }
   .shell-user { margin-top: auto; padding-top: var(--s4); border-top: 1px solid var(--rule); }
 }
 @media (max-width: 959.98px) {
-  .sidebar {
+  .sidebar { border-bottom: 1px solid var(--rule); }
+  .sidebar-inner {
     display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s1) var(--s3);
     grid-template-areas: "brand links" "org user" "nav nav";
-    padding: var(--s2) var(--s4) var(--s3); border-bottom: 1px solid var(--rule);
+    padding: var(--s2) var(--s4) var(--s3);
   }
   .sidebar .brand { grid-area: brand; }
   .shell-org { grid-area: org; font-size: var(--fs-xs); }
@@ -125,7 +126,32 @@ main > section, main > div > section { border-top: 1px solid var(--rule); paddin
 .muted { color: var(--ink-soft); }
 .num { font-variant-numeric: tabular-nums; }
 
-.page-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s4); margin-bottom: var(--s5); }
+.page-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--s3) var(--s4); margin-bottom: var(--s5); }
+.page-head h1 { margin-bottom: 0; }
+.page-sub { margin: var(--s1) 0 0; overflow-wrap: anywhere; }
+
+/* List or main task on the left, the short forms beside it on wide screens. */
+.split { display: grid; gap: var(--s6); }
+.split > * { min-width: 0; }
+.split-main > section + section { border-top: 1px solid var(--rule); padding-top: var(--s6); margin-top: var(--s6); }
+.split-side { display: grid; gap: var(--s5); align-content: start; }
+.split-side .panel h2 { font-size: var(--fs-lg); }
+.panel > :last-child { margin-bottom: 0; }
+@media (min-width: 1120px) { .split { grid-template-columns: minmax(0, 1fr) 22rem; align-items: start; } }
+
+.details { margin: 0; display: grid; gap: var(--s3); }
+.details dt { font-size: var(--fs-xs); color: var(--ink-soft); }
+.details dd { margin: 0; overflow-wrap: anywhere; }
+
+/* A one-time password: large enough to read out, selected with one click. */
+.secret code { display: inline-block; padding: var(--s1) var(--s2); background: var(--paper); font-size: var(--fs-lg); user-select: all; overflow-wrap: anywhere; }
+
+/* A destructive action asks once more, without JS. */
+.confirm-action > summary { list-style: none; width: fit-content; font-weight: 600; }
+.confirm-action > summary::-webkit-details-marker { display: none; }
+.confirm-action[open] > summary { display: none; }
+.confirm-action form > .hint { margin: 0 0 var(--s2); color: var(--ink); }
+.is-locked { color: var(--ink-soft); }
 
 /* Buttons */
 .button {
@@ -276,7 +302,7 @@ main.login { max-width: 60rem; }
   .strip-side { text-align: left; }
   table.stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   table.stack tr { display: block; border-bottom: 1px solid var(--rule); padding: var(--s2) 0; }
-  table.stack th, table.stack td { display: block; border: 0; padding: var(--s1) 0; text-align: left; }
+  table.stack th, table.stack td { display: block; border: 0; padding: var(--s1) 0; text-align: left; overflow-wrap: anywhere; }
   table.stack td[data-label]::before { content: attr(data-label); display: block; font-size: var(--fs-xs);
     text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
   td.changed { padding-left: var(--s3); }

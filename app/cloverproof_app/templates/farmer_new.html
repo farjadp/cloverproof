@@ -4,6 +4,7 @@
 {% block breadcrumb %}{{ breadcrumb([("Farmers", "/farmers"), ("Add farmer", None)]) }}{% endblock %}
 {% block content %}
 <h1>Add farmer</h1>
+<p class="muted measure">You add their farm and fields on the next page.</p>
 <form class="form" method="post" action="/farmers" novalidate>
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   <div class="field">

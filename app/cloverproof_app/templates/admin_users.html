@@ -2,68 +2,76 @@
 {% block title %}Users{% endblock %}
 {% block content %}
 <div class="page-head">
-  <h1>Users</h1>
-  <span class="muted">{{ org_context.org.name }}</span>
+  <div>
+    <h1>Users</h1>
+    <p class="muted page-sub">People who can sign in to {{ org_context.org.name }}</p>
+  </div>
 </div>
 
 {% if created %}
-<div class="notice" role="status">
+<div class="notice success secret" role="status">
   <p><strong>{{ created.name }}</strong> ({{ created.email }}) was created. Temporary password, shown only now:</p>
   <p><code>{{ created.password }}</code></p>
   <p>Give it to them in person or by phone. They must choose their own password at first sign-in.</p>
 </div>
 {% endif %}
 
-<section class="panel" aria-label="Members">
-  {% if members %}
-  <table>
-    <thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Status</th></tr></thead>
-    <tbody>
-      {% for m in members %}
-      <tr>
-        <td><a href="/admin/users/{{ m.id }}">{{ m.display_name }}</a></td>
-        <td>{{ m.email }}</td>
-        <td>{{ role_label(m.roles) }}</td>
-        <td>{% if m.disabled_at %}Disabled{% elif m.password_change_required %}Must change password{% elif not m.has_password %}No password{% else %}Active{% endif %}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p class="empty">No members yet.</p>
-  {% endif %}
-</section>
+<div class="split">
+  <div class="split-main">
+    <section aria-label="Members">
+      {% if members %}
+      <table class="stack">
+        <thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Status</th></tr></thead>
+        <tbody>
+          {% for m in members %}
+          <tr>
+            <td data-label="Name"><a href="/admin/users/{{ m.id }}">{{ m.display_name }}</a></td>
+            <td data-label="Email">{{ m.email }}</td>
+            <td data-label="Role">{{ role_label(m.roles) }}</td>
+            <td data-label="Status">{% if m.disabled_at %}Disabled{% elif m.password_change_required %}Must change password{% elif not m.has_password %}No password{% else %}Active{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty">No members yet. Add the first person with the form on this page.</p>
+      {% endif %}
+    </section>
+  </div>
 
-<section aria-labelledby="add-heading">
-  <h2 id="add-heading">Add user</h2>
-  <p class="muted">A temporary password is created and shown once. No email is sent.</p>
-  <form method="post" action="/admin/users" novalidate>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    {% if errors %}<p class="alert" role="alert">Fix the marked fields before adding the user.</p>{% endif %}
-    <div class="field">
-      <label for="email">Email</label>
-      <input id="email" name="email" type="email" required autocomplete="off" value="{{ form.email }}"
-             {% if errors.email %}aria-invalid="true" aria-describedby="email-error"{% endif %}>
-      {% if errors.email %}<p class="alert" id="email-error">{{ errors.email }}</p>{% endif %}
-    </div>
-    <div class="field">
-      <label for="display_name">Name</label>
-      <input id="display_name" name="display_name" type="text" required maxlength="200" autocomplete="off"
-             value="{{ form.display_name }}"
-             {% if errors.display_name %}aria-invalid="true" aria-describedby="name-error"{% endif %}>
-      {% if errors.display_name %}<p class="alert" id="name-error">{{ errors.display_name }}</p>{% endif %}
-    </div>
-    <div class="field">
-      <label for="role">Role</label>
-      <select id="role" name="role" {% if errors.role %}aria-invalid="true" aria-describedby="role-error"{% endif %}>
-        {% for value, label in roles %}
-        <option value="{{ value }}"{% if form.role == value %} selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-      <p class="muted">Only Agronomist can approve plans. Org admin manages users. {{ cli_roles | join(' and ') }} are added only with the <code>user-create</code> command (change via CLI).</p>
-      {% if errors.role %}<p class="alert" id="role-error">{{ errors.role }}</p>{% endif %}
-    </div>
-    <button class="button" type="submit">Add user</button>
-  </form>
-</section>
+  <div class="split-side">
+    <section class="panel" aria-labelledby="add-heading">
+      <h2 id="add-heading">Add user</h2>
+      <p class="hint">A temporary password is created and shown once. No email is sent.</p>
+      <form method="post" action="/admin/users" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        {% if errors %}<p class="alert" role="alert">Fix the marked fields before adding the user.</p>{% endif %}
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" required autocomplete="off" value="{{ form.email }}"
+                 {% if errors.email %}aria-invalid="true" aria-describedby="email-error"{% endif %}>
+          {% if errors.email %}<p class="field-error" id="email-error">Error: {{ errors.email }}</p>{% endif %}
+        </div>
+        <div class="field">
+          <label for="display_name">Name</label>
+          <input id="display_name" name="display_name" type="text" required maxlength="200" autocomplete="off"
+                 value="{{ form.display_name }}"
+                 {% if errors.display_name %}aria-invalid="true" aria-describedby="name-error"{% endif %}>
+          {% if errors.display_name %}<p class="field-error" id="name-error">Error: {{ errors.display_name }}</p>{% endif %}
+        </div>
+        <div class="field">
+          <label for="role">Role</label>
+          <select id="role" name="role" aria-describedby="role-hint{% if errors.role %} role-error{% endif %}"{% if errors.role %} aria-invalid="true"{% endif %}>
+            {% for value, label in roles %}
+            <option value="{{ value }}"{% if form.role == value %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <p class="hint" id="role-hint">Only Agronomist can approve plans. Org admin manages users. {{ cli_roles | join(' and ') }} accounts are added by a platform administrator with the <code>user-create</code> command.</p>
+          {% if errors.role %}<p class="field-error" id="role-error">Error: {{ errors.role }}</p>{% endif %}
+        </div>
+        <button class="button" type="submit">Add user</button>
+      </form>
+    </section>
+  </div>
+</div>
 {% endblock %}

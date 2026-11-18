@@ -27,6 +27,7 @@
     {% if nav %}
     {# Links show only what the routes allow (nav.py). Each route still checks access itself. #}
     <header class="sidebar">
+      <div class="sidebar-inner">
       {{ brand(nav.home) }}
       <div class="shell-org">
         {% if nav.org_name %}
@@ -54,6 +55,7 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <button class="link-button" type="submit">Sign out</button>
         </form>
+      </div>
       </div>
     </header>
     {% else %}

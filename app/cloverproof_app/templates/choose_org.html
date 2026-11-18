@@ -3,13 +3,20 @@
 {% block main_class %}narrow{% endblock %}
 {% block content %}
 <h1>Choose organisation</h1>
-<p class="muted">You belong to more than one organisation. Pick the one to work in.</p>
+{% if organisations %}
+<p class="muted">Farmers, plans and users belong to one organisation. Pick the one to work in. You can switch at any time.</p>
 <form method="post" action="/orgs/choose">
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   <ul class="org-list">
     {% for org in organisations %}
-    <li><button class="button quiet" type="submit" name="org_id" value="{{ org.id }}">{{ org.name }}</button></li>
+    {% set is_current = org_context and org_context.org.id == org.id %}
+    <li><button class="button secondary" type="submit" name="org_id" value="{{ org.id }}"{% if is_current %} aria-current="true"{% endif %}>{{ org.name }}{% if is_current %} (current){% endif %}</button></li>
     {% endfor %}
   </ul>
 </form>
+{% else %}
+<p class="notice warn" role="status">Your account is not a member of any organisation yet.</p>
+<p class="muted">Ask an administrator to add you. The product catalog does not need an organisation.</p>
+<div class="actions"><a class="button" href="/products">Open Products</a></div>
+{% endif %}
 {% endblock %}

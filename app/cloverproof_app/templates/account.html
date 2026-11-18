@@ -4,36 +4,40 @@
 <div class="page-head">
   <h1>My account</h1>
 </div>
-{% if saved %}<p class="notice" role="status">{{ saved }}</p>{% endif %}
-<section class="panel" aria-labelledby="details-heading">
-  <h2 id="details-heading">Details</h2>
-  <table>
-    <tbody>
-      <tr><th scope="row">Email</th><td>{{ user.email }}</td></tr>
-      <tr><th scope="row">Organisation</th><td>{{ org_context.org.name }}</td></tr>
-      <tr><th scope="row">Role</th><td>{{ roles }}</td></tr>
-    </tbody>
-  </table>
-</section>
+{% if saved %}<p class="notice success" role="status">{{ saved }}</p>{% endif %}
+<div class="split">
+  <div class="split-main">
+    <section aria-labelledby="name-heading">
+      <h2 id="name-heading">Display name</h2>
+      <form class="form" method="post" action="/account/name" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field">
+          <label for="display_name">Name shown in the app and on reviews</label>
+          <input id="display_name" name="display_name" type="text" required maxlength="200"
+                 autocomplete="name" value="{{ name }}"
+                 {% if error %}aria-invalid="true" aria-describedby="name-error"{% endif %}>
+          {% if error %}<p class="field-error" id="name-error" role="alert">Error: {{ error }}</p>{% endif %}
+        </div>
+        <button class="button" type="submit">Save name</button>
+      </form>
+    </section>
 
-<section aria-labelledby="name-heading">
-  <h2 id="name-heading">Display name</h2>
-  <form method="post" action="/account/name" novalidate>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    {% if error %}<p class="alert" role="alert" id="name-error">{{ error }}</p>{% endif %}
-    <div class="field">
-      <label for="display_name">Name shown in the app and on reviews</label>
-      <input id="display_name" name="display_name" type="text" required maxlength="200"
-             autocomplete="name" value="{{ name }}"
-             {% if error %}aria-invalid="true" aria-describedby="name-error"{% endif %}>
-    </div>
-    <button class="button" type="submit">Save name</button>
-  </form>
-</section>
+    <section aria-labelledby="password-heading">
+      <h2 id="password-heading">Password</h2>
+      <p class="muted">Changing it signs you out on every other device.</p>
+      <a class="button secondary" href="/account/password">Change password</a>
+    </section>
+  </div>
 
-<section aria-labelledby="password-heading">
-  <h2 id="password-heading">Password</h2>
-  <p class="muted">Changing it signs you out on every other device.</p>
-  <p><a href="/account/password">Change password</a></p>
-</section>
+  <div class="split-side">
+    <section class="panel" aria-labelledby="details-heading">
+      <h2 id="details-heading">Details</h2>
+      <dl class="details">
+        <div><dt>Email</dt><dd>{{ user.email }}</dd></div>
+        <div><dt>Organisation</dt><dd>{{ org_context.org.name }}</dd></div>
+        <div><dt>Role</dt><dd>{{ roles }}</dd></div>
+      </dl>
+    </section>
+  </div>
+</div>
 {% endblock %}

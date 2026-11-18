@@ -252,7 +252,7 @@ def test_owner_cannot_change_agronomist_or_owner_roles(
 ) -> None:
     c = owner_client(db)
     page = c.get(f"/admin/users/{org_a.agronomist}")
-    assert "change via CLI" in page.text
+    assert "set by a platform administrator" in page.text
     assert 'name="roles" value="agronomist"' not in page.text
     assert 'name="roles" value="org_admin"' not in page.text
     for target, roles in (

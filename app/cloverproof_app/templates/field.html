@@ -3,14 +3,16 @@
 {% block title %}{{ field.name }}{% endblock %}
 {% block breadcrumb %}{{ breadcrumb([("Farmers", "/farmers"), (field.farmer_name, "/farmers/" ~ field.farmer_id), (field.name, None)]) }}{% endblock %}
 {% block content %}
-<h1>{{ field.name }}</h1>
+<div class="page-head">
+  <h1>{{ field.name }}</h1>
+  <a class="button" href="/fields/{{ field.id }}/plans/new">New plan</a>
+</div>
 <dl class="facts">
   <div><dt>Farmer</dt><dd>{{ field.farmer_name }}</dd></div>
   <div><dt>Farm</dt><dd>{{ field.farm_name }}</dd></div>
   <div><dt>Area</dt><dd>{% if field.area_ha is not none %}{{ field.area_ha | float }} ha ({{ field.area_season }}){% else %}— ha{% endif %}</dd></div>
   <div><dt>Soil test</dt><dd>{% if soil %}{{ soil.sample_date }}, {{ soil.depth_top_cm | float }}–{{ soil.depth_bottom_cm | float }} cm, {{ soil.source }}{% for sv in soil_values %}{% if loop.first %}<br>{% endif %}{{ planning.FORM_LABELS[sv.form] }} {{ "%g" | format(sv.value) }} {{ sv.unit }} ({{ planning.METHOD_LABELS[sv.extraction_method] }}{% if sv.extraction_method_detail %}: {{ sv.extraction_method_detail }}{% endif %}){% if not loop.last %}; {% endif %}{% endfor %}{% else %}No soil test on file{% endif %}</dd></div>
 </dl>
-<p><a class="button" href="/fields/{{ field.id }}/plans/new">New plan</a></p>
 
 <section aria-labelledby="plans-h">
   <h2 id="plans-h">Plans</h2>
@@ -31,7 +33,7 @@
     </tbody>
   </table>
   {% else %}
-  <p class="empty">No plans for this field yet. <a class="button" href="/fields/{{ field.id }}/plans/new">New plan</a></p>
+  <p class="empty">No plans for this field yet. <a href="/fields/{{ field.id }}/plans/new">Start the first plan</a>.</p>
   {% endif %}
 </section>
 {% endblock %}
