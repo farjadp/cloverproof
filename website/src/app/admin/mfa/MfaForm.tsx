@@ -5,7 +5,7 @@ import { useActionState, useState } from "react";
 import { mfaAction, type MfaState } from "./actions";
 import { Field, FormError, Submit } from "../ui";
 
-export function MfaForm({ csrf, enrolling }: { csrf: string; enrolling: boolean }) {
+export function MfaForm({ csrf, enrolling, optional }: { csrf: string; enrolling: boolean; optional: boolean }) {
   const [state, action, pending] = useActionState<MfaState, FormData>(mfaAction, { error: null });
   const [recovery, setRecovery] = useState(false);
 
@@ -68,6 +68,11 @@ export function MfaForm({ csrf, enrolling }: { csrf: string; enrolling: boolean 
         >
           {recovery ? "Use the authenticator app instead" : "Use a recovery code instead"}
         </button>
+      ) : null}
+      {optional ? (
+        <Link href="/admin" className="mt-4 inline-flex min-h-11 w-full items-center justify-center text-sm text-olive underline underline-offset-4">
+          Not now
+        </Link>
       ) : null}
     </form>
   );

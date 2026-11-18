@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { actors, KINDS, OUTCOMES, readLog, RETENTION_DAYS, type LogFilter } from "@/lib/admin/log";
-import { adminDb, adminReady, csrfField, requirePage, stepUpFresh } from "@/lib/admin/server";
+import { stepUpGate } from "@/lib/admin/mfa-policy";
+import { adminDb, adminReady, csrfField, mfaOptional, requirePage } from "@/lib/admin/server";
 import { AdminShell } from "../shell";
 import { StepUpForm } from "../StepUpForm";
 import { NotConfigured } from "../ui";
@@ -44,6 +45,7 @@ export default async function LogPage({ searchParams }: { searchParams: Promise<
   const current = await requirePage("log.view");
   const db = adminDb()!;
   const csrf = await csrfField();
+  const gate = stepUpGate(current, mfaOptional());
   const sp = await searchParams;
   const filter: LogFilter = {
     kind: one(sp.kind),
@@ -137,7 +139,7 @@ export default async function LogPage({ searchParams }: { searchParams: Promise<
         <h2 id="export-title" className="font-serif text-xl text-ink">
           Export
         </h2>
-        {stepUpFresh(current) ? (
+        {gate === "open" ? (
           <form method="post" action="/admin/log/export" className="mt-3 flex flex-wrap items-center gap-3">
             <input type="hidden" name="csrf" value={csrf} />
             {Object.entries(filter).map(([k, v]) => (v && k !== "page" ? <input key={k} type="hidden" name={k} value={String(v)} /> : null))}
@@ -148,7 +150,7 @@ export default async function LogPage({ searchParams }: { searchParams: Promise<
           </form>
         ) : (
           <div className="mt-3">
-            <StepUpForm csrf={csrf} path="/admin/log" what="export the log" />
+            <StepUpForm closed={gate === "closed"} csrf={csrf} path="/admin/log" what="export the log" />
           </div>
         )}
       </section>

@@ -7,6 +7,8 @@ import { randomBytes } from "node:crypto";
 import pg from "pg";
 import { totpAt } from "../src/lib/admin/totp.ts";
 import { open } from "../src/lib/admin/envelope.ts";
+import { hasFullAccess, isPasswordOnly } from "../src/lib/admin/mfa-policy.ts";
+import { listUsers } from "../src/lib/admin/users.ts";
 import {
   completeMfa,
   createFirstAdmin,
@@ -241,4 +243,107 @@ test("log rows never contain passwords, tokens, codes or secrets", { skip }, () 
       for (const needle of [PASSWORD, "wrong password", secret, "a@example.com"]) assert.ok(!row.includes(needle), `${needle} in ${row}`);
       assert.ok(!/\$argon2/.test(row));
     }
+  }));
+
+// ---------------------------------------------------------------- ADMIN_MFA_OPTIONAL (ADR 0012, 2026-11-18)
+
+const optional: AdminConfig = { ...config, mfaOptional: true };
+type SignedIn = { ok: true; token: string; mfaEnrolled: boolean };
+
+async function authRows(db: pg.Client): Promise<string[]> {
+  const { rows } = await db.query("select action from website_log where kind = 'auth' and action like 'login%' and outcome = 'ok' order by occurred_at, id");
+  return rows.map((r) => r.action);
+}
+
+test("flag off: password alone leaves the session without access and logs a normal password step", { skip }, () =>
+  withDb(async (db) => {
+    const token = await adminWithPassword(db);
+    const current = await session(db, token, at(2));
+    assert.equal(current.session.mfa_verified_at, null);
+    assert.equal(hasFullAccess(current, false), false);
+    assert.deepEqual(await authRows(db), ["login.password"]);
+  }));
+
+test("flag on, no MFA enrolled: full session after the password, logged as password-only, session not marked verified", { skip }, () =>
+  withDb(async (db) => {
+    const { link } = await createFirstAdmin(db, optional, { email: "a@example.com", name: "A" }, T0);
+    await redeemLink(db, link.split("#")[1], PASSWORD, meta, T0);
+    const result = (await login(db, optional, { email: "a@example.com", password: PASSWORD }, meta, at(1))) as SignedIn;
+    assert.equal(result.ok, true);
+    assert.equal(result.mfaEnrolled, false);
+    const current = await session(db, result.token, at(2));
+    assert.equal(current.session.mfa_verified_at, null, "never recorded as a second factor");
+    assert.equal(hasFullAccess(current, true), true);
+    assert.equal(isPasswordOnly(current, true), true);
+    assert.equal(hasFullAccess(current, false), false, "removing the flag ends access at once");
+    assert.deepEqual(await authRows(db), ["login.password_only"]);
+    const { rows } = await db.query("select row_to_json(l)::text as row, detail from website_log l where action = 'login.password_only'");
+    assert.deepEqual(rows[0].detail, { via: "mfa_optional" });
+    for (const needle of [PASSWORD, result.token, "a@example.com"]) assert.ok(!rows[0].row.includes(needle));
+    const [user] = await listUsers(db, at(3));
+    assert.ok(user.last_sign_in, "a password-only sign-in shows as the last sign-in");
+  }));
+
+test("flag on, MFA enrolled: the code is still required at sign-in", { skip }, () =>
+  withDb(async (db) => {
+    const { secret } = await enrolled(db);
+    const result = (await login(db, optional, { email: "a@example.com", password: PASSWORD }, meta, at(100))) as SignedIn;
+    assert.equal(result.mfaEnrolled, true);
+    const current = await session(db, result.token, at(100));
+    assert.equal(hasFullAccess(current, true), false);
+    const rows = await authRows(db);
+    assert.ok(!rows.includes("login.password_only"), rows.join());
+    const done = await completeMfa(db, optional, current, totpAt(secret, at(100).getTime() / 1000), meta, at(100));
+    assert.equal(done.ok, true);
+    assert.equal(hasFullAccess(await session(db, (done as SignedIn).token, at(101)), true), true);
+  }));
+
+test("flag on: voluntary enrolment works, and other password-only sessions then lose access", { skip }, () =>
+  withDb(async (db) => {
+    const { link } = await createFirstAdmin(db, optional, { email: "a@example.com", name: "A" }, T0);
+    await redeemLink(db, link.split("#")[1], PASSWORD, meta, T0);
+    const other = (await login(db, optional, { email: "a@example.com", password: PASSWORD }, meta, at(1))) as SignedIn;
+    const mine = (await login(db, optional, { email: "a@example.com", password: PASSWORD }, meta, at(1))) as SignedIn;
+    const current = await session(db, mine.token, at(2));
+    const secret = await pendingMfaSecret(db, optional, current);
+    const done = await completeMfa(db, optional, current, totpAt(secret, at(2).getTime() / 1000), meta, at(2));
+    assert.equal(done.ok, true);
+    assert.equal((done as { recoveryCodes: string[] }).recoveryCodes.length, 10);
+    assert.equal(hasFullAccess(await session(db, (done as SignedIn).token, at(3)), true), true);
+    assert.equal(hasFullAccess(await session(db, other.token, at(3)), true), false, "the older password-only session needs the code now");
+  }));
+
+test("flag on, no MFA: step-up can't succeed and no failure is counted", { skip }, () =>
+  withDb(async (db) => {
+    const { link } = await createFirstAdmin(db, optional, { email: "a@example.com", name: "A" }, T0);
+    await redeemLink(db, link.split("#")[1], PASSWORD, meta, T0);
+    const { token } = (await login(db, optional, { email: "a@example.com", password: PASSWORD }, meta, at(1))) as SignedIn;
+    const current = await session(db, token, at(2));
+    assert.equal(await stepUp(db, optional, current, "000000", meta, at(2)), false);
+    const after = await session(db, token, at(3));
+    assert.equal(after.session.step_up_at, null);
+    assert.equal(after.user.failed_logins, 0);
+  }));
+
+test("flag on, MFA enrolled: a valid code grants no step-up and counts no failure (R1)", { skip }, () =>
+  withDb(async (db) => {
+    const { token, secret } = await enrolled(db);
+    const current = await session(db, token, at(60));
+    assert.equal(await stepUp(db, optional, current, totpAt(secret, at(60).getTime() / 1000), meta, at(60)), false);
+    const after = await session(db, token, at(61));
+    assert.equal(after.session.step_up_at, null, "nothing carries over to when the flag is removed");
+    assert.equal(after.user.failed_logins, 0);
+    assert.equal(await stepUp(db, config, current, totpAt(secret, at(60).getTime() / 1000), meta, at(60)), true, "flag off: the same code works");
+  }));
+
+test("flag on: wrong enrolment codes lock the account and end its sessions (ADR 0012 risk, F6)", { skip }, () =>
+  withDb(async (db) => {
+    const { link } = await createFirstAdmin(db, optional, { email: "a@example.com", name: "A" }, T0);
+    await redeemLink(db, link.split("#")[1], PASSWORD, meta, T0);
+    const { token } = (await login(db, optional, { email: "a@example.com", password: PASSWORD }, meta, at(1))) as SignedIn;
+    const current = await session(db, token, at(2));
+    await pendingMfaSecret(db, optional, current);
+    for (let i = 0; i < 5; i++) await completeMfa(db, optional, current, "000000", meta, at(3 + i));
+    assert.equal(await loadSession(db, token, at(10)), null);
+    assert.equal((await login(db, optional, { email: "a@example.com", password: PASSWORD }, meta, at(11))).ok, false);
   }));

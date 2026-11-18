@@ -4,8 +4,20 @@ import { useActionState } from "react";
 import { stepUpAction, type StepUpState } from "./step-up";
 import { Field, FormError, Submit } from "./ui";
 
-export function StepUpForm({ csrf, path, what }: { csrf: string; path: string; what: string }) {
+export function StepUpForm({ csrf, path, what, closed }: { csrf: string; path: string; what: string; closed: boolean }) {
   const [state, action, pending] = useActionState<StepUpState, FormData>(stepUpAction, { error: null });
+  if (closed) {
+    return (
+      <section aria-labelledby="step-up-title" className="max-w-md rounded-lg border border-rule bg-ivory p-6">
+        <h2 id="step-up-title" className="font-serif text-xl text-ink">
+          Closed for now
+        </h2>
+        <p className="mt-1 text-sm text-ink-soft">
+          No account can {what} while two-step sign-in is optional. This opens again once two-step sign-in is required.
+        </p>
+      </section>
+    );
+  }
   return (
     <section aria-labelledby="step-up-title" className="max-w-md rounded-lg border border-rule bg-ivory p-6">
       <h2 id="step-up-title" className="font-serif text-xl text-ink">

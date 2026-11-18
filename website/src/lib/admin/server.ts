@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { Pool } from "pg";
 import { keyFromBase64 } from "./crypto.ts";
 import { kekRingFromEnv } from "./kek-env.ts";
-import { can, STEP_UP_SECONDS, type Action } from "./permissions.ts";
+import { authorize, hasFullAccess, mfaOptionalFromEnv } from "./mfa-policy.ts";
+import { can, type Action } from "./permissions.ts";
 import { clientIp, ipPrefix, uaFamily } from "./request-meta.ts";
 import { csrfToken, csrfValid, loadSession, type AdminConfig, type Current, type RequestMeta } from "./service.ts";
 import { siteUrl } from "../site.ts";
@@ -32,11 +33,21 @@ export function adminConfig(): AdminConfig | null {
   if (config !== undefined) return config;
   try {
     const keks = kekRingFromEnv();
-    config = { keks, hmacKey: keyFromBase64("WEBSITE_ADMIN_HMAC_KEY", process.env.WEBSITE_ADMIN_HMAC_KEY), siteUrl };
+    config = {
+      keks,
+      hmacKey: keyFromBase64("WEBSITE_ADMIN_HMAC_KEY", process.env.WEBSITE_ADMIN_HMAC_KEY),
+      siteUrl,
+      mfaOptional: mfaOptionalFromEnv(),
+    };
   } catch {
     config = null;
   }
   return config;
+}
+
+/** ADMIN_MFA_OPTIONAL is on (and the admin is configured). */
+export function mfaOptional(): boolean {
+  return adminConfig()?.mfaOptional === true;
 }
 
 export function adminReady(): boolean {
@@ -74,14 +85,22 @@ export async function currentSession(): Promise<Current | null> {
   return loadSession(db, await sessionToken(), new Date());
 }
 
-/** Signed-in, MFA-verified user allowed to do `action`; otherwise redirect. Use in pages. */
+/** Signed-in user past the required sign-in steps, allowed to do `action`; otherwise redirect. Use in pages. */
 export async function requirePage(action: Action): Promise<Current> {
   const current = await currentSession();
   if (!current) redirect("/admin/login");
-  if (!current.session.mfa_verified_at) redirect("/admin/mfa");
+  if (!hasFullAccess(current, mfaOptional())) redirect("/admin/mfa");
   if (!can(current.user.role, action)) redirect("/admin?denied=1");
   return current;
 }
+
+const GUARD_ERRORS = {
+  SESSION: "Your session has ended. Sign in again.",
+  CSRF: "This form has expired. Reload the page.",
+  ROLE: "You don't have permission for this.",
+  CLOSED: "This is closed while two-step sign-in is optional.",
+  STEP_UP: "STEP_UP",
+} as const;
 
 export type Guard = { ok: true; current: Current; db: Pool; config: AdminConfig; meta: RequestMeta } | { ok: false; error: string };
 
@@ -92,10 +111,14 @@ export async function guardAction(action: Action, form: FormData, opts: { stepUp
   if (!db || !cfg) return { ok: false, error: "The admin is not configured." };
   const token = await sessionToken();
   const current = await loadSession(db, token, new Date());
-  if (!current || !current.session.mfa_verified_at) return { ok: false, error: "Your session has ended. Sign in again." };
-  if (!csrfValid(cfg, token, form.get("csrf"))) return { ok: false, error: "This form has expired. Reload the page." };
-  if (!can(current.user.role, action)) return { ok: false, error: "You don't have permission for this." };
-  if (opts.stepUp && !stepUpFresh(current)) return { ok: false, error: "STEP_UP" };
+  const verdict = authorize(current, action, {
+    mfaOptional: cfg.mfaOptional === true,
+    csrfOk: csrfValid(cfg, token, form.get("csrf")),
+    stepUp: opts.stepUp,
+    now: new Date(),
+  });
+  if (!verdict.ok) return { ok: false, error: GUARD_ERRORS[verdict.error] };
+  if (!current) return { ok: false, error: GUARD_ERRORS.SESSION };
   return { ok: true, current, db, config: cfg, meta: await requestMeta() };
 }
 
@@ -131,10 +154,4 @@ export async function inTransaction<T>(db: Pool, fn: (client: import("pg").PoolC
   } finally {
     client.release();
   }
-}
-
-/** True when the session confirmed a fresh code within STEP_UP_SECONDS. */
-export function stepUpFresh(current: Current, now: Date = new Date()): boolean {
-  const at = current.session.step_up_at ? new Date(current.session.step_up_at).getTime() : 0;
-  return now.getTime() - at < STEP_UP_SECONDS * 1000;
 }

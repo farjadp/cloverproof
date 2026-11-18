@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { adminConfig, adminDb, inTransaction, preValid, requestMeta, sessionToken, setSessionCookie } from "@/lib/admin/server";
+import { landingAfterPassword } from "@/lib/admin/mfa-policy";
 import { loadSession, login, LOGIN_FAILED, logout } from "@/lib/admin/service";
 
 export type LoginState = { error: string | null };
@@ -21,5 +22,5 @@ export async function loginAction(_prev: LoginState, form: FormData): Promise<Lo
   });
   if (!result.ok) return { error: result.error || LOGIN_FAILED };
   await setSessionCookie(result.token);
-  redirect("/admin/mfa");
+  redirect(landingAfterPassword(result.mfaEnrolled, config.mfaOptional === true));
 }
