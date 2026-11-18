@@ -48,6 +48,8 @@ from cloverproof_engine.models import (
     NonNegativeFloat,
     NutrientForm,
     RecommendationInput,
+    SoilEstimateDepth,
+    SoilEstimateProperty,
     nutrient_of,
 )
 from cloverproof_engine.results import (
@@ -56,6 +58,7 @@ from cloverproof_engine.results import (
     ProductMatch,
     ProductNotMatched,
     Recommendation,
+    SoilEstimateContext,
 )
 
 NonBlankStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -159,6 +162,16 @@ class ExpectedSplitProduct(_Frozen):
         return self
 
 
+class ExpectedSoilEstimateValue(_Frozen):
+    """One estimate value expected in the result's context block."""
+
+    property: SoilEstimateProperty
+    depth: SoilEstimateDepth
+    value: float
+    unit: str
+    confidence: Confidence
+
+
 class GoldenExpected(_Frozen):
     n_rate_kg_ha: float
     n_total_kg: float
@@ -172,6 +185,10 @@ class GoldenExpected(_Frozen):
     # Optional: the P and K outcome. Both or neither.
     phosphorus: ExpectedPkLine | None = None
     potassium: ExpectedPkLine | None = None
+    # Optional: the confidence rules that must fire, in engine order.
+    confidence_rules: list[NonBlankStr] | None = None
+    # Optional: the estimate block. An empty list means the result must have none.
+    soil_estimate: list[ExpectedSoilEstimateValue] | None = None
     reason: str | None = None
 
     @model_validator(mode="after")
@@ -467,12 +484,45 @@ def compare(case: ExpectedCase, rec: Recommendation) -> list[DiffRow]:
             a_p = actual_products[i] if i < len(actual_products) else None
             rows.extend(_product_rows(i + 1, e_p, a_p, tol))
     rows.append(_label("confidence", exp.confidence.value, rec.confidence.value))
+    if exp.confidence_rules is not None:
+        actual_rules = [hit.rule_id for hit in rec.confidence_reasons]
+        rows.append(
+            _label("confidence_rules", ", ".join(exp.confidence_rules), ", ".join(actual_rules))
+        )
     rows.append(_label("pk_note", exp.pk_note, rec.phosphorus_potassium.code))
     pk = rec.phosphorus_potassium_rates
     if exp.phosphorus is not None:
         rows.extend(_pk_rows("phosphorus", exp.phosphorus, pk.phosphorus if pk else None, tol))
     if exp.potassium is not None:
         rows.extend(_pk_rows("potassium", exp.potassium, pk.potassium if pk else None, tol))
+    if exp.soil_estimate is not None:
+        rows.extend(_soil_estimate_rows(exp.soil_estimate, rec.soil_estimate))
+    return rows
+
+
+def _estimate_label(value: float, unit: str, confidence: Confidence) -> str:
+    return f"{value:g} {unit} {confidence.value}"
+
+
+def _soil_estimate_rows(
+    exp: list[ExpectedSoilEstimateValue], actual: SoilEstimateContext | None
+) -> list[DiffRow]:
+    """Label rows only: these values echo the input, so they never count as agreement."""
+    expected = {(e.property, e.depth): _estimate_label(e.value, e.unit, e.confidence) for e in exp}
+    found = {
+        (v.property, v.depth): _estimate_label(v.value.value, v.value.unit, v.confidence)
+        for v in (actual.values if actual else [])
+    }
+    rows = [
+        _label(
+            "soil_estimate",
+            "present" if exp else "absent",
+            "present" if actual else "absent",
+        )
+    ]
+    for key in dict.fromkeys([*expected, *found]):
+        name = f"soil_estimate_{key[0]}_{key[1]}"
+        rows.append(_label(name, expected.get(key, "-"), found.get(key, "-")))
     return rows
 
 

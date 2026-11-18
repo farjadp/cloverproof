@@ -1,0 +1,106 @@
+# SAMPLE golden case - NOT agronomist-approved. SYNTHETIC soil values (estimate invented for this case, not read from SoilGrids).
+# N side worked out by hand from packs/ca-on/v2.yaml (PLACEHOLDER constants): yield
+# 6.5 t/ha, price ratio 5.5, after corn -> 115.0 kg N/ha; 20 ha -> 2300 kg N.
+# P and K as in sample_ca_on_pk_olsen_ammonium_acetate: the estimate does not replace
+# the lab test, is context only and changes no number.
+id: sample_ca_on_lab_test_with_estimate
+kind: sample  # not agronomist-approved; never counts toward the agreement gate
+description: Lab test and estimate together. The estimate does not replace the lab test and is context only.
+pack:
+  id: ca-on
+  version: v2
+# TODO(agronomist): set agreement tolerances for real cases.
+tolerance:
+  kg_n_per_ha: 0.5
+  kg_n: 10
+  kg_pk_per_ha: 0.01
+  kg_pk: 0.1
+  mg_pk_per_kg: 0.01
+input:
+  crop: wheat
+  target_yield_t_ha: 6.5
+  previous_crop: corn
+  area_ha: 20.0
+  plan_date: "2027-03-15"
+  n_price:
+    n_price_per_kg_n: 1.375
+    grain_price_per_kg: 0.25
+    currency: CAD
+    source: SAMPLE (not a real price list)
+    price_date: "2027-01-20"
+  wheat_class: pastry
+  manure_applied: false
+  soil_test:
+    sample_date: "2026-09-15"
+    depth_top_cm: 0
+    depth_bottom_cm: 15
+    source: lab
+    lab: SAMPLE lab (synthetic)
+    values:
+      - {form: P, value: 7, unit: mg/kg, extraction_method: olsen}
+      - {form: K, value: 40, unit: ppm, extraction_method: ammonium-acetate}
+  soil_estimate:
+    provider: SoilGrids
+    version: "2.0"
+    attribution: SoilGrids 2.0, ISRIC - World Soil Information, CC BY 4.0
+    citation: Poggio et al. 2021, SOIL 7, 217-240, doi:10.5194/soil-7-217-2021
+    values:
+      - property: phh2o
+        depth: 0-5cm
+        statistic: mean
+        url: https://files.isric.org/soilgrids/latest/data/phh2o/phh2o_0-5cm_mean.vrt
+        value: 6.5
+        unit: pH
+        q05: 5.8
+        q95: 7.2
+        uncertainty_ratio: 0.2
+        resolution_m: 250
+        retrieved_on: "2026-11-18"
+      - property: nitrogen
+        depth: 0-5cm
+        statistic: mean
+        url: https://files.isric.org/soilgrids/latest/data/nitrogen/nitrogen_0-5cm_mean.vrt
+        value: 1500
+        unit: mg/kg
+        q05: 900
+        q95: 2600
+        uncertainty_ratio: 1.1
+        resolution_m: 250
+        retrieved_on: "2026-11-18"
+      - property: clay
+        depth: 5-15cm
+        statistic: mean
+        url: https://files.isric.org/soilgrids/latest/data/clay/clay_5-15cm_mean.vrt
+        value: 22
+        unit: "%"
+        resolution_m: 250
+        retrieved_on: "2026-11-18"
+expected:
+  n_rate_kg_ha: 115.0
+  n_total_kg: 2300.0
+  split_rates_kg_ha: [115.0]
+  confidence: low
+  pk_note: PK_FROM_LAB_TEST
+  phosphorus:
+    outcome: recommended
+    rate_form: P2O5
+    rate_oxide_kg_ha: 50.0
+    rate_elemental_kg_ha: 21.8211
+    total_oxide_kg: 1000.0
+    total_elemental_kg: 436.42
+    soil_test_elemental_mg_kg: 7.0
+    soil_test_oxide_mg_kg: 16.0396
+  potassium:
+    outcome: recommended
+    rate_form: K2O
+    rate_oxide_kg_ha: 30.0
+    rate_elemental_kg_ha: 24.9046
+    total_oxide_kg: 600.0
+    total_elemental_kg: 498.09
+    soil_test_elemental_mg_kg: 40.0
+    soil_test_oxide_mg_kg: 48.184
+  soil_estimate:
+    - {property: phh2o, depth: 0-5cm, value: 6.5, unit: pH, confidence: low}
+    - {property: nitrogen, depth: 0-5cm, value: 1500, unit: mg/kg, confidence: low}
+    - {property: clay, depth: 5-15cm, value: 22, unit: "%", confidence: low}
+  reason: SAMPLE derived from the ca-on v2 pack; not an agronomist decision.

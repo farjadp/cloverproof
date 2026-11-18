@@ -132,6 +132,11 @@ def convert_form(value: float, from_form: NutrientForm, to_form: NutrientForm) -
 # Product grades are mass percentages (unit definition: 100 % = the whole product).
 PERCENT = 100
 
+# Top of the pH scale as used for soil reporting. A scale definition, not agronomy.
+PH_SCALE_MAX = 14
+# Highest value each bounded unit can take on its reporting scale.
+UNIT_SCALE_MAX: dict[str, float] = {"pH": PH_SCALE_MAX, "%": PERCENT}
+
 
 def grades_fit_in_product(grades_pct: Iterable[float]) -> bool:
     """Mass percentages of one product cannot add up to more than the whole product.

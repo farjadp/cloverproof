@@ -6,7 +6,7 @@ Output models live in `results.py`; pack config models in `pack.py`.
 import math
 from datetime import date
 from enum import StrEnum
-from typing import Annotated, Any, ClassVar, Self
+from typing import Annotated, Any, ClassVar, Literal, Self
 
 from pydantic import (
     BaseModel,
@@ -219,6 +219,96 @@ class ProductInput(_Frozen):
         return self
 
 
+SoilEstimateProperty = Literal["phh2o", "soc", "nitrogen", "clay", "sand", "silt"]
+SoilEstimateDepth = Literal["0-5cm", "5-15cm", "15-30cm", "30-60cm", "60-100cm", "100-200cm"]
+
+# Canonical unit of each SoilGrids property, as `data_sources` delivers it.
+SOIL_ESTIMATE_UNITS: dict[str, str] = {
+    "phh2o": "pH",
+    "soc": "mg/kg",
+    "nitrogen": "mg/kg",
+    "clay": "%",
+    "sand": "%",
+    "silt": "%",
+}
+
+# The licence SoilGrids 2.0 is published under; its attribution must name it.
+SOIL_ESTIMATE_LICENCE = "CC BY 4.0"
+SOIL_ESTIMATE_LAYER_BASE = "https://files.isric.org/soilgrids/latest/data"
+
+# Kept exactly as supplied (licence wording), so it is checked but never stripped.
+VerbatimText = Annotated[str, Field(pattern=r"\S")]
+
+
+class SoilEstimateValue(_Frozen):
+    """One modelled SoilGrids value (the `mean` layer) at one depth, with its provenance.
+
+    The property allowlist has no P or K, and `nitrogen` is total N: there is no field
+    for a nutrient form, so it cannot be read as nitrate (rules 3 and 7).
+    """
+
+    property: SoilEstimateProperty
+    depth: SoilEstimateDepth
+    value: NonNegativeFloat
+    unit: str
+    statistic: Literal["mean"]
+    q05: NonNegativeFloat | None = None
+    q95: NonNegativeFloat | None = None
+    uncertainty_ratio: NonNegativeFloat | None = None
+    # Exactly the published address of this value's layer, so it can carry no field
+    # location (rule 12).
+    url: str
+    resolution_m: PositiveFloat
+    retrieved_on: date
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        # Imported here: units.py imports this module.
+        from cloverproof_engine import units
+
+        expected = SOIL_ESTIMATE_UNITS[self.property]
+        if self.unit != expected:
+            raise ValueError(f"{self.property} must be in {expected}, got {self.unit}")
+        layer = f"{self.property}/{self.property}_{self.depth}_{self.statistic}.vrt"
+        if self.url != f"{SOIL_ESTIMATE_LAYER_BASE}/{layer}":
+            raise ValueError("url must be the published address of this value's own layer")
+        if (self.q05 is None) != (self.q95 is None):
+            raise ValueError("q05 and q95 must be given together")
+        if self.q05 is not None and self.q95 is not None and self.q05 > self.q95:
+            raise ValueError("q05 must not be greater than q95")
+        # Each value only. Clay, sand and silt are separate layers of separately rounded
+        # integers and `data_sources` does not close them, so their sum can pass 100.
+        scale_max = units.UNIT_SCALE_MAX.get(self.unit)
+        if scale_max is not None:
+            for name, number in (("value", self.value), ("q05", self.q05), ("q95", self.q95)):
+                if number is not None and number > scale_max:
+                    raise ValueError(f"{name} is above the {self.unit} scale ({scale_max:g})")
+        return self
+
+
+class SoilEstimate(_Frozen):
+    """Modelled soil properties for the field, prepared by the caller from `data_sources`.
+
+    Context only: never a lab test, never a source of a P or K rate, and no pack rule
+    reads it. It reaches the input snapshot with its version and retrieval dates (rule 5).
+    """
+
+    provider: Literal["SoilGrids"]
+    version: Literal["2.0"]
+    attribution: VerbatimText
+    citation: VerbatimText
+    values: list[SoilEstimateValue] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        keys = [(v.property, v.depth) for v in self.values]
+        if len(keys) != len(set(keys)):
+            raise ValueError("each property may appear only once per depth")
+        if SOIL_ESTIMATE_LICENCE not in self.attribution:
+            raise ValueError(f"attribution must name the licence ({SOIL_ESTIMATE_LICENCE})")
+        return self
+
+
 class RecommendationInput(_Frozen):
     crop: Crop
     target_yield_t_ha: PositiveFloat
@@ -240,12 +330,15 @@ class RecommendationInput(_Frozen):
     # Catalog products to match the N lines against. None = matching not requested;
     # an empty list = requested, and the catalog has nothing to offer.
     products: list[ProductInput] | None = None
+    # Modelled soil properties, shown as low-confidence context. Changes no number.
+    soil_estimate: SoilEstimate | None = None
 
     _OMIT_IF_NONE: ClassVar[tuple[str, ...]] = (
         "n_price",
         "wheat_class",
         "manure_applied",
         "products",
+        "soil_estimate",
     )
 
     @model_serializer(mode="wrap")

@@ -5,6 +5,7 @@ pack constant quoted in a sentence is tagged PLACEHOLDER (or with its source whe
 """
 
 from collections.abc import Callable, Sequence
+from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -444,6 +445,91 @@ def pk_soil_test_recommended(reason: PkTestMissing) -> str:
     )
 
 
+_SOIL_ESTIMATE_LABEL: dict[str, str] = {
+    "phh2o": "Soil pH in water",
+    "soc": "Soil organic carbon",
+    "nitrogen": "Total soil nitrogen",
+    "clay": "Clay content",
+    "sand": "Sand content",
+    "silt": "Silt content",
+}
+
+
+def soil_estimate_name(prop: str) -> str:
+    return f"{_SOIL_ESTIMATE_LABEL[prop]} (estimate)"
+
+
+def soil_estimate_lower_name(prop: str) -> str:
+    return f"{_SOIL_ESTIMATE_LABEL[prop]}, lower end of modelled range (Q0.05)"
+
+
+def soil_estimate_upper_name(prop: str) -> str:
+    return f"{_SOIL_ESTIMATE_LABEL[prop]}, upper end of modelled range (Q0.95)"
+
+
+def soil_estimate_uncertainty_name(prop: str) -> str:
+    return f"{_SOIL_ESTIMATE_LABEL[prop]}, uncertainty ratio"
+
+
+def _soil_estimate_in_sentence(prop: str) -> str:
+    """The label inside a sentence: lower-case first letter, so "pH" stays "pH"."""
+    label = _SOIL_ESTIMATE_LABEL[prop]
+    return label[0].lower() + label[1:]
+
+
+def soil_estimate_provenance(
+    source: str, version: str, retrieved_on: date, attribution: str
+) -> str:
+    """Closes every estimate explanation, so a number copied alone keeps its source."""
+    return (
+        f"Source: {source} {version}, retrieved {retrieved_on.isoformat()}. "
+        f"Attribution: {attribution}"
+    )
+
+
+def soil_estimate_value(
+    prop: str, depth: str, value: float, unit: str, resolution_m: float, provenance: str
+) -> str:
+    text = (
+        f"{_SOIL_ESTIMATE_LABEL[prop]} at {depth}: {value:g} {unit}. This is a modelled "
+        f"estimate ({resolution_m:g} m grid), not a lab measurement. Confidence: low. It did "
+        "not change the N rate."
+    )
+    if prop == "nitrogen":
+        text += " This is total nitrogen, not nitrate (NO3-N), and is not used as soil nitrate."
+    return f"{text} {provenance}"
+
+
+def soil_estimate_range(prop: str, depth: str, quantile: str, provenance: str) -> str:
+    return (
+        f"{quantile} of the modelled {_soil_estimate_in_sentence(prop)} at {depth}. Part of "
+        "the estimate's stated range, not a lab measurement. It did not change the N rate. "
+        f"{provenance}"
+    )
+
+
+def soil_estimate_uncertainty(prop: str, depth: str, provenance: str) -> str:
+    return (
+        f"Width of the modelled range for {_soil_estimate_in_sentence(prop)} at {depth}: "
+        "(Q0.95 - Q0.05) / Q0.50, as published by the source. Higher means less certain. It "
+        f"did not change the N rate. {provenance}"
+    )
+
+
+def soil_estimate_context(source: str, version: str, lab_test_given: bool) -> str:
+    opening = f"These values are a modelled estimate from {source} {version}, not a lab soil test."
+    role = (
+        "A lab soil test was also given; the estimate does not replace it and is context only."
+        if lab_test_given
+        else "They are context only and do not count as a soil test."
+    )
+    return (
+        f"{opening} {role} Their confidence is low. They did not change the N rate or the "
+        "confidence of this plan. They hold no phosphorus (P) or potassium (K) value, and P "
+        "and K rates need a lab soil test."
+    )
+
+
 def pk_not_calculated_v0() -> str:
     return (
         "Engine v0 calculates nitrogen only. P and K are not recommended by the engine; "
@@ -619,6 +705,13 @@ def soil_nitrate_not_used(method_id: str = "n_mass_balance") -> str:
 
 def c1_no_soil_test() -> str:
     return "No soil test: confidence is at most medium (N only; P and K need a soil test)."
+
+
+def c1_soil_test_without_values() -> str:
+    return (
+        "The soil test has no values for P or K, so it counts as no soil test: confidence "
+        "is at most medium (N only; P and K need a soil test)."
+    )
 
 
 def c2_soil_test_estimated() -> str:

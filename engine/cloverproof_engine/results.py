@@ -1,5 +1,6 @@
 """Engine output models. Every number is an `ExplainedNumber`."""
 
+from datetime import date
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -11,7 +12,13 @@ from pydantic import (
 )
 
 from cloverproof_engine.confidence import Confidence, ConfidenceRuleHit
-from cloverproof_engine.models import ExtractionMethod, NutrientForm, ProductForm
+from cloverproof_engine.models import (
+    ExtractionMethod,
+    NutrientForm,
+    ProductForm,
+    SoilEstimateDepth,
+    SoilEstimateProperty,
+)
 from cloverproof_engine.pack import Citation, ConstantStatus, PackConstant
 
 
@@ -233,6 +240,37 @@ class Note(_Frozen):
     text: str
 
 
+class SoilEstimateLine(_Frozen):
+    """One modelled value with its full label, so it stays honest if copied alone."""
+
+    property: SoilEstimateProperty
+    depth: SoilEstimateDepth
+    value: ExplainedNumber
+    q05: ExplainedNumber | None = None
+    q95: ExplainedNumber | None = None
+    uncertainty_ratio: ExplainedNumber | None = None
+    confidence: Literal[Confidence.LOW] = Confidence.LOW
+    source: str
+    version: str
+    resolution_m: float
+    retrieved_on: date
+    attribution: str
+
+
+class SoilEstimateContext(_Frozen):
+    """The soil estimate as shown beside the plan. Context only: it changes no number."""
+
+    source: str
+    version: str
+    attribution: str
+    citation: str
+    confidence: Literal[Confidence.LOW] = Confidence.LOW
+    changes_numbers: Literal[False] = False
+    lab_test_given: bool
+    values: list[SoilEstimateLine]
+    explanation: str
+
+
 class Recommendation(_Frozen):
     engine_version: str
     pack_id: str
@@ -250,10 +288,15 @@ class Recommendation(_Frozen):
     # Since engine 0.6.0. Only for a lab soil test with a P or K value under a pack with
     # P/K tables; otherwise None and left out of the document. Not plan lines yet.
     phosphorus_potassium_rates: PkResults | None = None
+    # Since engine 0.7.0. Only when the input has a `soil_estimate`; otherwise None and
+    # left out of the document.
+    soil_estimate: SoilEstimateContext | None = None
 
     @model_serializer(mode="wrap")
-    def _omit_absent_pk_rates(self, handler: SerializerFunctionWrapHandler) -> Any:
+    def _omit_absent_optionals(self, handler: SerializerFunctionWrapHandler) -> Any:
         data = handler(self)
-        if isinstance(data, dict) and data.get("phosphorus_potassium_rates") is None:
-            data.pop("phosphorus_potassium_rates", None)
+        if isinstance(data, dict):
+            for name in ("phosphorus_potassium_rates", "soil_estimate"):
+                if data.get(name) is None:
+                    data.pop(name, None)
         return data
