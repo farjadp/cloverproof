@@ -1,8 +1,8 @@
-"""Plan form validation, engine call and the agronomist's edited document.
+"""Plan form validation, engine call and the reviewer's edited document.
 
 No agronomy lives here. The engine (`cloverproof_engine.recommend`) computes every number;
-this module only parses form input into engine models and, for an agronomist edit, copies
-the engine document with the agronomist's numbers (rate x area for totals is the same unit
+this module only parses form input into engine models and, for a reviewer's edit, copies
+the engine document with the reviewer's numbers (rate x area for totals is the same unit
 arithmetic the engine documents, nothing more).
 """
 
@@ -436,7 +436,7 @@ def refusal_message(error: ValueError) -> str:
     return f"The engine gave no number for this plan: {error}"
 
 
-# --- agronomist edit -----------------------------------------------------------------
+# --- reviewer edit -------------------------------------------------------------------
 
 
 @dataclass
@@ -444,11 +444,11 @@ class EditParsed:
     n_rate: float
     split_rates: list[float]
     changed: set[str]  # every number whose value differs from the edited document
-    typed: set[str] = field(default_factory=set)  # the subset the agronomist typed
+    typed: set[str] = field(default_factory=set)  # the subset the reviewer typed
 
 
-RESCALED = "Rescaled from the agronomist's N rate, keeping this line's current share."
-RESCALED_NO_SPLIT = "Rescaled to the agronomist's N rate; the pack defines no split plan."
+RESCALED = "Rescaled from the reviewer's N rate, keeping this line's current share."
+RESCALED_NO_SPLIT = "Rescaled to the reviewer's N rate; the pack defines no split plan."
 
 
 def _fmt(value: float) -> str:
@@ -469,7 +469,7 @@ def outside_limits(rate: float, limits: tuple[PackConstant, PackConstant]) -> bo
 def parse_edit(
     doc: Mapping[str, Any], raw_rate: str, raw_splits: Sequence[str], reason: str
 ) -> tuple[EditParsed | None, dict[str, str]]:
-    """Validate the agronomist's numbers against the document they edit."""
+    """Validate the reviewer's numbers against the document they edit."""
     errors: dict[str, str] = {}
     nitrogen = doc["nitrogen"]
     old_rate = float(nitrogen["rate"]["value"])
@@ -528,9 +528,9 @@ def parse_edit(
 
 
 def edited_document(doc: Mapping[str, Any], edit: EditParsed, reason: str) -> dict[str, Any]:
-    """Same document shape as the engine output, with the agronomist's final numbers.
+    """Same document shape as the engine output, with the reviewer's final numbers.
 
-    Only numbers the agronomist typed say "Set by agronomist". Splits rescaled from the new
+    Only numbers the reviewer typed say "Set by reviewer". Splits rescaled from the new
     N rate with the pack shares say so and keep the share's PLACEHOLDER flag. Every split
     share is recomputed against the final N rate, typed or not. A line whose rate changed,
     typed or rescaled, loses its product outcome: it was worked out from the old rate.
@@ -538,7 +538,7 @@ def edited_document(doc: Mapping[str, Any], edit: EditParsed, reason: str) -> di
     new = copy.deepcopy(dict(doc))
     nitrogen = new["nitrogen"]
     area = float(new["input_snapshot"]["area_ha"])
-    note = f"Set by agronomist: {reason.strip()}"
+    note = f"Set by reviewer: {reason.strip()}"
     final_rate = edit.n_rate if "n_rate" in edit.changed else float(nitrogen["rate"]["value"])
 
     def set_number(number: dict[str, Any], value: float, explanation: str,
@@ -572,7 +572,7 @@ def edited_document(doc: Mapping[str, Any], edit: EditParsed, reason: str) -> di
             set_number(split["rate"], rate, note, False)
             set_number(split["total"], rate * area, total_text(note, rate), False)
             set_number(fraction, share, f"{note} Share of the final N rate.", False)
-        elif key in edit.changed:  # rescaled from the agronomist's N rate
+        elif key in edit.changed:  # rescaled from the reviewer's N rate
             flag = bool(fraction["uses_placeholder"])
             # Key present and None: engine 0.4.0+ with no split plan. Engine 0.3.0 documents
             # have no key and keep the old text.

@@ -36,6 +36,14 @@ _AGRONOMIST_PHRASES = (
     ("The agronomist sets the product", "An agronomist must set the product"),
 )
 
+# Stored edited numbers (before the wording became "reviewer") name an agronomist, though a
+# superadmin can edit too. Prefix only: the free-text reason after it stays as written.
+_EDIT_PREFIXES = (
+    ("Set by agronomist:", "Set by reviewer:"),
+    ("Rescaled from the agronomist's N rate", "Rescaled from the reviewer's N rate"),
+    ("Rescaled to the agronomist's N rate", "Rescaled to the reviewer's N rate"),
+)
+
 
 def share_text(fraction: float) -> str:
     """A share as the engine writes it in its explanations: 12.5%, 40%."""
@@ -116,6 +124,13 @@ def proof_timing_note(splits: Sequence[Mapping[str, Any]]) -> str:
     """The sentence above the proof's split table; true for a line with no timing."""
     no_window = any(not is_old_line(s) and s["timing_window"] is None for s in splits)
     return PROOF_NO_TIMING_NOTE if no_window else PROOF_TIMING_NOTE
+
+
+def neutral_edit_text(text: str) -> str:
+    for stored, neutral in _EDIT_PREFIXES:
+        if text.startswith(stored):
+            return neutral + text[len(stored) :]
+    return text
 
 
 def without_agronomist_claim(text: str) -> str:

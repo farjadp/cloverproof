@@ -65,6 +65,11 @@ def edited(doc: dict[str, Any], rate: str, splits: list[str]) -> dict[str, Any]:
     return planning.edited_document(doc, parsed, "Local trial")
 
 
+def rate_only_edit(doc: dict[str, Any], rate: str) -> dict[str, Any]:
+    """The N rate changes and the split rows are left as they were: splits are rescaled."""
+    return edited(doc, rate, [str(s["rate"]["value"]) for s in doc["nitrogen"]["splits"]])
+
+
 def old_document() -> dict[str, Any]:
     """A document as engine 0.3 stored it: no timing, line explanation or product keys."""
     doc = copy.deepcopy(build(SPLITS))

@@ -149,6 +149,10 @@ class ProofInput:
             return text
         return split_display.without_agronomist_claim(text)
 
+    def number_text(self, text: str) -> str:
+        """A number's explanation; an edited number names the reviewer, whatever their role."""
+        return split_display.neutral_edit_text(text)
+
     @property
     def input_snapshot_sha256(self) -> str:
         return snapshot_sha256(self.doc["input_snapshot"])

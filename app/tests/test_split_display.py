@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from cloverproof_app import split_display
 from cloverproof_app.line_diff import diff_lines
 from cloverproof_engine import explain
 
@@ -175,6 +176,27 @@ def test_old_document_renders_without_the_new_lines() -> None:
     assert '<span class="value">12%</span>' in markup
     assert '<span class="value">88%</span>' in markup
     assert '<span class="value">12.5%</span>' not in markup
+
+
+# --- edited numbers -----------------------------------------------------------------
+
+
+def test_stored_edit_wording_is_neutral_at_display() -> None:
+    neutral = split_display.neutral_edit_text
+    assert neutral("Set by agronomist: Wet spring") == "Set by reviewer: Wet spring"
+    assert neutral("Rescaled from the agronomist's N rate, keeping this line's current share.") == (
+        "Rescaled from the reviewer's N rate, keeping this line's current share."
+    )
+    assert neutral("Rescaled to the agronomist's N rate; the pack defines no split plan.") == (
+        "Rescaled to the reviewer's N rate; the pack defines no split plan."
+    )
+
+
+def test_neutral_edit_text_leaves_the_free_text_reason_alone() -> None:
+    neutral = split_display.neutral_edit_text
+    stored = "Set by agronomist: Set by agronomist: the agronomist's N rate was high"
+    assert neutral(stored) == "Set by reviewer: Set by agronomist: the agronomist's N rate was high"
+    assert neutral("Reason: Set by agronomist: x") == "Reason: Set by agronomist: x"
 
 
 # --- engine vs final diff -----------------------------------------------------------

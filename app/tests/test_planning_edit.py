@@ -22,8 +22,8 @@ from cloverproof_engine.pack import parse_pack
 from cloverproof_engine.results import Recommendation
 
 REASON = "Field history: lodging at higher rates"
-RESCALED = "Rescaled from the agronomist's N rate, keeping this line's current share."
-RESCALED_NO_SPLIT = "Rescaled to the agronomist's N rate; the pack defines no split plan."
+RESCALED = "Rescaled from the reviewer's N rate, keeping this line's current share."
+RESCALED_NO_SPLIT = "Rescaled to the reviewer's N rate; the pack defines no split plan."
 # TEST FIXTURE pack and product: not agronomy.
 PRODUCT_RULES_PACK = Path(__file__).resolve().parents[2] / "packs/placeholder/v0-product-rules.yaml"
 FIXTURE_PRODUCT = {
@@ -119,17 +119,17 @@ def test_rate_only_rescales_splits_with_pack_share(doc: dict[str, Any]) -> None:
     new = apply(doc, f"{new_rate:g}", fmt(engine_splits(doc)))
     n = new["nitrogen"]
     assert n["rate"]["value"] == new_rate
-    assert n["rate"]["explanation"] == f"Set by agronomist: {REASON}"
+    assert n["rate"]["explanation"] == f"Set by reviewer: {REASON}"
     assert n["rate"]["uses_placeholder"] is False
     assert math.isclose(sum(s["rate"]["value"] for s in n["splits"]), new_rate)
     for old, s in zip(doc["nitrogen"]["splits"], n["splits"], strict=True):
         share = old["fraction"]["value"]
         assert math.isclose(s["rate"]["value"], new_rate * share)
         assert math.isclose(s["fraction"]["value"], share)
-        # Rescaled, not typed: no "Set by agronomist", placeholder flag kept from the share.
+        # Rescaled, not typed: no "Set by reviewer", placeholder flag kept from the share.
         for key in ("rate", "total"):
             assert s[key]["explanation"].startswith(RESCALED)
-            assert "Set by agronomist" not in s[key]["explanation"]
+            assert "Set by reviewer" not in s[key]["explanation"]
             assert s[key]["uses_placeholder"] is old["fraction"]["uses_placeholder"]
         assert s["fraction"]["uses_placeholder"] is old["fraction"]["uses_placeholder"]
 
@@ -210,13 +210,13 @@ def test_partial_split_edit_recomputes_every_fraction(doc: dict[str, Any]) -> No
     assert math.isclose(sum(s["fraction"]["value"] for s in splits), 1.0)
 
     first, rest = splits[0], splits[1:]
-    assert first["rate"]["explanation"] == f"Set by agronomist: {REASON}"
+    assert first["rate"]["explanation"] == f"Set by reviewer: {REASON}"
     assert first["rate"]["uses_placeholder"] is False
     assert first["fraction"]["uses_placeholder"] is False
     for orig, s in zip(doc["nitrogen"]["splits"][1:], rest, strict=True):
         # Rate untouched: explanation and flag stay; only the share changed.
         assert s["rate"] == orig["rate"]
-        assert "Set by agronomist" not in s["fraction"]["explanation"]
+        assert "Set by reviewer" not in s["fraction"]["explanation"]
         assert s["fraction"]["uses_placeholder"] is orig["rate"]["uses_placeholder"]
 
 
@@ -237,7 +237,7 @@ def test_rate_zero_with_typed_zero_splits(doc: dict[str, Any]) -> None:
     new = apply(doc, "0", zeros)
     for s in new["nitrogen"]["splits"]:
         assert s["fraction"]["value"] == 0
-        assert s["rate"]["explanation"] == f"Set by agronomist: {REASON}"
+        assert s["rate"]["explanation"] == f"Set by reviewer: {REASON}"
 
 
 def test_mismatched_splits_are_an_error(doc: dict[str, Any]) -> None:

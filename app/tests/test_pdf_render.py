@@ -452,6 +452,36 @@ def test_old_document_proof_is_unchanged() -> None:
         assert wording not in text, wording
 
 
+def as_stored_before_the_rename(doc: dict[str, Any]) -> dict[str, Any]:
+    """An edited document with the wording it was saved with before "reviewer"."""
+    old = copy.deepcopy(doc)
+    nitrogen = old["nitrogen"]
+    numbers = [nitrogen["rate"], nitrogen["total"]]
+    for split in nitrogen["splits"]:
+        numbers += [split["fraction"], split["rate"], split["total"]]
+    for number in numbers:
+        number["explanation"] = (
+            number["explanation"]
+            .replace("Set by reviewer:", "Set by agronomist:")
+            .replace("the reviewer's N rate", "the agronomist's N rate")
+        )
+    return old
+
+
+def test_edited_numbers_never_name_an_agronomist_on_the_proof() -> None:
+    engine = split_docs.build(products=[split_docs.product()])
+    typed = split_docs.edited(engine, "120", ["60", "60"])
+    rescaled = split_docs.rate_only_edit(engine, "120")
+    for new in (typed, rescaled):
+        for doc in (new, as_stored_before_the_rename(new)):
+            text = proof_text(doc)
+            assert "Set by agronomist" not in text and "agronomist's N rate" not in text
+    assert "Set by reviewer: Local trial" in proof_text(as_stored_before_the_rename(typed))
+    assert "Rescaled from the reviewer's N rate" in proof_text(
+        as_stored_before_the_rename(rescaled)
+    )
+
+
 def outcome_docs(tmp_path: Any) -> list[dict[str, Any]]:
     matched = split_docs.build(products=[split_docs.product()])
     return [

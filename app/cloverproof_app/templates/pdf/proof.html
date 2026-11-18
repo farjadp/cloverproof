@@ -5,7 +5,7 @@
 <div class="explained {{ cls }}">
 {% if x.explanation %}
   <span class="value">{{ x.value | num(digits) }} {{ x.unit }}</span>{{ placeholder_mark(x.uses_placeholder) }}
-  <p class="why">{{ x.explanation }}</p>
+  <p class="why">{{ p.number_text(x.explanation) }}</p>
 {% else %}
   <span class="value">{{ x.value | num(digits) }} {{ x.unit }}</span>
   <p class="why">No explanation recorded</p>
@@ -18,7 +18,7 @@
 <div class="explained">
 {% if x.explanation %}
   <span class="value">{{ share_value(x, whole) }}</span>{{ placeholder_mark(x.uses_placeholder) }}
-  <p class="why">{{ x.explanation }}</p>
+  <p class="why">{{ p.number_text(x.explanation) }}</p>
 {% else %}
   <span class="value">{{ share_value(x, whole) }}</span>
   <p class="why">No explanation recorded</p>
