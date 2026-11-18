@@ -296,3 +296,10 @@ def test_existing_soil_test_estimates_are_kept_and_not_copied(
         row = db.execute("select source from soil_test where id = %s", (test,)).fetchone()
         assert row is not None and row[0] == "estimate"
         assert count(db) == 0
+
+
+@pytest.mark.parametrize("source", ["lucas", "wosis"])
+def test_only_soilgrids_is_accepted_for_now(
+    db: psycopg.Connection, org_a: Org, source: str
+) -> None:
+    refused(db, errors.CheckViolation, estimate(org_a, source=source))

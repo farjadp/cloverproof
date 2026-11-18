@@ -54,7 +54,8 @@ create table soil_estimate (
     (property = 'phh2o' and unit = 'pH')
     or (property in ('soc', 'nitrogen') and unit = 'mg/kg')
     or (property in ('clay', 'sand', 'silt') and unit = '%')),
-  constraint soil_estimate_source_known check (source in ('soilgrids', 'lucas', 'wosis')),
+  -- Only SoilGrids until another source has a loader and its licence rules are enforced.
+  constraint soil_estimate_source_known check (source = 'soilgrids'),
   -- numeric accepts 'NaN' and 'Infinity', and both compare >= 0.
   constraint soil_estimate_value_finite check (value >= 0 and value < 'Infinity'),
   constraint soil_estimate_q05_finite check (value_q05 >= 0 and value_q05 < 'Infinity'),
