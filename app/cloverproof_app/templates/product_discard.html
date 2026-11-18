@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros.html" import breadcrumb %}
+{% block title %}Discard {{ product.name }}{% endblock %}
+{% block breadcrumb %}{{ breadcrumb([("Products", "/products"), ("Discard draft", none)]) }}{% endblock %}
+{% block main_class %}products-page activate-page{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Discard {{ product.name }}?</h1>
+</div>
+{% if problem %}<div class="notice error" role="alert"><p>{{ problem }}</p></div>{% endif %}
+<div class="notice warn">
+  <p class="notice-title">This can't be undone</p>
+  <p>The draft and its values are deleted for good. To use this product later, you add it again.</p>
+</div>
+{% include "_product_facts.html" %}
+<form class="form" method="post" action="/products/{{ product.id }}/discard">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <div class="actions">
+    <button class="button danger" type="submit">Discard draft</button>
+    <a class="button text" href="/products">Keep draft</a>
+  </div>
+</form>
+{% endblock %}

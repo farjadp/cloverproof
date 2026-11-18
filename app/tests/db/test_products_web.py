@@ -10,7 +10,9 @@ from uuid import UUID, uuid4
 import psycopg
 import pytest
 from fastapi.testclient import TestClient
+from psycopg.rows import dict_row
 
+from cloverproof_app import product_presets as presets
 from cloverproof_app import products_web
 from cloverproof_app.repo.products import NewProduct
 
@@ -623,5 +625,427 @@ def test_product_pages_have_no_inline_script(
     draft = seed(db, superadmin, "draft", name=NAME)
     client, _ = sign_in(db, superadmin)
     for url in ("/products?preset=urea", f"/products/{draft}/activate"):
+        scripts = re.findall(r"<script([^>]*)>", client.get(url).text)
+        assert scripts and all('src="/static/' in attributes for attributes in scripts)
+
+
+# --- editing a draft ----------------------------------------------------------------------
+
+UNCONFIRMED = products_web.UNCONFIRMED_SOURCE
+EDITED = "TEST-GRADE 12-0-0"
+HTML = {"accept": "text/html"}
+
+
+def row_of(db: psycopg.Connection, product_id: UUID) -> dict[str, Any] | None:
+    with as_owner(db), db.cursor(row_factory=dict_row) as cur:
+        return cur.execute(
+            "select country_code, name, n, p2o5, k2o, s, form, density_kg_per_l, status,"
+            " grade_source, created_by from fertilizer_product where id = %s",
+            (product_id,),
+        ).fetchone()
+
+
+def activates_meanwhile(
+    db: psycopg.Connection, draft: UUID, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The route reads a draft; right after that read the row becomes active."""
+    real = products_web.repo.get_product
+
+    def stale(conn: psycopg.Connection, product_id: UUID) -> Any:
+        found = real(conn, product_id)
+        with as_owner(db):
+            db.execute("update fertilizer_product set status = 'active' where id = %s", (draft,))
+        return found
+
+    monkeypatch.setattr(products_web.repo, "get_product", stale)
+
+
+def test_edit_form_is_filled_from_the_draft(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft = seed(
+        db,
+        superadmin,
+        "draft",
+        name=NAME,
+        country_code="FR",
+        n=10.5,
+        form="liquid",
+        density_kg_per_l=1.28,
+    )
+    client, _ = sign_in(db, superadmin)
+    response = client.get(f"/products/{draft}/edit")
+    assert response.status_code == 200
+    page = response.text
+    assert f'action="/products/{draft}/edit"' in page
+    assert field_value(page, "name") == NAME
+    assert (field_value(page, "n"), field_value(page, "p2o5")) == ("10.5", "0")
+    assert field_value(page, "density_kg_per_l") == "1.28"
+    assert selected_option(page, "country_code") == "FR"
+    assert selected_option(page, "product_form") == "liquid"
+    assert 'id="grade-summary"' in page and "/static/product_form.js" in page
+    assert "Start from a common fertilizer type" not in page
+
+
+def test_saving_an_edit_replaces_the_values_and_stays_a_draft(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    client, csrf = sign_in(db, superadmin)
+    data = form(
+        csrf,
+        name=EDITED,
+        n="12",
+        country_code="us",
+        product_form="liquid",
+        density_kg_per_l="1,3",
+        grade_source="TEST label, edition 2",
+        status="active",
+        created_by=str(org_a.agronomist),
+    )
+    saved = client.post(f"/products/{draft}/edit", data=data)
+    assert saved.status_code == 303
+    row = row_of(db, draft)
+    assert row is not None
+    assert row["name"] == EDITED and row["n"] == Decimal("12.00") and row["country_code"] == "US"
+    assert row["form"] == "liquid" and row["density_kg_per_l"] == Decimal("1.300")
+    assert row["grade_source"] == "TEST label, edition 2"
+    assert row["status"] == "draft" and row["created_by"] == superadmin
+    assert count_products(db) == 1
+    assert products_web.DONE_MESSAGES["edited"] in client.get(saved.headers["location"]).text
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"name": "  "}, "Enter the product name."),
+        ({"country_code": "XX"}, "Choose a country from the list."),
+        ({"n": "abc"}, "N must be a number."),
+        ({"n": "50", "p2o5": "30", "k2o": "20", "s": "1"}, "adds up to 101%"),
+        ({"product_form": "liquid"}, "Enter the density"),
+        ({"density_kg_per_l": "1.2"}, "Leave density empty"),
+        ({"grade_source": " "}, "Enter where the grade comes from"),
+    ],
+    ids=str,
+)
+def test_edit_is_validated_like_add_and_changes_nothing(
+    db: psycopg.Connection,
+    org_a: Org,
+    superadmin: UUID,
+    overrides: dict[str, str],
+    message: str,
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    before = row_of(db, draft)
+    client, csrf = sign_in(db, superadmin)
+    data = form(csrf, name=EDITED) | overrides
+    page = client.post(f"/products/{draft}/edit", data=data)
+    assert page.status_code == 422
+    assert message in page.text and 'id="error-summary"' in page.text
+    assert f'action="/products/{draft}/edit"' in page.text
+    assert row_of(db, draft) == before
+
+
+def test_edit_keeps_typed_values_after_an_error(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    client, csrf = sign_in(db, superadmin)
+    data = form(csrf, name=EDITED, n="abc", country_code="US")
+    page = client.post(f"/products/{draft}/edit", data=data).text
+    assert field_value(page, "name") == EDITED and field_value(page, "n") == "abc"
+    assert selected_option(page, "country_code") == "US"
+
+
+def test_edit_cannot_take_the_name_of_an_active_product(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    seed(db, superadmin, "active", name=EDITED)
+    draft = seed(db, superadmin, "draft", name=NAME)
+    client, csrf = sign_in(db, superadmin)
+    page = client.post(f"/products/{draft}/edit", data=form(csrf, name=EDITED.lower()))
+    assert page.status_code == 409 and "already exists in CA" in page.text
+    row = row_of(db, draft)
+    assert row is not None and row["name"] == NAME
+
+
+def test_active_product_cannot_be_edited(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    active = seed(db, superadmin, "active", name=NAME)
+    before = row_of(db, active)
+    client, csrf = sign_in(db, superadmin)
+    for page in (
+        client.get(f"/products/{active}/edit"),
+        client.post(f"/products/{active}/edit", data=form(csrf, name=EDITED)),
+    ):
+        assert page.status_code == 409
+        assert products_web.ACTIVE_NOT_EDITABLE.replace("'", "&#39;") in page.text
+    assert row_of(db, active) == before
+
+
+def test_draft_activated_meanwhile_is_not_edited(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    client, csrf = sign_in(db, superadmin)
+    activates_meanwhile(db, draft, monkeypatch)
+    page = client.post(f"/products/{draft}/edit", data=form(csrf, name=EDITED))
+    assert page.status_code == 409
+    row = row_of(db, draft)
+    assert row is not None and row["name"] == NAME
+
+
+def test_unknown_product_is_404_on_edit_and_discard(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    client, csrf = sign_in(db, superadmin)
+    missing = uuid4()
+    assert client.get(f"/products/{missing}/edit").status_code == 404
+    assert client.post(f"/products/{missing}/edit", data=form(csrf)).status_code == 404
+    assert client.get(f"/products/{missing}/discard").status_code == 404
+    assert client.post(f"/products/{missing}/discard", data={"csrf_token": csrf}).status_code == 404
+
+
+# --- a draft from a published type still needs the label checked ---------------------------
+
+
+def preset_draft(db: psycopg.Connection, superadmin: UUID) -> tuple[UUID, str]:
+    source = presets.BY_KEY["urea"].source
+    assert UNCONFIRMED in source.lower()
+    return seed(db, superadmin, "draft", name=NAME, grade_source=source), source
+
+
+def test_preset_draft_still_needs_the_checked_label_after_an_edit(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft, source = preset_draft(db, superadmin)
+    client, csrf = sign_in(db, superadmin)
+    data = form(csrf, name=EDITED, n="45", grade_source=source)
+    assert client.post(f"/products/{draft}/edit", data=data).status_code == 303
+
+    assert 'name="grade_source"' in client.get(f"/products/{draft}/activate").text
+    refused = client.post(f"/products/{draft}/activate", data=confirmed(csrf))
+    assert refused.status_code == 422 and products_web.CHECKED_SOURCE_MISSING in refused.text
+    assert status_of(db, draft) == "draft"
+    unticked = client.post(
+        f"/products/{draft}/activate", data={"csrf_token": csrf, "grade_source": "TEST label 2026"}
+    )
+    assert unticked.status_code == 422 and status_of(db, draft) == "draft"
+    done = client.post(
+        f"/products/{draft}/activate", data={**confirmed(csrf), "grade_source": "TEST label 2026"}
+    )
+    assert done.status_code == 303 and status_of(db, draft) == "active"
+
+
+@pytest.mark.parametrize("cut", ["whole", "marker"])
+def test_an_edit_cannot_remove_the_unconfirmed_note(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID, cut: str
+) -> None:
+    """Otherwise an edit would turn a published reference into a confirmed-looking source."""
+    draft, source = preset_draft(db, superadmin)
+    client, csrf = sign_in(db, superadmin)
+    without_note = re.sub(re.escape(UNCONFIRMED), "", source, flags=re.I).strip(" ;,.")
+    value = "TEST label 2026" if cut == "whole" else without_note
+    page = client.post(f"/products/{draft}/edit", data=form(csrf, grade_source=value))
+    assert page.status_code == 422
+    assert products_web.KEEP_UNCONFIRMED.replace('"', "&#34;") in page.text
+    row = row_of(db, draft)
+    assert row is not None and row["grade_source"] == source and row["name"] == NAME
+
+
+def test_edit_page_explains_the_unconfirmed_source(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft, _ = preset_draft(db, superadmin)
+    plain = seed(db, superadmin, "draft", name="TEST-GRADE plain")
+    client, _csrf = sign_in(db, superadmin)
+    assert UNCONFIRMED in client.get(f"/products/{draft}/edit").text.split('id="product-form"')[0]
+    assert UNCONFIRMED not in client.get(f"/products/{plain}/edit").text
+
+
+# --- discarding a draft -------------------------------------------------------------------
+
+
+def test_discard_asks_first_and_names_the_product(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    client, _ = sign_in(db, superadmin)
+    page = client.get(f"/products/{draft}/discard")
+    assert page.status_code == 200
+    assert f"Discard {NAME}?" in page.text and "10-0-0-0" in page.text
+    assert f'action="/products/{draft}/discard"' in page.text and 'name="csrf_token"' in page.text
+    assert status_of(db, draft) == "draft"
+
+
+def test_discard_really_deletes_the_draft(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    other = seed(db, superadmin, "draft", name="TEST-GRADE keep me")
+    client, csrf = sign_in(db, superadmin)
+    done = client.post(f"/products/{draft}/discard", data={"csrf_token": csrf})
+    assert done.status_code == 303
+    assert row_of(db, draft) is None and row_of(db, other) is not None
+    page = client.get(done.headers["location"]).text
+    assert products_web.DONE_MESSAGES["discarded"] in page and NAME not in page
+
+
+def test_active_product_cannot_be_discarded(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    active = seed(db, superadmin, "active", name=NAME)
+    client, csrf = sign_in(db, superadmin)
+    for page in (
+        client.get(f"/products/{active}/discard"),
+        client.post(f"/products/{active}/discard", data={"csrf_token": csrf}),
+    ):
+        assert page.status_code == 409
+        assert products_web.ACTIVE_NOT_DISCARDABLE.replace("'", "&#39;") in page.text
+    assert status_of(db, active) == "active"
+
+
+def test_draft_activated_meanwhile_is_not_discarded(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    client, csrf = sign_in(db, superadmin)
+    activates_meanwhile(db, draft, monkeypatch)
+    page = client.post(f"/products/{draft}/discard", data={"csrf_token": csrf})
+    assert page.status_code == 409 and status_of(db, draft) == "active"
+
+
+def test_referenced_draft_is_refused_not_deleted(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    """Nothing references products today. The day something does, discarding must refuse."""
+    draft = seed(db, superadmin, "draft", name=NAME)
+    with as_owner(db):
+        db.execute("create table test_product_ref (p uuid references fertilizer_product (id))")
+        db.execute("insert into test_product_ref values (%s)", (draft,))
+    client, csrf = sign_in(db, superadmin)
+    page = client.post(f"/products/{draft}/discard", data={"csrf_token": csrf})
+    assert page.status_code == 409 and products_web.DRAFT_IN_USE.replace("'", "&#39;") in page.text
+    assert status_of(db, draft) == "draft"
+
+
+# --- who may edit and discard -------------------------------------------------------------
+
+
+@pytest.mark.parametrize("role", ORG_ROLES)
+def test_org_roles_cannot_edit_or_discard(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID, role: str
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    active = seed(db, superadmin, "active", name="TEST-GRADE listed")
+    before = row_of(db, draft)
+    client, csrf = sign_in(db, member(db, org_a, role))
+    for product_id in (draft, active):
+        assert client.get(f"/products/{product_id}/edit").status_code == 403
+        assert client.get(f"/products/{product_id}/discard").status_code == 403
+        data = form(csrf, name=EDITED)
+        assert client.post(f"/products/{product_id}/edit", data=data).status_code == 403
+        gone = client.post(f"/products/{product_id}/discard", data={"csrf_token": csrf})
+        assert gone.status_code == 403
+    assert row_of(db, draft) == before and status_of(db, active) == "active"
+
+
+def test_rls_still_refuses_when_the_role_check_is_skipped(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    before = row_of(db, draft)
+    monkeypatch.setattr(products_web, "may_manage", lambda _user: True)
+    client, csrf = sign_in(db, org_a.agronomist)
+    assert client.post(f"/products/{draft}/edit", data=form(csrf)).status_code == 404
+    assert client.post(f"/products/{draft}/discard", data={"csrf_token": csrf}).status_code == 404
+    assert row_of(db, draft) == before
+
+
+def test_service_account_gets_no_session_so_cannot_edit_or_discard(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    before = row_of(db, draft)
+    service = make_user(
+        db, org_a, "catalog-service", roles=("advisor",), platform_role=None, actor_kind="service"
+    )
+    client = build_client(db)
+    assert login(client, email_of(db, service)).status_code != 303
+    assert client.get(f"/products/{draft}/edit", headers=HTML).status_code == 303
+    assert client.post(f"/products/{draft}/edit", data=form("0" * 64)).status_code == 403
+    assert client.post(f"/products/{draft}/discard", data=form("0" * 64)).status_code == 403
+    assert row_of(db, draft) == before
+
+
+def test_without_a_session_edit_and_discard_go_to_login(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    client = build_client(db)
+    for path in (f"/products/{draft}/edit", f"/products/{draft}/discard"):
+        page = client.get(path, headers=HTML)
+        assert page.status_code == 303 and page.headers["location"].startswith("/login")
+        assert client.post(path, data=form(None)).status_code == 403
+    assert status_of(db, draft) == "draft"
+
+
+def test_edit_and_discard_need_the_csrf_token(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    before = row_of(db, draft)
+    client, _ = sign_in(db, superadmin)
+    for token in (None, "0" * 64):
+        data = form(token, name=EDITED)
+        assert client.post(f"/products/{draft}/edit", data=data).status_code == 403
+        assert client.post(f"/products/{draft}/discard", data=data).status_code == 403
+    assert row_of(db, draft) == before
+
+
+# --- the catalog list ---------------------------------------------------------------------
+
+
+def test_list_offers_edit_and_discard_for_drafts_only(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    active = seed(db, superadmin, "active", name="TEST-GRADE listed")
+    client, _ = sign_in(db, superadmin)
+    page = client.get("/products").text
+    for action in ("activate", "edit", "discard"):
+        assert f'href="/products/{draft}/{action}"' in page
+        assert f"/products/{active}/{action}" not in page
+
+
+@pytest.mark.parametrize("role", ORG_ROLES)
+def test_ordinary_users_see_no_edit_or_discard(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID, role: str
+) -> None:
+    active = seed(db, superadmin, "active", name=NAME)
+    client, _ = sign_in(db, member(db, org_a, role))
+    for url in ("/products", "/products?done=edited", "/products?done=discarded"):
+        page = client.get(url).text
+        assert NAME in page
+        assert f"/products/{active}/" not in page
+        assert products_web.DONE_MESSAGES["edited"] not in page
+        assert products_web.DONE_MESSAGES["discarded"] not in page
+
+
+def test_activation_page_points_to_edit(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    client, _ = sign_in(db, superadmin)
+    assert f'href="/products/{draft}/edit"' in client.get(f"/products/{draft}/activate").text
+
+
+def test_edit_and_discard_pages_have_no_inline_script(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    client, _ = sign_in(db, superadmin)
+    for url in (f"/products/{draft}/edit", f"/products/{draft}/discard"):
         scripts = re.findall(r"<script([^>]*)>", client.get(url).text)
         assert scripts and all('src="/static/' in attributes for attributes in scripts)
