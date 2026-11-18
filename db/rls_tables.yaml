@@ -13,6 +13,9 @@
 #   website_admin  website staff accounts, sessions and system log (migration 0024, ADR 0012/0014).
 #             Grants to cp_website_admin + SECURITY DEFINER purge; RLS disabled; never
 #             organisation-scoped (not part of identity RLS v1).
+#   catalog   global reference data, deliberately NOT organisation-scoped: no organisation
+#             column and no org boundary policy. RLS enabled AND forced; policies decide by
+#             signed-in context and platform role (migration 0027, ADR 0008 §5).
 #   global    no tenant data, no RLS: migration bookkeeping and PostGIS.
 #
 # organisation_column is the column the boundary policy compares with app_ctx_org().
@@ -52,6 +55,10 @@ website_admin:
   - website_log
   - website_job_run
   - website_secret
+
+catalog:
+  - fertilizer_product
+
 global:
   - schema_migrations
   - spatial_ref_sys

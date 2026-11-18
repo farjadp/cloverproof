@@ -1,7 +1,10 @@
 """Row-level security (migrations 0021, 0022; ADR 0008; ciso criteria adr-0008-rls-review-criteria).
 
-Every table with RLS enabled must be a key of TENANT_CASES (or WEBSITE_TABLES): the
-coverage test reads the list from pg_class, so a new RLS table without a case here fails.
+Every table with RLS enabled must be a key of TENANT_CASES (or in WEBSITE_TABLES or
+CATALOG_TABLES): the coverage test reads the list from pg_class, so a new RLS table without
+a case here fails. Catalog tables are global and deliberately not organisation-scoped, so
+they are not tenant cases and no org boundary is demanded of them; their allow/deny tests
+are in test_fertilizer_product.py.
 Per tenant table, parametrized: same org reads and writes its rows; another org's context
 sees 0 rows and cannot insert, update, move or delete across the boundary; no context,
 an empty context, a context for an organisation the user is not in, and the owner role
@@ -39,6 +42,8 @@ pytestmark = pytest.mark.db
 
 RLS_TABLES = yaml.safe_load((REPO_ROOT / "db" / "rls_tables.yaml").read_text())
 WEBSITE_TABLES = {"pilot_request", "site_event"}
+# Global reference data, not org data: never add these to TENANT_CASES (ADR 0008 §5).
+CATALOG_TABLES = {"fertilizer_product"}
 SQUARE = "MULTIPOLYGON(((0 0, 0 0.01, 0.01 0.01, 0.01 0, 0 0)))"
 
 
@@ -329,7 +334,7 @@ def test_every_rls_table_has_a_case(db: psycopg.Connection) -> None:
         "select relname from pg_class where relnamespace = 'public'::regnamespace"
         " and relkind in ('r', 'p') and relrowsecurity"
     ).fetchall()
-    assert {r[0] for r in rows} == set(TENANT_CASES) | WEBSITE_TABLES
+    assert {r[0] for r in rows} == set(TENANT_CASES) | WEBSITE_TABLES | CATALOG_TABLES
     assert set(RLS_TABLES["tenant"]) == set(TENANT_CASES)
 
 
@@ -339,6 +344,7 @@ def test_c0_every_public_table_is_classified_once(db: psycopg.Connection) -> Non
         + RLS_TABLES["identity"]
         + RLS_TABLES["website"]
         + RLS_TABLES["website_admin"]
+        + RLS_TABLES["catalog"]
         + RLS_TABLES["global"]
     )
     assert len(listed) == len(set(listed))
@@ -348,6 +354,7 @@ def test_c0_every_public_table_is_classified_once(db: psycopg.Connection) -> Non
     ).fetchall()
     assert {r[0] for r in rows} == set(listed)
     assert set(RLS_TABLES["website"]) == WEBSITE_TABLES
+    assert set(RLS_TABLES["catalog"]) == CATALOG_TABLES
 
 
 def test_c1_catalog_state_matches_class(db: psycopg.Connection) -> None:
@@ -356,7 +363,7 @@ def test_c1_catalog_state_matches_class(db: psycopg.Connection) -> None:
         " where relnamespace = 'public'::regnamespace and relkind in ('r', 'p')"
     ).fetchall()
     state = {r[0]: (r[1], r[2]) for r in rows}
-    for table in RLS_TABLES["tenant"]:
+    for table in list(RLS_TABLES["tenant"]) + RLS_TABLES["catalog"]:
         assert state[table] == (True, True), table
     for table in RLS_TABLES["website"]:
         assert state[table] == (True, False), table
@@ -373,6 +380,23 @@ def test_tenant_table_has_restrictive_org_boundary(db: psycopg.Connection, table
         (table, "%app_ctx_org()%", "%app_ctx_org()%"),
     ).fetchall()
     assert rows, f"{table}: no restrictive org boundary policy"
+
+
+@pytest.mark.parametrize("table", sorted(CATALOG_TABLES))
+def test_catalog_table_is_deliberately_not_org_scoped(db: psycopg.Connection, table: str) -> None:
+    assert table not in TENANT_CASES
+    columns = db.execute(
+        "select column_name from information_schema.columns"
+        " where table_schema = 'public' and table_name = %s and column_name like %s",
+        (table, "%organisation%"),
+    ).fetchall()
+    assert columns == []
+    policies = db.execute(
+        "select policyname from pg_policies where schemaname = 'public' and tablename = %s"
+        " and (coalesce(qual, '') like %s or coalesce(with_check, '') like %s)",
+        (table, "%app_ctx_org()%", "%app_ctx_org()%"),
+    ).fetchall()
+    assert policies == []
 
 
 @pytest.mark.parametrize("table", TENANT)
@@ -395,10 +419,28 @@ def test_policies_never_to_public_and_insert_update_have_check(db: psycopg.Conne
 
 
 def test_no_cp_app_policy_grants_by_platform_role(db: psycopg.Connection) -> None:
+    """Platform role opens no organisation data. Only catalog tables may name it."""
     rows = db.execute(
         "select tablename, policyname from pg_policies where 'cp_app' = any(roles)"
-        " and (coalesce(qual, '') ilike '%platform_role%'"
-        "      or coalesce(with_check, '') ilike '%platform_role%')"
+        " and (coalesce(qual, '') ilike '%%platform_role%%'"
+        "      or coalesce(with_check, '') ilike '%%platform_role%%')"
+        " and not tablename = any(%s)",
+        (sorted(CATALOG_TABLES),),
+    ).fetchall()
+    assert rows == []
+
+
+def test_catalog_policies_read_platform_role_only_through_the_helper(
+    db: psycopg.Connection,
+) -> None:
+    """The raw setting can be forged; app_ctx_platform_role() checks it against the user."""
+    rows = db.execute(
+        "select policyname from pg_policies where tablename = any(%s)"
+        " and (coalesce(qual, '') ilike '%%app.platform_role%%'"
+        "      or coalesce(with_check, '') ilike '%%app.platform_role%%'"
+        "      or coalesce(qual, '') ilike '%%current_setting%%'"
+        "      or coalesce(with_check, '') ilike '%%current_setting%%')",
+        (sorted(CATALOG_TABLES),),
     ).fetchall()
     assert rows == []
 
