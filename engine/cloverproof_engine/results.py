@@ -11,7 +11,7 @@ from pydantic import (
 )
 
 from cloverproof_engine.confidence import Confidence, ConfidenceRuleHit
-from cloverproof_engine.models import ProductForm
+from cloverproof_engine.models import ExtractionMethod, NutrientForm, ProductForm
 from cloverproof_engine.pack import Citation, ConstantStatus, PackConstant
 
 
@@ -166,6 +166,66 @@ class NutrientResult(_Frozen):
     constants_used: list[UsedConstant]
 
 
+class FormAmount(_Frozen):
+    """A number with the nutrient form it is expressed in (rule 7)."""
+
+    form: NutrientForm
+    amount: ExplainedNumber
+
+
+class PkRecommended(_Frozen):
+    """A P or K rate read from the pack table for the soil test's extraction method.
+
+    Every amount is given as the element and as the oxide. `rate_form` says which of the
+    two the pack table states; the other is converted through `units.py`.
+    """
+
+    outcome: Literal["recommended"] = "recommended"
+    nutrient: Literal["P", "K"]
+    method_id: str
+    extraction_method: ExtractionMethod
+    soil_test_elemental: FormAmount  # mg/kg
+    soil_test_oxide: FormAmount  # mg/kg
+    table_band: str
+    response: str
+    response_label: str
+    rate_form: NutrientForm
+    rate_elemental: FormAmount  # kg/ha
+    rate_oxide: FormAmount  # kg/ha
+    total_elemental: FormAmount  # kg for the field
+    total_oxide: FormAmount  # kg for the field
+    constants_used: list[UsedConstant]
+
+
+class PkRefused(_Frozen):
+    """No rate for this nutrient; `explanation` names what is missing."""
+
+    outcome: Literal["refused"] = "refused"
+    nutrient: Literal["P", "K"]
+    code: Literal[
+        "no_lab_test",
+        "no_pack_guidance",
+        "no_soil_test_value",
+        "no_extraction_method",
+        "no_table_for_method",
+        "sample_depth_mismatch",
+        "outside_table",
+    ]
+    explanation: str
+
+
+PkLine = Annotated[PkRecommended | PkRefused, Field(discriminator="outcome")]
+
+
+class PkResults(_Frozen):
+    phosphorus: PkLine
+    potassium: PkLine
+
+    @property
+    def lines(self) -> tuple[PkRecommended | PkRefused, PkRecommended | PkRefused]:
+        return (self.phosphorus, self.potassium)
+
+
 class Note(_Frozen):
     code: str
     text: str
@@ -185,3 +245,13 @@ class Recommendation(_Frozen):
     confidence: Confidence
     confidence_reasons: list[ConfidenceRuleHit]
     input_snapshot: dict[str, Any]
+    # Since engine 0.6.0. Only for a lab soil test with a P or K value under a pack with
+    # P/K tables; otherwise None and left out of the document. Not plan lines yet.
+    phosphorus_potassium_rates: PkResults | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_absent_pk_rates(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if isinstance(data, dict) and data.get("phosphorus_potassium_rates") is None:
+            data.pop("phosphorus_potassium_rates", None)
+        return data

@@ -20,7 +20,8 @@ Rules (each TODO(agronomist): review):
   (numbers built on unvalidated constants are never more than low; unused
   pack entries, e.g. credits for other previous crops, and the confidence
   thresholds themselves do not trigger C6). A PLACEHOLDER timing window counts
-  too, under the path `crops.<crop>.nitrogen.splits[i].timing`.
+  too, under the path `crops.<crop>.nitrogen.splits[i].timing`, and so do the
+  constants behind a P or K rate. A refused P or K line used none.
 - C6_TIMING_WINDOW_MISSING  a line has no timing window (the pack
                             defines no split plan)              -> cap low
 - C7_PLACEHOLDER_PRODUCT_RULE_USED a line's matched product relied
@@ -46,7 +47,7 @@ from cloverproof_engine.pack import ConstantStatus, Pack
 from cloverproof_engine.units import years_between
 
 if TYPE_CHECKING:
-    from cloverproof_engine.results import NutrientResult
+    from cloverproof_engine.results import NutrientResult, PkResults
 
 
 class Confidence(StrEnum):
@@ -91,7 +92,10 @@ class ConfidenceRuleHit(BaseModel):
 
 
 def assess(
-    inputs: RecommendationInput, pack: Pack, nitrogen: NutrientResult
+    inputs: RecommendationInput,
+    pack: Pack,
+    nitrogen: NutrientResult,
+    pk: PkResults | None = None,
 ) -> tuple[Confidence, list[ConfidenceRuleHit]]:
     """Apply the draft rules. Returns the level and every rule that fired."""
     thresholds = pack.crops[inputs.crop].confidence
@@ -157,6 +161,10 @@ def assess(
         for i, window in enumerate(windows)
         if window is not None and window.status is ConstantStatus.PLACEHOLDER
     ]
+    for line in pk.lines if pk is not None else ():
+        if line.outcome == "recommended":
+            placeholders += [c.path for c in line.constants_used if c.is_placeholder]
+    placeholders = list(dict.fromkeys(placeholders))
     if placeholders:
         hits.append(
             ConfidenceRuleHit(

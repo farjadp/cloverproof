@@ -42,7 +42,7 @@ CA_ON_PATH = Path(__file__).resolve().parents[2] / "packs" / "ca-on" / "v1.yaml"
 
 # Fingerprint of packs/ca-on/v1.yaml. Change only on purpose (a pack edit needs a
 # new pack version once any recommendation has recorded this one).
-CA_ON_V1_SHA256 = "84d874e7c6f0119cfeb44e5c5de8a9dfe04e3e9961a0dae0819cd856b1996e58"
+CA_ON_V1_SHA256 = "4ee2ad7e7781ab4faafd1c5815d8e9afe9cf233eda9edf3b237865505b2b2f7b"
 
 
 @pytest.fixture
@@ -133,7 +133,7 @@ def test_cited_constants_carry_full_citation(pack: Pack) -> None:
     assert cited
     for c in cited:
         assert c.citation.url.startswith("https://")
-        assert c.citation.accessed_on <= date(2026, 11, 17)
+        assert c.citation.accessed_on <= date(2026, 11, 18)
 
 
 def test_soil_test_methods_are_explicit(pack: Pack) -> None:
@@ -178,9 +178,9 @@ def test_placeholder_pack_caps_confidence_low(pack: Pack) -> None:
     assert any(n.code == "PACK_HAS_PLACEHOLDERS" for n in rec.notes)
 
 
-def test_lab_soil_test_still_gives_no_pk_rate(pack: Pack) -> None:
+def test_lab_soil_test_gives_pk_from_the_tables(pack: Pack) -> None:
     rec = recommend(_input(soil_test=_lab_test()), pack)
-    assert rec.phosphorus_potassium.code == "PK_NOT_CALCULATED_V0"
+    assert rec.phosphorus_potassium.code == "PK_FROM_LAB_TEST"
 
 
 def test_rate_comes_from_the_table_with_explanation(pack: Pack) -> None:

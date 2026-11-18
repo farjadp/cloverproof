@@ -10,8 +10,9 @@ ensure_ascii off. Consequences: comments, YAML layout, mapping key order and
 int-vs-float spelling (30 vs 30.0) do not change the hash; any value, unit,
 status, source, label, description, method id or list order (e.g. splits) does.
 Optional fields added after engine 0.2.0 (`citation`, `soil_test_methods`, `splits`
-since engine 0.4.0 and `product_rules` since 0.5.0) are left out of the canonical form
-when absent, so packs that do not use them keep their fingerprint.
+since engine 0.4.0, `product_rules` since 0.5.0 and `phosphorus_potassium` since 0.6.0)
+are left out of the canonical form when absent, so packs that do not use them keep their
+fingerprint.
 
 Labels (CLAUDE.md rule 9): every constant is `PLACEHOLDER` (`source: null`) until a
 human agronomist validates it (`VALIDATED` + `source`). A constant taken from a
@@ -48,6 +49,7 @@ from cloverproof_engine.models import (
     NutrientForm,
     ProductForm,
     WheatClass,
+    nutrient_of,
 )
 
 NonBlankStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -204,6 +206,7 @@ UnsetKgNPerHa = Annotated[UnsetConstant, _unset_unit("kg N/ha")]
 Fraction = Annotated[PackConstant, _unit("fraction"), AfterValidator(_fraction_open_closed)]
 TPerHa = Annotated[PackConstant, _unit("t/ha"), AfterValidator(_positive)]
 Years = Annotated[PackConstant, _unit("years"), AfterValidator(_positive)]
+Centimetres = Annotated[PackConstant, _unit("cm"), AfterValidator(_positive)]
 
 
 class PreviousCrop(_Frozen):
@@ -354,6 +357,114 @@ class SoilTestMethodSpec(_Frozen):
         return self
 
 
+SoilTestLevel = Annotated[float, Field(ge=0, allow_inf_nan=False)]
+
+
+class PkBand(_Frozen):
+    """One row of a P or K table: a soil-test range and the rate it calls for.
+
+    `high` absent = open-ended top row ("61 ppm +"). `caution` is the source's warning
+    for this row, quoted in the explanation.
+    """
+
+    _OMIT_IF_NONE = ("high", "caution")
+
+    low: SoilTestLevel
+    high: SoilTestLevel | None = None
+    rate: Annotated[float, Field(ge=0, allow_inf_nan=False)]
+    response: NonBlankStr
+    caution: NonBlankStr | None = None
+
+    def label(self, unit: str) -> str:
+        if self.high is None:
+            return f"{self.low:g}+ {unit}"
+        return f"{self.low:g}-{self.high:g} {unit}"
+
+
+class PkRateTable(_Frozen):
+    """P or K rate by soil-test band, valid for one extraction method only.
+
+    One label for the whole table (status / source / citation), as it is read from one
+    source. `assumes` states the conditions the table's rates apply under; it is quoted
+    with every rate.
+    """
+
+    _OMIT_IF_NONE = ("citation",)
+
+    label: NonBlankStr
+    soil_test_unit: ConcentrationUnit
+    rate_form: NutrientForm
+    status: ConstantStatus
+    source: str | None
+    citation: Citation | None = None
+    assumes: NonBlankStr
+    response_legend: dict[str, NonBlankStr] = Field(min_length=1)
+    bands: list[PkBand] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        _check_label(self.status, self.source)
+        for band in self.bands:
+            if band.high is not None and band.high < band.low:
+                raise ValueError(f"band {band.low:g}: high must not be below low")
+            if band.response not in self.response_legend:
+                raise ValueError(f"band {band.low:g}: response {band.response!r} not in legend")
+        for lower, upper in itertools.pairwise(self.bands):
+            if lower.high is None:
+                raise ValueError("only the last band may be open-ended")
+            if upper.low <= lower.high:
+                raise ValueError("bands must increase and must not overlap")
+        return self
+
+    @property
+    def rate_unit(self) -> str:
+        return f"kg {self.rate_form.value}/ha"
+
+    def cell(self, i: int) -> PackConstant:
+        """The rate of band `i`, with the table's label."""
+        return PackConstant(
+            value=self.bands[i].rate,
+            unit=self.rate_unit,
+            status=self.status,
+            source=self.source,
+            citation=self.citation,
+        )
+
+    def cells(self) -> Iterator[PackConstant]:
+        for i in range(len(self.bands)):
+            yield self.cell(i)
+
+
+class PkNutrientConfig(_Frozen):
+    """The tables for one nutrient, one per extraction method. No table, no rate."""
+
+    tables: dict[ExtractionMethod, PkRateTable] = Field(min_length=1)
+
+    @field_validator("tables")
+    @classmethod
+    def _named_methods_only(
+        cls, value: dict[ExtractionMethod, PkRateTable]
+    ) -> dict[ExtractionMethod, PkRateTable]:
+        if ExtractionMethod.OTHER in value:
+            raise ValueError("a table needs a named extraction method, not other")
+        return value
+
+
+class PhosphorusPotassiumConfig(_Frozen):
+    method: Literal["pk_soil_test_table"]
+    # Sampling depth the tables are read for; the layer starts at the surface.
+    sample_depth_cm: Centimetres
+    nutrients: dict[Literal["P", "K"], PkNutrientConfig] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _check_forms(self) -> Self:
+        for nutrient, cfg in self.nutrients.items():
+            for table in cfg.tables.values():
+                if nutrient_of(table.rate_form) != nutrient:
+                    raise ValueError(f"rate_form {table.rate_form.value} is not {nutrient}")
+        return self
+
+
 class ConfidenceConfig(_Frozen):
     target_yield_min: TPerHa
     target_yield_max: TPerHa
@@ -454,16 +565,17 @@ class ProductRules(_Frozen):
 
 
 class CropConfig(_Frozen):
-    _OMIT_IF_NONE = ("soil_test_methods", "scope", "product_rules")
+    _OMIT_IF_NONE = ("soil_test_methods", "scope", "product_rules", "phosphorus_potassium")
 
     nitrogen: NitrogenConfig
     confidence: ConfidenceConfig
     scope: CropScope | None = None
     # None = no choice rule: the engine lists fitting products but selects none.
     product_rules: ProductRules | None = None
-    # Declarative in engine 0.3.0: which test the pack's P/K guidance assumes.
-    # P/K rates arrive in S3 (still only with a lab soil test, rule 3).
+    # Declarative: which test the pack's P/K guidance assumes.
     soil_test_methods: dict[Literal["P", "K"], SoilTestMethodSpec] | None = None
+    # None = the pack has no P/K guidance: the engine gives no P or K rate.
+    phosphorus_potassium: PhosphorusPotassiumConfig | None = None
 
     @model_validator(mode="after")
     def _check_methods(self) -> Self:
@@ -510,7 +622,7 @@ class Pack(_Frozen):
 def _walk(node: Any) -> Iterator[PackConstant | UnsetConstant]:
     if isinstance(node, PackConstant | UnsetConstant):
         yield node
-    elif isinstance(node, NRateTable):
+    elif isinstance(node, NRateTable | PkRateTable):
         yield from node.cells()
     elif isinstance(node, BaseModel):
         for name in type(node).model_fields:

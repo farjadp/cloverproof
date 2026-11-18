@@ -1,0 +1,42 @@
+# SAMPLE golden case - NOT agronomist-approved.
+# N side worked out by hand from packs/ca-on/v1.yaml (PLACEHOLDER constants): yield
+# 6.5 t/ha, price ratio 5.5, after corn -> 115.0 kg N/ha; 20 ha -> 2300 kg N.
+# No soil test: N only, never a P or K rate (CLAUDE.md rule 3).
+id: sample_ca_on_pk_no_soil_test
+kind: sample  # not agronomist-approved; never counts toward the agreement gate
+description: Without a soil test there is no P or K result at all.
+pack:
+  id: ca-on
+  version: v1
+# TODO(agronomist): set agreement tolerances for real cases.
+tolerance:
+  kg_n_per_ha: 0.5
+  kg_n: 10
+  kg_pk_per_ha: 0.01
+  kg_pk: 0.1
+  mg_pk_per_kg: 0.01
+input:
+  crop: wheat
+  target_yield_t_ha: 6.5
+  previous_crop: corn
+  area_ha: 20.0
+  plan_date: "2027-03-15"
+  n_price:
+    n_price_per_kg_n: 1.375
+    grain_price_per_kg: 0.25
+    currency: CAD
+    source: SAMPLE (not a real price list)
+    price_date: "2027-01-20"
+  wheat_class: pastry
+  manure_applied: false
+expected:
+  n_rate_kg_ha: 115.0
+  n_total_kg: 2300.0
+  split_rates_kg_ha: [115.0]
+  confidence: low
+  pk_note: PK_SOIL_TEST_RECOMMENDED
+  phosphorus:
+    outcome: not_calculated
+  potassium:
+    outcome: not_calculated
+  reason: SAMPLE derived from the ca-on v1 pack; not an agronomist decision.

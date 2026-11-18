@@ -101,6 +101,20 @@ def element_of(form: NutrientForm) -> str:
     return nutrient_of(form)
 
 
+_ELEMENTAL_FORM: dict[str, NutrientForm] = {"P": NutrientForm.P, "K": NutrientForm.K}
+_OXIDE_FORM: dict[str, NutrientForm] = {"P": NutrientForm.P2O5, "K": NutrientForm.K2O}
+
+
+def elemental_form(nutrient: str) -> NutrientForm:
+    """The element form of "P" or "K"."""
+    return _ELEMENTAL_FORM[nutrient]
+
+
+def oxide_form(nutrient: str) -> NutrientForm:
+    """The oxide form of "P" (P2O5) or "K" (K2O)."""
+    return _OXIDE_FORM[nutrient]
+
+
 def to_elemental(value: float, form: NutrientForm) -> float:
     """Express a value given in `form` as the element (P2O5 -> P, K2O -> K)."""
     return value * _TO_ELEMENTAL[form]

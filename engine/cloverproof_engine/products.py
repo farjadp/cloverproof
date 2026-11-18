@@ -1,7 +1,7 @@
 """Product matching: an N line's need -> a catalog product -> a quantity. Pure.
 
 The engine never picks a product on its own. A product must first be safe for an N-only
-need (it holds N and adds no P or K: rule 3, and the engine gives no P/K rate yet). The
+need (it holds N and adds no P or K: rule 3, and P/K rates are not plan lines yet). The
 choice among safe products is agronomy and comes only from the pack's `product_rules`.
 Without a rule, or when the rule does not settle it, the line stays nutrient-only and
 says why. Nothing here looks at prices or vendors, and matching never touches the N
