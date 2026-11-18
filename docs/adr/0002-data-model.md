@@ -58,3 +58,11 @@ Enum labels are the engine's StrEnum values character for character (`bray-1`, `
 - The app must connect as a LOGIN role that is a member of `cp_app` (created outside git); migrations run as the deploy user, which must be able to `set role cp_migrator`.
 - The diff view uses a recursive CTE over all recommendations; fine for the pilot volume, revisit with an index-backed root column if it grows.
 - Railway: needs the PostGIS service before `0002` can run there (`create extension postgis`).
+
+## Addendum (2026-11-18): `recommendation_line` (migration 0026, S2-DB-09)
+- One immutable row per nutrient and split (`split_no` 0 = season total). P/K and splits live here, never as columns on `recommendation` (decision R2).
+- `rate_kg_ha` is always kg/ha of `nutrient_form`; a CHECK pairs nutrient and form (`N`: N; `P`: P or P2O5; `K`: K or K2O). NULL rate requires `no_rate_reason`.
+- Lines are written only in the transaction that creates their recommendation, by the same author (trigger), so a stored or approved recommendation cannot gain numbers later.
+- No backfill: older recommendations keep their numbers in `result` and have no lines.
+- `product_id` is nullable with no FK until the product matching work.
+- Not in this migration (no S2-DB-09 criterion): P/K soil-test evidence, per-recommendation completeness, edit-keeps-form and the line diff view from `schema-gap-analysis.md` section 3.

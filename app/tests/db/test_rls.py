@@ -96,6 +96,20 @@ def _recommendation(db: psycopg.Connection, org: Org, result: dict[str, Any]) ->
     }
 
 
+def _line(org: Org, recommendation: UUID) -> dict[str, Any]:
+    return {
+        "organisation_id": org.id,
+        "recommendation_id": recommendation,
+        "nutrient": "N",
+        "nutrient_form": "N",
+        "rate_kg_ha": 100,
+        "explanation": "Synthetic line",
+        "uses_placeholder": True,
+        "confidence": "low",
+        "created_by": org.staff,
+    }
+
+
 Builder = Callable[[psycopg.Connection, Org, dict[str, Any]], dict[str, Any]]
 
 # table -> (fresh row builder, column cp_app may UPDATE or None, cp_app may DELETE)
@@ -171,6 +185,11 @@ TENANT_CASES: dict[str, tuple[Builder, str | None, bool]] = {
         True,
     ),
     "recommendation": (lambda db, o, r: _recommendation(db, o, r), None, False),
+    "recommendation_line": (
+        lambda db, o, r: _line(o, insert(db, "recommendation", **_recommendation(db, o, r))),
+        None,
+        False,
+    ),
     "review": (
         lambda db, o, r: {
             "organisation_id": o.id,
@@ -242,6 +261,7 @@ def complete(db: psycopg.Connection, org: Org, result: dict[str, Any]) -> None:
         planned_rate_kg_ha=90,
         created_by=org.staff,
     )
+    insert(db, "recommendation_line", **_line(org, org.engine_rec))
     insert(
         db,
         "review",
