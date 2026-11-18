@@ -6,7 +6,7 @@ sentence is tagged PLACEHOLDER (or with its source when validated).
 
 from typing import Literal
 
-from cloverproof_engine.pack import Citation, CitationBasis, PackConstant
+from cloverproof_engine.pack import Citation, CitationBasis, ConstantStatus, PackConstant
 
 
 def num(x: float) -> str:
@@ -126,6 +126,43 @@ def split_rate(index: int, fraction: float, rate: float, split: float) -> str:
 def split_total(index: int, split: float, area_ha: float, total: float) -> str:
     return (
         f"Application {index} total = {num(split)} kg N/ha x {num(area_ha)} ha = {num(total)} kg N."
+    )
+
+
+def _timing_tag(status: ConstantStatus, citation: Citation | None) -> str:
+    label = (
+        "PLACEHOLDER, not agronomist-validated"
+        if status is ConstantStatus.PLACEHOLDER
+        else "validated pack"
+    )
+    return f"({label}; {cited(citation)})" if citation is not None else f"({label})"
+
+
+def split_line(
+    index: int, count: int, window: str, status: ConstantStatus, citation: Citation | None
+) -> str:
+    return (
+        f"Application {index} of {count} in the pack's split plan. "
+        f"Timing window: {window} {_timing_tag(status, citation)}."
+    )
+
+
+def no_split_stage_label() -> str:
+    return "Single application (no split defined in the pack; timing not set)"
+
+
+def no_split_fraction(pack_id: str, version: str, crop: str) -> str:
+    return (
+        f"No split is defined in pack '{pack_id}' {version} for {crop}: "
+        "this one application gets the full N rate."
+    )
+
+
+def no_split_line(pack_id: str, version: str, crop: str) -> str:
+    return (
+        f"No split is defined in pack '{pack_id}' {version} for {crop}, so the N is one "
+        "application. The pack gives no timing window and the engine does not invent one; "
+        "the agronomist sets the timing."
     )
 
 

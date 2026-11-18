@@ -5,7 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict
 
 from cloverproof_engine.confidence import Confidence, ConfidenceRuleHit
-from cloverproof_engine.pack import ConstantStatus, PackConstant
+from cloverproof_engine.pack import Citation, ConstantStatus, PackConstant
 
 
 class _Frozen(BaseModel):
@@ -46,11 +46,32 @@ class UsedConstant(_Frozen):
         return self.status is ConstantStatus.PLACEHOLDER
 
 
+class TimingWindow(_Frozen):
+    """When a split is applied, as the pack words it. No dates: the pack gives none."""
+
+    label: str
+    # PLACEHOLDER unless the whole pack is validated (a window has no label of its own).
+    status: ConstantStatus
+    # Where the wording comes from, with its `basis`. Not a validation (rule 9).
+    citation: Citation | None = None
+
+
 class SplitApplication(_Frozen):
+    """One application line. `splits` always holds at least one.
+
+    `timing_window` and `explanation` arrived in engine 0.4.0; the defaults keep
+    documents stored by older engines loadable. `timing_window` is None when the pack
+    defines no split plan: the engine does not invent a timing.
+    """
+
     stage_label: str
     fraction: ExplainedNumber
     rate: ExplainedNumber
     total: ExplainedNumber
+    timing_window: TimingWindow | None = None
+    # Why this line exists and where its timing comes from. Quotes no rate, so it stays
+    # true when an agronomist edits the numbers in a copy of the document.
+    explanation: str = ""
 
 
 class NutrientResult(_Frozen):

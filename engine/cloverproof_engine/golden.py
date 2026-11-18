@@ -87,6 +87,8 @@ class GoldenExpected(_Frozen):
     n_rate_kg_ha: float
     n_total_kg: float
     split_rates_kg_ha: list[float]
+    # Optional: the timing window label per line (null = the line has no window).
+    split_timing_windows: list[str | None] | None = None
     confidence: Confidence
     pk_note: str
     reason: str | None = None
@@ -334,6 +336,12 @@ def compare(case: ExpectedCase, rec: Recommendation) -> list[DiffRow]:
         e = exp.split_rates_kg_ha[i] if i < len(exp.split_rates_kg_ha) else None
         a = actual_splits[i] if i < len(actual_splits) else None
         rows.append(_number(f"split_{i + 1}_rate_kg_ha", e, a, tol.kg_n_per_ha))
+    if exp.split_timing_windows is not None:
+        actual_windows = [s.timing_window.label if s.timing_window else None for s in n.splits]
+        for i in range(max(len(exp.split_timing_windows), len(actual_windows))):
+            e_w = exp.split_timing_windows[i] if i < len(exp.split_timing_windows) else None
+            a_w = actual_windows[i] if i < len(actual_windows) else None
+            rows.append(_label(f"split_{i + 1}_timing_window", e_w or "-", a_w or "-"))
     rows.append(_label("confidence", exp.confidence.value, rec.confidence.value))
     rows.append(_label("pk_note", exp.pk_note, rec.phosphorus_potassium.code))
     return rows

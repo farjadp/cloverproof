@@ -1,0 +1,133 @@
+# PLACEHOLDER PACK — NOT REAL AGRONOMY. DO NOT USE FOR A FARMER.
+# TEST FIXTURE: packs/placeholder/v0.yaml without `splits`, for the golden case
+# sample_wheat_no_split_in_pack. It adds no new constant.
+#
+# Every number below is a PLACEHOLDER with `source: null`. The values were picked
+# only so the arithmetic is easy to check by hand in tests and golden samples.
+# They are NOT recommendations and NOT taken from any reference.
+# Each must be replaced (value + source) by the agronomist, Farjad Iranmehr.
+# See docs/agronomist-todo.md items #2-#5.
+#
+# Constant shape: {value, unit, status: PLACEHOLDER | VALIDATED, source}.
+# A VALIDATED constant must carry a source; a PLACEHOLDER must have source: null.
+
+id: placeholder
+version: v0-no-splits
+status: placeholder
+description: >-
+  Test fixture: the placeholder pack with no split plan. Wheat, nitrogen only.
+  Not tied to any country. Not agronomist-approved.
+
+crops:
+  wheat:
+    nitrogen:
+      method: n_mass_balance
+
+      # N taken up by the crop per tonne of grain yield (whole crop, not grain only).
+      n_uptake_per_t_grain:
+        # TODO(agronomist): validate value and give source.
+        value: 30
+        unit: kg N/t
+        status: PLACEHOLDER
+        source: null
+
+      # N the soil supplies over the season when no measured value is used.
+      soil_n_supply:
+        # TODO(agronomist): validate value and give source.
+        value: 40
+        unit: kg N/ha
+        status: PLACEHOLDER
+        source: null
+
+      # Fraction of applied fertilizer N the crop recovers.
+      fertilizer_n_efficiency:
+        # TODO(agronomist): validate value and give source.
+        value: 0.8
+        unit: fraction
+        status: PLACEHOLDER
+        source: null
+
+      # Lower bound for the recommended rate.
+      min_rate:
+        # TODO(agronomist): validate value and give source.
+        value: 0
+        unit: kg N/ha
+        status: PLACEHOLDER
+        source: null
+
+      # Upper bound for the recommended rate.
+      max_rate:
+        # TODO(agronomist): validate value and give source.
+        value: 200
+        unit: kg N/ha
+        status: PLACEHOLDER
+        source: null
+
+      # N credit from the previous crop, subtracted from crop demand.
+      # Keys are what the concierge tool offers in its previous-crop list.
+      previous_crop_credits:
+        wheat:
+          label: Wheat
+          credit:
+            # TODO(agronomist): validate value and give source.
+            value: 0
+            unit: kg N/ha
+            status: PLACEHOLDER
+            source: null
+        canola:
+          label: Canola
+          credit:
+            # TODO(agronomist): validate value and give source.
+            value: 0
+            unit: kg N/ha
+            status: PLACEHOLDER
+            source: null
+        corn:
+          label: Corn (maize)
+          credit:
+            # TODO(agronomist): validate value and give source.
+            value: 0
+            unit: kg N/ha
+            status: PLACEHOLDER
+            source: null
+        soybean:
+          label: Soybean
+          credit:
+            # TODO(agronomist): validate value and give source.
+            value: 20
+            unit: kg N/ha
+            status: PLACEHOLDER
+            source: null
+        field_pea:
+          label: Field pea
+          credit:
+            # TODO(agronomist): validate value and give source.
+            value: 20
+            unit: kg N/ha
+            status: PLACEHOLDER
+            source: null
+
+      # No `splits` here on purpose: this pack defines no split plan for wheat.
+
+    # Thresholds used by the draft confidence rules (engine/cloverproof_engine/confidence.py).
+    confidence:
+      # Target yields outside [min, max] are treated as implausible.
+      target_yield_min:
+        # TODO(agronomist): validate value and give source.
+        value: 2
+        unit: t/ha
+        status: PLACEHOLDER
+        source: null
+      target_yield_max:
+        # TODO(agronomist): validate value and give source.
+        value: 10
+        unit: t/ha
+        status: PLACEHOLDER
+        source: null
+      # A soil test older than this (relative to plan_date) is treated as stale.
+      max_soil_test_age_years:
+        # TODO(agronomist): validate value and give source.
+        value: 3
+        unit: years
+        status: PLACEHOLDER
+        source: null
