@@ -1,0 +1,61 @@
+# SAMPLE golden case - NOT agronomist-approved.
+# Pack and products are TEST FIXTURES (packs/placeholder/v0-product-rules.yaml); the
+# grade and density are round numbers for hand arithmetic, not a real product label.
+#
+# Arithmetic: rate 148.75 kg N/ha (as sample_wheat_split_plan_lines); splits 59.5, 89.25.
+# Product at 25 % N: 59.5 / 0.25 = 238 kg/ha, 89.25 / 0.25 = 357 kg/ha.
+# Totals on 40 ha: 9520 kg, 14280 kg. At 1.25 kg/L: 190.4 L/ha, 285.6 L/ha.
+id: sample_wheat_product_match_liquid
+kind: sample  # not agronomist-approved; never counts toward the agreement gate
+description: The pack preference picks a fitting liquid product for each N line.
+pack:
+  id: placeholder
+  version: v0-product-rules
+# TODO(agronomist): set agreement tolerances for real cases.
+tolerance:
+  kg_n_per_ha: 0.01
+  kg_n: 0.1
+  kg_product_per_ha: 0.01
+  kg_product: 0.1
+  l_product_per_ha: 0.01
+input:
+  crop: wheat
+  target_yield_t_ha: 5.3
+  previous_crop: canola
+  area_ha: 40.0
+  plan_date: "2027-02-15"
+  soil_test: null
+  products:
+    - id: fixture-granular-40
+      name: TEST FIXTURE granular N 40
+      n_pct: 40
+      p2o5_pct: 0
+      k2o_pct: 0
+      s_pct: 0
+      form: granular
+      grade_source: test fixture, not a product label
+    - id: fixture-liquid-25
+      name: TEST FIXTURE liquid N 25
+      n_pct: 25
+      p2o5_pct: 0
+      k2o_pct: 0
+      s_pct: 0
+      form: liquid
+      density_kg_per_l: 1.25
+      grade_source: test fixture, not a product label
+expected:
+  n_rate_kg_ha: 148.75
+  n_total_kg: 5950.0
+  split_rates_kg_ha: [59.5, 89.25]
+  split_products:
+    - product: TEST FIXTURE liquid N 25
+      kg_product_per_ha: 238.0
+      kg_product_total: 9520.0
+      l_product_per_ha: 190.4
+    - product: TEST FIXTURE liquid N 25
+      kg_product_per_ha: 357.0
+      kg_product_total: 14280.0
+      l_product_per_ha: 285.6
+  confidence: low
+  pk_note: PK_SOIL_TEST_RECOMMENDED
+  reason: SAMPLE derived from a fixture pack and fixture products; not an agronomist decision.

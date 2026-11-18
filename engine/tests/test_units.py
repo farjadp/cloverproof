@@ -101,3 +101,57 @@ def test_years_between_dates() -> None:
     assert units.DAYS_PER_JULIAN_YEAR == 365.25
     assert units.years_between(date(2024, 1, 1), date(2025, 1, 1)) == pytest.approx(366 / 365.25)
     assert units.years_between(date(2025, 1, 1), date(2024, 1, 1)) < 0
+
+
+# --- product quantities ---------------------------------------------------------
+
+
+def test_nutrient_to_product_divides_by_the_grade() -> None:
+    assert units.nutrient_to_product_kg(50.0, 25.0) == pytest.approx(200.0)
+
+
+@pytest.mark.parametrize("grade", [0.5, 25.0, 33.33, 100.0])
+def test_product_quantity_round_trip(grade: float) -> None:
+    product = units.nutrient_to_product_kg(87.5, grade)
+    assert units.product_kg_to_nutrient(product, grade) == pytest.approx(87.5, rel=1e-12)
+
+
+@pytest.mark.parametrize("grade", [0.0, -1.0, 100.5])
+def test_nutrient_to_product_rejects_an_impossible_grade(grade: float) -> None:
+    with pytest.raises(ValueError, match="grade"):
+        units.nutrient_to_product_kg(50.0, grade)
+
+
+def test_product_to_nutrient_accepts_a_zero_grade() -> None:
+    assert units.product_kg_to_nutrient(200.0, 0.0) == 0.0
+
+
+@pytest.mark.parametrize("grade", [-1.0, 100.5])
+def test_product_to_nutrient_rejects_an_impossible_grade(grade: float) -> None:
+    with pytest.raises(ValueError, match="grade"):
+        units.product_kg_to_nutrient(200.0, grade)
+
+
+def test_liquid_kg_to_litres_uses_the_density() -> None:
+    assert units.kg_to_litres(250.0, 1.25) == pytest.approx(200.0)
+
+
+@pytest.mark.parametrize("density", [0.8, 1.0, 1.33])
+def test_liquid_round_trip(density: float) -> None:
+    litres = units.kg_to_litres(123.4, density)
+    assert units.litres_to_kg(litres, density) == pytest.approx(123.4, rel=1e-12)
+
+
+@pytest.mark.parametrize("density", [0.0, -1.0])
+def test_liquid_conversion_rejects_a_bad_density(density: float) -> None:
+    with pytest.raises(ValueError, match="density"):
+        units.kg_to_litres(1.0, density)
+    with pytest.raises(ValueError, match="density"):
+        units.litres_to_kg(1.0, density)
+
+
+def test_grades_fit_in_one_hundred_percent() -> None:
+    assert units.grades_fit_in_product([46.0, 0.0, 0.0, 0.0])
+    # Sums to exactly 100 on the label, slightly over in binary floats.
+    assert units.grades_fit_in_product([33.33, 33.33, 33.34])
+    assert not units.grades_fit_in_product([60.0, 30.0, 20.0])

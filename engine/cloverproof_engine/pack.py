@@ -9,9 +9,9 @@ serialised with sorted keys, no whitespace (separators "," and ":"), UTF-8,
 ensure_ascii off. Consequences: comments, YAML layout, mapping key order and
 int-vs-float spelling (30 vs 30.0) do not change the hash; any value, unit,
 status, source, label, description, method id or list order (e.g. splits) does.
-Optional fields added after engine 0.2.0 (`citation`, `soil_test_methods`, and
-`splits` since engine 0.4.0) are left out of the canonical form when absent, so packs
-that do not use them keep their fingerprint.
+Optional fields added after engine 0.2.0 (`citation`, `soil_test_methods`, `splits`
+since engine 0.4.0 and `product_rules` since 0.5.0) are left out of the canonical form
+when absent, so packs that do not use them keep their fingerprint.
 
 Labels (CLAUDE.md rule 9): every constant is `PLACEHOLDER` (`source: null`) until a
 human agronomist validates it (`VALIDATED` + `source`). A constant taken from a
@@ -34,6 +34,7 @@ from pydantic import (
     ConfigDict,
     Field,
     SerializerFunctionWrapHandler,
+    StrictBool,
     StringConstraints,
     field_validator,
     model_serializer,
@@ -45,6 +46,7 @@ from cloverproof_engine.models import (
     Crop,
     ExtractionMethod,
     NutrientForm,
+    ProductForm,
     WheatClass,
 )
 
@@ -393,12 +395,72 @@ class CropScope(_Frozen):
     manure: ManureScope | None = None
 
 
+class SulphurRule(StrEnum):
+    """What an N line may do with a product that also carries sulphur."""
+
+    EXCLUDE = "exclude"
+    ALLOW = "allow"
+
+
+class RuleValue[T](_Frozen):
+    """One non-numeric pack decision with the same label a constant carries (rule 9)."""
+
+    _OMIT_IF_NONE = ("citation",)
+
+    value: T
+    status: ConstantStatus
+    source: str | None
+    citation: Citation | None = None
+
+    @model_validator(mode="after")
+    def _check_label(self) -> Self:
+        _check_label(self.status, self.source)
+        return self
+
+    @property
+    def is_placeholder(self) -> bool:
+        return self.status is ConstantStatus.PLACEHOLDER
+
+
+class ProductRules(_Frozen):
+    """How the engine may pick a catalog product for an N line. Agronomy, so pack config.
+
+    No field has a default: a pack states every decision or has no rules at all, and
+    without rules the engine names no product. P/K-bearing and N-free products are
+    refused by the engine before these rules apply; a pack cannot allow them.
+    """
+
+    allowed_forms: RuleValue[list[ProductForm]]
+    sulphur: RuleValue[SulphurRule]
+    # May the only fitting product be selected when no preference names it?
+    allow_single_fit: RuleValue[StrictBool]
+    # Catalog names, best first; case is ignored. May be empty.
+    preference: RuleValue[list[NonBlankStr]]
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        forms = self.allowed_forms.value
+        if not forms:
+            raise ValueError("allowed_forms must name at least one form")
+        if len(set(forms)) != len(forms):
+            raise ValueError("allowed_forms must not repeat a form")
+        names = [name.casefold() for name in self.preference.value]
+        if len(set(names)) != len(names):
+            raise ValueError("preference must not repeat a product")
+        return self
+
+    def all_rules(self) -> tuple[RuleValue[Any], ...]:
+        return (self.allowed_forms, self.sulphur, self.allow_single_fit, self.preference)
+
+
 class CropConfig(_Frozen):
-    _OMIT_IF_NONE = ("soil_test_methods", "scope")
+    _OMIT_IF_NONE = ("soil_test_methods", "scope", "product_rules")
 
     nitrogen: NitrogenConfig
     confidence: ConfidenceConfig
     scope: CropScope | None = None
+    # None = no choice rule: the engine lists fitting products but selects none.
+    product_rules: ProductRules | None = None
     # Declarative in engine 0.3.0: which test the pack's P/K guidance assumes.
     # P/K rates arrive in S3 (still only with a lab soil test, rule 3).
     soil_test_methods: dict[Literal["P", "K"], SoilTestMethodSpec] | None = None
@@ -428,9 +490,16 @@ class Pack(_Frozen):
         """Every constant, including each table cell and every not-set value."""
         yield from _walk(self)
 
+    def iter_product_rules(self) -> Iterator[RuleValue[Any]]:
+        """Every labelled product-rule value in the pack."""
+        for crop in self.crops.values():
+            if crop.product_rules is not None:
+                yield from crop.product_rules.all_rules()
+
     @property
     def has_placeholders(self) -> bool:
-        return any(c.is_placeholder for c in self.iter_constants())
+        labelled = itertools.chain(self.iter_constants(), self.iter_product_rules())
+        return any(c.is_placeholder for c in labelled)
 
     @property
     def unset_constants(self) -> int:
