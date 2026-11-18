@@ -238,11 +238,13 @@ def test_rescaled_edit_stores_the_exact_document_rates(db: psycopg.Connection, o
     [engine] = versions(db, org_a, plan_id_of(plan_url))
     unchanged = [f"{s['rate']['value']:g}" for s in engine["result"]["nitrogen"]["splits"]]
 
-    # 101.37 x the pack shares needs more digits than float8 -> numeric keeps.
-    assert post_edit(client, csrf, plan_url, "101.37", unchanged).status_code == 303
+    # 100.1 x 0.6 = 60.059999999999995: more digits than a float8 -> numeric cast keeps.
+    assert post_edit(client, csrf, plan_url, "100.1", unchanged).status_code == 303
 
     _, final = versions(db, org_a, plan_id_of(plan_url))
-    assert_lines_match(lines_of(db, final["id"]), final)
+    lines = lines_of(db, final["id"])
+    assert_lines_match(lines, final)
+    assert lines[1]["rate_kg_ha"] == Decimal("60.059999999999995")
 
 
 def test_splits_inside_the_tolerance_are_stored_as_typed(
@@ -259,7 +261,7 @@ def test_splits_inside_the_tolerance_are_stored_as_typed(
     assert lines[0]["rate_kg_ha"] == Decimal("48.02")
 
 
-def test_edit_of_a_document_from_an_older_engine_keeps_working(
+def test_document_copied_from_an_older_engine_gets_lines(
     db: psycopg.Connection, org_a: Org, engine_result: dict[str, Any]
 ) -> None:
     """Engine 0.3.0 documents have no `timing_window` or line `explanation`."""
