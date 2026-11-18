@@ -27,8 +27,10 @@ from cloverproof_app.pdf import (
     AI_REVIEWED,
     FORBIDDEN_PHRASES,
     NO_SOIL_TEST,
+    NOT_YET_VALIDATED,
     PLACEHOLDER_BANNER,
     SUPERADMIN_APPROVED,
+    TEMPLATE_VERSION,
     Approval,
     Comparison,
     NotAnApproval,
@@ -369,6 +371,32 @@ def test_split_line_timing_status_and_explanation() -> None:
         assert f"Timing: {label} PLACEHOLDER — not yet validated" in text
         assert squash(split["explanation"]) in text
     assert TIMING_SENTENCE in text and NO_TIMING not in text
+
+
+def test_timing_column_marks_placeholder_wording() -> None:
+    doc = split_docs.build(split_docs.SPLITS)
+    markup = render_html(proof(doc))
+    for split in doc["nitrogen"]["splits"]:
+        stage = html.escape(split["stage_label"], quote=True)
+        assert f'<th>{stage}<span class="ph">{NOT_YET_VALIDATED}</span></th>' in markup
+    for split in doc["nitrogen"]["splits"]:
+        split["timing_window"]["status"] = "VALIDATED"
+    markup = render_html(proof(doc))
+    for split in doc["nitrogen"]["splits"]:
+        assert f"<th>{html.escape(split['stage_label'], quote=True)}</th>" in markup
+
+
+def test_old_document_timing_column_has_no_mark() -> None:
+    doc = split_docs.old_document()
+    for split in doc["nitrogen"]["splits"]:
+        stage = html.escape(split["stage_label"], quote=True)
+        assert f"<th>{stage}</th>" in render_html(proof(doc))
+
+
+def test_new_proofs_use_template_v1() -> None:
+    assert TEMPLATE_VERSION == "proof-v1"
+    text = visible_text(render_html(proof()))
+    assert "Template proof-v1" in text and "proof-v0" not in text
 
 
 def test_no_split_line_has_no_growth_stage_claim() -> None:

@@ -90,10 +90,14 @@ def product_numbers(split: Mapping[str, Any]) -> Iterator[Mapping[str, Any]]:
             yield match[key]
 
 
+def timing_is_placeholder(split: Mapping[str, Any]) -> bool:
+    return (split.get("timing_window") or {}).get("status") == PLACEHOLDER
+
+
 def has_placeholder(splits: Iterable[Mapping[str, Any]]) -> bool:
     """A line's timing window, product rule or product number is PLACEHOLDER."""
     for split in splits:
-        if (split.get("timing_window") or {}).get("status") == PLACEHOLDER:
+        if timing_is_placeholder(split):
             return True
         match = outcome(split)
         if match is not None and _placeholder_rules(match):

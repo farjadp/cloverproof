@@ -192,7 +192,7 @@
     <thead><tr><th class="w28">Timing</th><th>Share</th><th>Rate</th><th>Total</th></tr></thead>
     <tbody>
     {% for s in n.splits %}
-      <tr><th>{{ s.stage_label }}</th><td>{{ share(s.fraction, split_text.is_old_line(s)) }}</td><td>{{ explained(s.rate) }}</td><td>{{ explained(s.total) }}</td></tr>
+      <tr><th>{{ s.stage_label }}{{ placeholder_mark(split_text.timing_is_placeholder(s)) }}</th><td>{{ share(s.fraction, split_text.is_old_line(s)) }}</td><td>{{ explained(s.rate) }}</td><td>{{ explained(s.total) }}</td></tr>
 {% if split_text.has_line_detail(s) %}
 {{ line_detail(s) }}
 {% endif %}

@@ -28,7 +28,7 @@ from uuid import UUID
 
 from cloverproof_app import split_display
 
-TEMPLATE_VERSION = "proof-v0"
+TEMPLATE_VERSION = "proof-v1"
 PLACEHOLDER_BANNER = "PLACEHOLDER values — not for field use"
 NOT_YET_VALIDATED = "PLACEHOLDER — not yet validated"
 HASH_STATEMENT = "SHA-256 of this file is recorded in CloverProof"

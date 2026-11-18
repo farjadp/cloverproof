@@ -83,7 +83,7 @@
     <tbody>
     {% for s in n.splits %}
       <tr>
-        <th scope="row">{{ s.stage_label }}</th>
+        <th scope="row">{{ s.stage_label }}{% if split_text.timing_is_placeholder(s) %} {{ placeholder() }}{% endif %}</th>
         <td data-label="Share">{{ share(s.fraction, split_text.is_old_line(s)) }}</td>
         <td data-label="Rate">{{ explained(s.rate) }}</td>
         <td data-label="Total">{{ explained(s.total) }}</td>

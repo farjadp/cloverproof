@@ -69,6 +69,17 @@ def test_split_line_shows_pack_timing_status_and_explanation() -> None:
     assert NO_TIMING not in text
 
 
+def test_stage_column_marks_placeholder_wording() -> None:
+    doc = build(SPLITS)
+    stage = html.escape(doc["nitrogen"]["splits"][0]["stage_label"], quote=True)
+    marked = re.compile(rf'<th scope="row">{re.escape(stage)} <span class="badge placeholder"')
+    assert marked.search(plan_page(doc))
+    for split in doc["nitrogen"]["splits"]:
+        split["timing_window"]["status"] = "VALIDATED"
+    markup = plan_page(doc)
+    assert not marked.search(markup) and f'<th scope="row">{stage}</th>' in markup
+
+
 def test_no_split_line_says_no_timing_is_set() -> None:
     doc = build(NO_SPLITS)
     text = page(doc)
