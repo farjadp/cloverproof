@@ -1,6 +1,6 @@
 {# Engine output vs the version on screen, line by line (docs/design/review-queue.md §4.4).
    Needs `line_diff` (cloverproof_app.line_diff.LineDiff). Read-only. #}
-{% from "_macros.html" import explained, share, share_value, confidence, num %}
+{% from "_macros.html" import explained, share, share_value, confidence, amount_text, unit_control with context %}
 {% macro side(cell, value) -%}
 {% if cell.kind == "number" %}{{ explained(value) }}
 {% elif cell.kind == "share" %}{{ share(value, cell.whole_share) }}
@@ -8,7 +8,7 @@
 {% else %}<p class="diff-text">{{ value }}</p>{% endif %}
 {%- endmacro %}
 {% macro was(cell) -%}
-{% if cell.engine is none %}nothing{% elif cell.kind == "number" %}{{ num(cell.engine.value) }} {{ cell.engine.unit }}{% elif cell.kind == "share" %}{{ share_value(cell.engine, cell.whole_share) }}{% else %}{{ cell.engine }}{% endif %}
+{% if cell.engine is none %}nothing{% elif cell.kind == "number" %}{{ amount_text(cell.engine.value, cell.engine.unit) }}{% elif cell.kind == "share" %}{{ share_value(cell.engine, cell.whole_share) }}{% else %}{{ cell.engine }}{% endif %}
 {%- endmacro %}
 {% set d = line_diff %}
 <section aria-labelledby="diff-h" class="diff-section" id="diff">
@@ -16,7 +16,8 @@
   {% if d.edit_depth == 0 %}
   <p class="muted">No edits. v{{ d.final_number }} has the engine's numbers.</p>
   {% else %}
-  <p class="muted">Engine (v1) compared with v{{ d.final_number }}: {{ d.changed_count }} of {{ d.lines | length }} lines changed. Rates in kg/ha with the nutrient form written out.</p>
+  <p class="muted">Engine (v1) compared with v{{ d.final_number }}: {{ d.changed_count }} of {{ d.lines | length }} lines changed. {% if unit_system | default("metric") == "imperial" %}Rates in lb/ac with the nutrient form written out; the stored kg/ha value is beside each one.{% else %}Rates in kg/ha with the nutrient form written out.{% endif %}</p>
+  {% if v is defined %}<div class="unit-bar">{{ unit_control(v.plan.id, "diff") }}</div>{% endif %}
   {% for e in d.edits %}
   <blockquote class="reason"><p>v{{ e.number }}, edited by {{ e.author }} on {{ e.created_at.strftime("%Y-%m-%d %H:%M") }}: “{{ e.reason }}”</p></blockquote>
   {% endfor %}
@@ -26,7 +27,7 @@
     <tbody>
     {% for line in d.lines %}
       <tr>
-        <th scope="row">{{ line.title }}{% if line.detail %}<span class="diff-detail">{{ line.detail }}</span>{% endif %}
+        <th scope="row">{{ line.title }}{% if line.detail %}<span class="diff-detail">{{ display_units.detail_text(line.detail, unit_system | default("metric")) }}</span>{% endif %}
           <span class="sr-only">{% if line.changed %}, changed: {{ line.changed | join(", ") }}{% else %}, no change{% endif %}</span></th>
         <td data-label="Engine (v1)">
           {% if line.only_in == "final" %}<p class="muted">Not in the engine version</p>

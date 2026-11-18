@@ -20,7 +20,7 @@ import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 
-from cloverproof_app import line_diff, planning, timer
+from cloverproof_app import display_units, line_diff, planning, timer
 from cloverproof_app.auth import (
     INTERNAL_ROLES,
     Conn,
@@ -29,7 +29,7 @@ from cloverproof_app.auth import (
     require_org_role,
 )
 from cloverproof_app.repo import farms, plans
-from cloverproof_app.web import render
+from cloverproof_app.web import render, set_cookie
 from cloverproof_engine.pack import Pack
 
 router = APIRouter()
@@ -38,6 +38,7 @@ InternalOrg = Annotated[OrgContext, Depends(require_org_role(*INTERNAL_ROLES))]
 ONLY_AGRONOMIST = "Only an agronomist or a superadmin can review plans."
 ALREADY_REVIEWED = "This plan version is already reviewed. Nothing was saved."
 STALE_VERSION = "A newer version of this plan exists. Reload the plan; nothing was saved."
+UNKNOWN_UNITS = "Choose kg/ha or lb/ac. Nothing was changed."
 TIMER_MISSING = "The plan timer is missing. Open the plan again, then review. Nothing was saved."
 FINAL_DECISIONS = frozenset({"approve", "reject"})
 DECISION_LABELS = {"approve": "Approved", "reject": "Rejected", "edit": "Edited"}
@@ -434,7 +435,8 @@ def comparison(view: PlanView) -> list[dict[str, Any]]:
 
 def plan_page(request: Request, conn: Conn, context: OrgContext, settings: SettingsDep,
               plan_id: UUID, *, errors: dict[str, str] | None = None,
-              values: dict[str, str] | None = None, status: int = 200) -> Response:  # fmt: skip
+              values: dict[str, str] | None = None, status: int = 200,
+              unit_system: str | None = None) -> Response:  # fmt: skip
     view = load_plan(conn, context, plan_id)
     started = timer.plan_start(request, settings, context.user, plan_id)
     new_start = None
@@ -458,6 +460,7 @@ def plan_page(request: Request, conn: Conn, context: OrgContext, settings: Setti
             view.plan.previous_crop, view.plan.previous_crop
         ),
         "planning": planning,
+        "unit_system": unit_system or display_units.from_request(request),
     }
     response = render(request, "plan.html", ctx, status)
     if new_start is not None:
@@ -469,6 +472,31 @@ def plan_page(request: Request, conn: Conn, context: OrgContext, settings: Setti
 def plan_detail(request: Request, conn: Conn, context: InternalOrg, settings: SettingsDep,
                 plan_id: UUID) -> Response:  # fmt: skip
     return plan_page(request, conn, context, settings, plan_id)
+
+
+@router.post("/plans/{plan_id}/units")
+async def plan_units(request: Request, conn: Conn, context: InternalOrg, settings: SettingsDep,
+                     plan_id: UUID) -> Response:  # fmt: skip
+    """Remember how this browser shows plans. Writes the cookie and nothing else.
+
+    From HTMX the page comes straight back with the review the user was typing, which a
+    redirect would lose. Without JavaScript the form posts normally and is redirected.
+    """
+    load_plan(conn, context, plan_id)  # another organisation's plan is a 404
+    form = await form_data(request)
+    system = text(form, "unit_system", 20)
+    if system not in display_units.SYSTEMS:
+        raise HTTPException(400, UNKNOWN_UNITS)
+    response: Response
+    if request.headers.get("HX-Request"):
+        typed = {"decision": text(form, "decision", 20), "reason": text(form, "reason")}
+        response = plan_page(request, conn, context, settings, plan_id, values=typed,
+                             unit_system=system)  # fmt: skip
+    else:
+        anchor = "#diff" if text(form, "place", 20) == "diff" else ""
+        response = RedirectResponse(f"/plans/{plan_id}{anchor}", status_code=303)
+    set_cookie(response, settings, display_units.COOKIE, system, display_units.COOKIE_MAX_AGE)
+    return response
 
 
 @router.get("/plans/{plan_id}/timer")

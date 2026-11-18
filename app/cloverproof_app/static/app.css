@@ -254,6 +254,21 @@ td.num, th.num { text-align: right; }
 td .explained .why { font-size: var(--fs-xs); }
 .explained.large .value { font-family: var(--font-serif); font-size: var(--fs-xl); }
 .headline { margin-bottom: var(--s4); }
+.stored-as { font-size: var(--fs-xs); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+/* kg/ha | lb/ac display switch (plan page and diff). */
+.unit-bar { margin: var(--s3) 0; }
+.unit-control { display: inline-flex; align-items: center; gap: var(--s2); }
+.unit-label { font-size: var(--fs-sm); font-weight: 600; }
+.unit-choices { display: inline-flex; }
+.unit-choices button {
+  min-height: 44px; min-width: 4rem; padding: 0 var(--s3); font: inherit; font-size: var(--fs-sm); cursor: pointer;
+  color: var(--ink); background: transparent; border: 1px solid var(--ink-soft);
+}
+.unit-choices button:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.unit-choices button:last-child { border-radius: 0 var(--radius) var(--radius) 0; border-left: 0; }
+.unit-choices button:hover { background: var(--sand); }
+.unit-choices button[aria-pressed="true"] { color: var(--ivory); background: var(--olive); border-color: var(--olive); font-weight: 600; }
 td.changed { border-left: 3px solid var(--olive); }
 
 /* Plan page */
