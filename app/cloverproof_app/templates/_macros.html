@@ -128,7 +128,7 @@
 {% set low, high = limits %}
 {% if outside %}
 <div class="notice warn" role="status">
-  <p class="notice-title">N rate{% if rate is not none %} {{ amount_text(rate, "kg N/ha") }}{% endif %} is outside the pack limits ({{ range_text(low.value, high.value, "kg N/ha") }}).</p>
+  <p class="notice-title">N rate{% if rate is not none %} {{ amount_text(rate, "kg N/ha") }}{% endif %} is outside the pack limits ({{ range_text(low.value, high.value, "kg N/ha") }}){% if low.is_placeholder or high.is_placeholder %} {{ placeholder() }}{% endif %}.</p>
   <p>Check the number and say why in the reason.</p>
 </div>
 {% endif %}

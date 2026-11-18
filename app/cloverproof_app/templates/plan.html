@@ -16,7 +16,7 @@
 <div class="strip">
   <div>
     <h1>Nitrogen plan for {{ v.field.name }}</h1>
-    <p class="muted">{{ doc.crop | capitalize }} · target {{ snap.target_yield_t_ha }} t/ha · after {{ previous_crop_label }} · {{ snap.area_ha }} ha · plan date {{ snap.plan_date }}{% if v.number > 1 %} · v{{ v.number }} (edited){% endif %}</p>
+    <p class="muted">{{ doc.crop | capitalize }} · target {{ snap.target_yield_t_ha }} t/ha · after {{ previous_crop_label }} · {{ snap.area_ha }} ha{% if imperial %} ({{ "{:,.1f}".format(display_units.acres(snap.area_ha)) }} ac){% endif %} · plan date {{ snap.plan_date }}{% if v.number > 1 %} · v{{ v.number }} (edited){% endif %}</p>
     {% if snap.wheat_class is defined or snap.manure_applied is defined or snap.n_price is defined %}
     <p class="muted">
       {%- if snap.wheat_class is defined %}{{ planning.WHEAT_CLASS_LABELS.get(snap.wheat_class, snap.wheat_class) }} wheat{% endif %}
@@ -36,8 +36,8 @@
 <div class="notice info" role="note" id="unit-note">
   <p class="notice-title">Showing lb/ac. Stored values stay in kg/ha.</p>
   <p>Each converted number shows its stored value beside it. This view changes nothing that is saved.</p>
-  <p>Explanations are shown as stored, so they still quote kg/ha. Pack constants, soil-test values and prices are shown as stored too.</p>
-  <p>Target yield stays in t/ha: there is no bushel conversion for it. Field area stays in ha and liquid volume in L product/ha.</p>
+  <p>Explanations are shown as stored, so they still quote kg/ha. Pack constants are shown as stored, except the N-rate limits in the warning, which show both units. Soil-test values and prices are shown as stored too.</p>
+  <p>Target yield stays in t/ha: there is no bushel conversion for it. Field area is stored in ha, with acres beside it; liquid volume stays in L product/ha.</p>
   <p>The proof PDF always shows the stored kg/ha values.</p>
 </div>
 {% endif %}

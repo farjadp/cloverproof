@@ -180,3 +180,8 @@ def test_product_conversions_refuse_a_result_that_is_not_finite(
 
 def test_converting_a_form_to_itself_keeps_the_exact_value() -> None:
     assert units.convert_form(20.0, NutrientForm.K2O, NutrientForm.K2O) == 20.0
+
+
+def test_kg_to_lb_and_ha_to_ac_use_the_exact_definitions() -> None:
+    assert units.kg_to_lb(0.45359237) == pytest.approx(1.0)
+    assert units.ha_to_ac(0.40468564224) == pytest.approx(1.0)

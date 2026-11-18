@@ -57,6 +57,14 @@ def k2o_to_k(value: float) -> float:
     return value * K2O_TO_K
 
 
+def kg_to_lb(value: float) -> float:
+    return value / _KG_PER_LB
+
+
+def ha_to_ac(value: float) -> float:
+    return value / _HA_PER_ACRE
+
+
 def lb_per_ac_to_kg_per_ha(value: float) -> float:
     return value * LB_PER_AC_TO_KG_PER_HA
 

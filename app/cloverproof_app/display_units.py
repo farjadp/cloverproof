@@ -28,14 +28,9 @@ SYSTEMS = frozenset({METRIC, IMPERIAL})
 _SUBSTANCES = ("N", "P", "P2O5", "K", "K2O", "S", "product")
 
 
-def _kg_to_lb(value: float) -> float:
-    # units.py has no public kg -> lb function; its exact pound definition is the only source.
-    return value / units._KG_PER_LB
-
-
 _CONVERSIONS: dict[str, tuple[str, Callable[[float], float]]] = {
     **{f"kg {s}/ha": (f"lb {s}/ac", units.kg_per_ha_to_lb_per_ac) for s in _SUBSTANCES},
-    **{f"kg {s}": (f"lb {s}", _kg_to_lb) for s in _SUBSTANCES},
+    **{f"kg {s}": (f"lb {s}", units.kg_to_lb) for s in _SUBSTANCES},
 }
 
 
@@ -57,6 +52,11 @@ def convert(value: float, unit: str, system: str) -> Shown | None:
         return None
     shown_unit, factor = _CONVERSIONS[unit]
     return Shown(factor(float(value)), shown_unit)
+
+
+def acres(area_ha: float) -> float:
+    """Field area in acres, shown beside the stored hectares so lb/ac can be checked by hand."""
+    return units.ha_to_ac(float(area_ha))
 
 
 def detail_text(detail: str, system: str) -> str:

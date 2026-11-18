@@ -10,6 +10,7 @@ from types import SimpleNamespace
 import pytest
 
 from cloverproof_app import display_units as du
+from cloverproof_app.web import templates
 from cloverproof_engine import units
 
 from .support.split_docs import GRANULAR, LIQUID, build, edited, liquid, plan_page, product
@@ -117,9 +118,9 @@ def test_explanations_stay_as_stored_and_the_page_says_so() -> None:
 def test_the_page_says_what_stays_metric_and_that_the_proof_is_kg_per_ha() -> None:
     page = text_of(plan_page(build(), unit_system=du.IMPERIAL))
     assert "Target yield stays in t/ha" in page
-    assert "Field area stays in ha" in page
+    assert "Field area is stored in ha, with acres beside it" in page
     assert "The proof PDF always shows the stored kg/ha values." in page
-    assert "target 5.0 t/ha" in page and "10.0 ha" in page
+    assert "target 5.0 t/ha" in page and "10.0 ha (24.7 ac)" in page
 
 
 def test_approving_in_imperial_names_the_stored_values() -> None:
@@ -162,3 +163,10 @@ def test_rendering_never_changes_the_documents() -> None:
     engine_before, doc_before = copy.deepcopy(engine), copy.deepcopy(doc)
     plan_page(doc, engine, unit_system=du.IMPERIAL)
     assert engine == engine_before and doc == doc_before
+
+
+def test_out_of_limits_warning_marks_placeholder_limits() -> None:
+    template = templates.env.get_template("_macros.html").make_module({"unit_system": du.IMPERIAL})
+    limit = SimpleNamespace(value=200.0, is_placeholder=True)
+    note = str(template.n_limits_note((limit, limit), True, 250.0))
+    assert "lb N/ac" in note and "PLACEHOLDER" in note.upper()
