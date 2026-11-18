@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "_macros.html" import breadcrumb, error, error_summary %}
+{% block title %}Activate {{ product.name }}{% endblock %}
+{% block breadcrumb %}{{ breadcrumb([("Products", "/products"), ("Activate", none)]) }}{% endblock %}
+{% block main_class %}products-page activate-page{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Activate {{ product.name }}</h1>
+</div>
+{% if problem %}<div class="notice error" role="alert"><p>{{ problem }}</p></div>{% endif %}
+{{ error_summary(errors, "activating") }}
+<div class="notice warn">
+  <p class="notice-title">Check before you activate</p>
+  <p>An active product can't be edited and is visible to every user. If a value below is wrong, don't activate this draft: add a corrected one instead.</p>
+</div>
+<dl class="product-facts">
+  <div><dt>Country</dt><dd>{{ country }}</dd></div>
+  <div><dt>Grade N-P₂O₅-K₂O-S (label %)</dt><dd class="grade-cell">{{ number(product.n) }}-{{ number(product.p2o5) }}-{{ number(product.k2o) }}-{{ number(product.s) }}</dd></div>
+  <div><dt>Form</dt><dd>{{ form_labels.get(product.form, product.form) }}</dd></div>
+  <div><dt>Density</dt><dd>{% if product.density_kg_per_l is not none %}{{ number(product.density_kg_per_l) }} kg/L{% else %}Not applicable{% endif %}</dd></div>
+  <div><dt>Source of the grade</dt><dd>{{ product.grade_source }}</dd></div>
+</dl>
+<form class="form" method="post" action="/products/{{ product.id }}/activate" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  {% if needs_checked_source %}
+  <div class="field">
+    <label for="grade_source">Label or data sheet you checked</label>
+    <p class="hint" id="grade_source-hint">This replaces the published reference above and is stored with the active product. Give the product label or data sheet, with its edition or date.</p>
+    <textarea id="grade_source" name="grade_source" rows="3" maxlength="500" required aria-describedby="grade_source-hint{% if errors.grade_source %} grade_source-error{% endif %}"{% if errors.grade_source %} aria-invalid="true"{% endif %}>{{ checked_source }}</textarea>
+    {{ error(errors, "grade_source") }}
+  </div>
+  {% endif %}
+  <div class="field">
+    <label class="choice" for="label_checked">
+      <input id="label_checked" name="label_checked" type="checkbox" value="yes"{% if errors.label_checked %} aria-invalid="true" aria-describedby="label_checked-error"{% endif %}>
+      I checked these values against the product label
+    </label>
+    {{ error(errors, "label_checked") }}
+  </div>
+  <div class="actions">
+    <button class="button" type="submit">Activate product</button>
+    <a class="button text" href="/products">Keep as draft</a>
+  </div>
+</form>
+{% endblock %}

@@ -23,8 +23,14 @@ pytestmark = pytest.mark.db
 
 NAME = "TEST-GRADE 10-0-0"
 ORG_ROLES = ("org_admin", "advisor", "agronomist", "farmer")
-ADD_HEADING = "Add a draft product"
+ADD_HEADING = "Add a product"
 COMMERCIAL = re.compile(r"price|cost|vendor|supplier|dealer|retailer|affiliate|commission", re.I)
+PRESET_NOTICE = (
+    "Filled from a published reference. Unconfirmed: check every value against the product"
+    " label before activating."
+)
+S_HINT = "Sulphur is not stated in the source. Enter it from the label (0 if the label shows none)."
+CONFIRM = "I checked these values against the product label"
 
 
 def sign_in(db: psycopg.Connection, user: UUID) -> tuple[TestClient, str]:
@@ -64,6 +70,32 @@ def status_of(db: psycopg.Connection, product_id: UUID) -> str:
         ).fetchone()
     assert row is not None
     return row[0]
+
+
+def confirmed(csrf: str) -> dict[str, str]:
+    return {"csrf_token": csrf, "label_checked": "yes"}
+
+
+def count_products(db: psycopg.Connection) -> int:
+    with as_owner(db):
+        row = db.execute("select count(*) from fertilizer_product").fetchone()
+    assert row is not None
+    return row[0]
+
+
+def field_value(page: str, name: str) -> str:
+    """The value a text input is rendered with."""
+    match = re.search(rf'<input id="{name}" [^>]*?value="([^"]*)"', page)
+    assert match is not None, name
+    return match.group(1)
+
+
+def selected_option(page: str, name: str) -> str:
+    select = re.search(rf'<select id="{name}".*?</select>', page, re.S)
+    assert select is not None
+    match = re.search(r'<option value="([^"]+)" selected>', select.group(0))
+    assert match is not None
+    return match.group(1)
 
 
 def form(csrf: str | None, **overrides: str) -> dict[str, str]:
@@ -151,6 +183,8 @@ def test_superadmin_without_organisation_sees_drafts_marked(
     assert NAME in page.text and ">Draft</span>" in page.text
     assert ADD_HEADING in page.text
     assert f"/products/{draft}/activate" in page.text
+    assert 'name="grade_source"' not in page.text  # the form waits behind one clear action
+    assert 'href="/products?add=1#add-product"' in page.text
 
 
 # --- adding and activating ----------------------------------------------------------------
@@ -173,7 +207,7 @@ def test_superadmin_adds_a_draft_then_activates_it(
     with as_owner(db):
         row = db.execute("select id from fertilizer_product where name = %s", (NAME,)).fetchone()
     assert row is not None
-    activated = client.post(f"/products/{row[0]}/activate", data={"csrf_token": csrf})
+    activated = client.post(f"/products/{row[0]}/activate", data=confirmed(csrf))
     assert activated.status_code == 303
     assert status_of(db, row[0]) == "active"
     assert NAME in reader.get("/products").text
@@ -196,7 +230,8 @@ def test_org_roles_get_403_on_every_write(
     draft = seed(db, superadmin, "draft")
     client, csrf = sign_in(db, member(db, org_a, role))
     assert client.post("/products", data=form(csrf)).status_code == 403
-    assert client.post(f"/products/{draft}/activate", data={"csrf_token": csrf}).status_code == 403
+    assert client.post(f"/products/{draft}/activate", data=confirmed(csrf)).status_code == 403
+    assert client.get(f"/products/{draft}/activate").status_code == 403
     assert stored(db) == []
     assert status_of(db, draft) == "draft"
 
@@ -219,9 +254,11 @@ def test_csrf_is_required(db: psycopg.Connection, org_a: Org, superadmin: UUID) 
     [
         ({"name": "   "}, "Enter the product name."),
         ({"name": "x" * 201}, "Product name is too long"),
-        ({"country_code": "C"}, "two-letter country code"),
-        ({"country_code": "C1"}, "two-letter country code"),
-        ({"country_code": "ß"}, "two-letter country code"),
+        ({"country_code": "C"}, "Choose a country from the list."),
+        ({"country_code": "C1"}, "Choose a country from the list."),
+        ({"country_code": "ß"}, "Choose a country from the list."),
+        ({"country_code": "XX"}, "Choose a country from the list."),
+        ({"country_code": ""}, "Choose a country from the list."),
         ({"n": ""}, "Enter the N percentage"),
         ({"n": "abc"}, "N must be a number."),
         ({"n": "1e1"}, "N must be a number."),
@@ -260,7 +297,7 @@ def test_typed_values_stay_after_an_error(
 ) -> None:
     client, csrf = sign_in(db, superadmin)
     page = client.post("/products", data=form(csrf, n="abc", grade_source="TEST sheet 7"))
-    assert 'value="TEST sheet 7"' in page.text and 'value="abc"' in page.text
+    assert ">TEST sheet 7</textarea>" in page.text and 'value="abc"' in page.text
 
 
 def test_full_grade_of_exactly_100_is_accepted(
@@ -280,7 +317,7 @@ def test_activating_a_duplicate_name_is_a_plain_409(
     seed(db, superadmin, "active", name=NAME)
     draft = seed(db, superadmin, "draft", name=NAME.lower())
     client, csrf = sign_in(db, superadmin)
-    page = client.post(f"/products/{draft}/activate", data={"csrf_token": csrf})
+    page = client.post(f"/products/{draft}/activate", data=confirmed(csrf))
     assert page.status_code == 409
     assert "already exists in this country" in page.text
     assert status_of(db, draft) == "draft"
@@ -310,9 +347,9 @@ def test_activating_twice_or_unknown_is_plain(
 ) -> None:
     active = seed(db, superadmin, "active")
     client, csrf = sign_in(db, superadmin)
-    again = client.post(f"/products/{active}/activate", data={"csrf_token": csrf})
+    again = client.post(f"/products/{active}/activate", data=confirmed(csrf))
     assert again.status_code == 409 and "already active" in again.text
-    missing = client.post(f"/products/{uuid4()}/activate", data={"csrf_token": csrf})
+    missing = client.post(f"/products/{uuid4()}/activate", data=confirmed(csrf))
     assert missing.status_code == 404
 
 
@@ -343,5 +380,248 @@ def test_database_rls_refusal_is_a_plain_error(
     assert products_web.DB_DENIED in page.text
     assert "TEST-GRADE hidden draft" not in page.text
     assert stored(db) == []
-    assert client.post(f"/products/{draft}/activate", data={"csrf_token": csrf}).status_code == 404
+    assert client.post(f"/products/{draft}/activate", data=confirmed(csrf)).status_code == 404
     assert status_of(db, draft) == "draft"
+
+
+# --- adding from a published fertilizer type ----------------------------------------------
+
+
+def test_opening_the_add_form_shows_picker_and_manual_entry(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    seed(db, superadmin, "active", name=NAME)
+    client, _ = sign_in(db, superadmin)
+    page = client.get("/products?add=1").text
+    assert "Start from a common fertilizer type" in page and "Enter manually" in page
+    for group in ("Nitrogen", "Phosphate", "Potash", "Sulphur", "Blended liquids"):
+        assert f'<h4 class="preset-group">{group}</h4>' in page
+    assert "/products?preset=urea" in page
+    assert selected_option(page, "country_code") == "CA"
+    assert page.index('<option value="CA"') < page.index('<option value="AF"')
+    assert field_value(page, "n") == ""
+
+
+def test_empty_catalog_opens_the_form_for_a_superadmin(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    client, _ = sign_in(db, superadmin)
+    page = client.get("/products").text
+    assert "The catalog has no products yet." in page and 'name="grade_source"' in page
+
+
+def test_preset_fills_the_form_and_saves_nothing(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    client, _ = sign_in(db, superadmin)
+    response = client.get("/products?preset=urea")
+    assert response.status_code == 200
+    page = response.text
+    assert PRESET_NOTICE in page
+    assert field_value(page, "name") == "Urea"
+    assert (field_value(page, "n"), field_value(page, "p2o5")) == ("46", "0")
+    assert "OMAFRA Publication 611" in page.split('id="grade_source"')[1].split("</textarea>")[0]
+    assert selected_option(page, "product_form") == "granular"
+    assert count_products(db) == 0
+
+
+def test_preset_without_sulphur_leaves_it_empty_with_a_hint(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    client, _ = sign_in(db, superadmin)
+    page = client.get("/products?preset=urea").text
+    assert field_value(page, "s") == ""
+    assert S_HINT in page
+    stated = client.get("/products?preset=ammonium_sulphate").text
+    assert field_value(stated, "s") == "24"
+    assert S_HINT not in stated
+
+
+def test_liquid_preset_fills_density_and_missing_density_stays_empty(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    client, _ = sign_in(db, superadmin)
+    uan = client.get("/products?preset=uan_28").text
+    assert selected_option(uan, "product_form") == "liquid"
+    assert field_value(uan, "density_kg_per_l") == "1.28"
+    ammonia = client.get("/products?preset=anhydrous_ammonia").text
+    assert field_value(ammonia, "n") == "82" and field_value(ammonia, "k2o") == "0"
+    assert field_value(ammonia, "density_kg_per_l") == ""
+    assert "Enter it from the label." in ammonia.split('id="density-hint"')[1].split("</p>")[0]
+
+
+def test_preset_cannot_be_saved_until_sulphur_is_entered(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    client, csrf = sign_in(db, superadmin)
+    data = form(csrf, preset="urea", name="Urea", n="46", s="")
+    page = client.post("/products", data=data)
+    assert page.status_code == 422
+    assert "Enter the S percentage" in page.text
+    assert PRESET_NOTICE in page.text and S_HINT in page.text  # still explained after the error
+    assert count_products(db) == 0
+
+
+def test_saving_uses_the_submitted_values_not_the_preset(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    client, csrf = sign_in(db, superadmin)
+    data = form(csrf, preset="urea", name="Edited urea", n="45.5", grade_source="TEST label")
+    saved = client.post("/products", data=data)
+    assert saved.status_code == 303
+    rows = stored(db, "Edited urea")
+    assert rows[0][0] == "draft" and rows[0][3] == Decimal("45.50")
+    page = client.get(saved.headers["location"]).text
+    assert "Saved as a draft. Only superadmins can see it." in page
+    assert "Check Edited urea and activate it" in page
+
+
+def test_a_preset_key_alone_fills_nothing_on_post(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    client, csrf = sign_in(db, superadmin)
+    assert client.post("/products", data={"csrf_token": csrf, "preset": "urea"}).status_code == 422
+    assert count_products(db) == 0
+
+
+def test_unknown_preset_is_explained(db: psycopg.Connection, org_a: Org, superadmin: UUID) -> None:
+    client, _ = sign_in(db, superadmin)
+    page = client.get("/products?preset=nope")
+    assert page.status_code == 404
+    assert products_web.UNKNOWN_PRESET in page.text and 'name="grade_source"' in page.text
+
+
+def test_search_works_without_javascript_and_through_htmx(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    client, _ = sign_in(db, superadmin)
+    plain = client.get("/products", params={"add": "1", "q": "46-0-0"}).text
+    assert "/products?preset=urea" in plain
+    assert "/products?preset=uan_28" not in plain
+    assert 'value="46-0-0"' in plain
+    partial = client.get("/products/presets", params={"q": "uan"})
+    assert partial.status_code == 200
+    assert "/products?preset=uan_28" in partial.text
+    assert "/products?preset=urea" not in partial.text and "<html" not in partial.text
+    none = client.get("/products/presets", params={"q": "<b>zzz"}).text
+    assert "No type matches" in none and "<b>zzz" not in none
+
+
+@pytest.mark.parametrize("role", ORG_ROLES)
+def test_org_roles_get_no_picker_and_no_filled_form(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID, role: str
+) -> None:
+    seed(db, superadmin, "active", name=NAME)
+    client, _ = sign_in(db, member(db, org_a, role))
+    for url in ("/products?preset=urea", "/products?add=1", "/products?q=urea"):
+        page = client.get(url)
+        assert page.status_code == 200 and NAME in page.text
+        assert "Start from a common fertilizer type" not in page.text
+        assert 'name="grade_source"' not in page.text
+    assert client.get("/products/presets", params={"q": "urea"}).status_code == 403
+
+
+def test_the_form_works_without_javascript(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    """The server page alone offers everything: the density field is not hidden by it."""
+    client, csrf = sign_in(db, superadmin)
+    page = client.get("/products?add=manual").text
+    assert 'id="density-field"' in page and "Leave empty for a granular product." in page
+    assert 'id="density-field" hidden' not in page
+    assert 'method="get" action="/products"' in page
+    data = form(csrf, product_form="liquid", density_kg_per_l="1.3", country_code="FR")
+    assert client.post("/products", data=data).status_code == 303
+    assert stored(db)[0][2] == "FR"
+
+
+def test_country_names_are_shown_and_an_error_keeps_the_choice(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    seed(db, superadmin, "active", name=NAME, country_code="FR")
+    client, csrf = sign_in(db, superadmin)
+    assert '<td data-label="Country">France</td>' in client.get("/products").text
+    page = client.post("/products", data=form(csrf, country_code="US", n="abc")).text
+    assert selected_option(page, "country_code") == "US"
+
+
+def test_errors_link_from_the_summary_to_each_field(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    client, csrf = sign_in(db, superadmin)
+    page = client.post("/products", data=form(csrf, name="", n="abc", grade_source="")).text
+    assert 'id="error-summary"' in page
+    for field in ("name", "n", "grade_source"):
+        assert f'<a href="#{field}">' in page and f'id="{field}-error"' in page
+    assert field_value(page, "n") == "abc"
+
+
+# --- activation needs the label check -----------------------------------------------------
+
+
+def test_confirmation_page_states_the_consequences(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    client, _ = sign_in(db, superadmin)
+    page = client.get(f"/products/{draft}/activate")
+    assert page.status_code == 200
+    assert CONFIRM in page.text
+    assert "can't be edited and is visible to every user" in page.text.replace("&#39;", "'")
+    assert status_of(db, draft) == "draft"
+
+
+def test_activation_without_the_checkbox_is_refused(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    draft = seed(db, superadmin, "draft", name=NAME)
+    client, csrf = sign_in(db, superadmin)
+    for data in ({"csrf_token": csrf}, {"csrf_token": csrf, "label_checked": "no"}):
+        page = client.post(f"/products/{draft}/activate", data=data)
+        assert page.status_code == 422
+        assert products_web.LABEL_NOT_CONFIRMED in page.text
+        assert status_of(db, draft) == "draft"
+    assert client.post(f"/products/{draft}/activate", data=confirmed(csrf)).status_code == 303
+    assert status_of(db, draft) == "active"
+
+
+def test_preset_draft_must_name_the_label_checked_before_activation(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    source = f"TEST reference, p. 1; {products_web.UNCONFIRMED_SOURCE}"
+    draft = seed(db, superadmin, "draft", name=NAME, grade_source=source)
+    client, csrf = sign_in(db, superadmin)
+    assert 'name="grade_source"' in client.get(f"/products/{draft}/activate").text
+    for value in ("", source):
+        page = client.post(
+            f"/products/{draft}/activate", data={**confirmed(csrf), "grade_source": value}
+        )
+        assert page.status_code == 422 and products_web.CHECKED_SOURCE_MISSING in page.text
+        assert status_of(db, draft) == "draft"
+    done = client.post(
+        f"/products/{draft}/activate",
+        data={**confirmed(csrf), "grade_source": "TEST label, 2026 edition"},
+    )
+    assert done.status_code == 303 and status_of(db, draft) == "active"
+    row = db.execute("select grade_source from fertilizer_product where id = %s", (draft,))
+    assert row.fetchone() == ("TEST label, 2026 edition",)
+
+
+def test_confirmation_page_for_active_or_unknown_product(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    active = seed(db, superadmin, "active", name=NAME)
+    client, _ = sign_in(db, superadmin)
+    assert client.get(f"/products/{active}/activate").status_code == 409
+    assert client.get(f"/products/{uuid4()}/activate").status_code == 404
+
+
+def test_product_pages_have_no_inline_script(
+    db: psycopg.Connection, org_a: Org, superadmin: UUID
+) -> None:
+    """The CSP is script-src 'self': an inline script would silently not run."""
+    draft = seed(db, superadmin, "draft", name=NAME)
+    client, _ = sign_in(db, superadmin)
+    for url in ("/products?preset=urea", f"/products/{draft}/activate"):
+        scripts = re.findall(r"<script([^>]*)>", client.get(url).text)
+        assert scripts and all('src="/static/' in attributes for attributes in scripts)

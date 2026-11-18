@@ -1,0 +1,405 @@
+# Common fertilizer types offered as a starting point on /products.
+#
+# STATUS: PLACEHOLDER. These are `ai_reviewed` proposals by cp-agronomist, entered from published
+# documents (cited per row). They are NOT validated by a human agronomist and are not label facts
+# for any product on sale.
+# TODO(agronomist): validate grades and densities (docs/agronomist-todo.md, item 34).
+#
+# A preset only fills an editable form. It never creates or activates a product: a human saves
+# the draft, then checks every value against the product label before activating it.
+#
+# Rules, enforced when the file is loaded (cloverproof_app/product_presets.py):
+# - grades are label percentages: N and S elemental, P as P2O5, K as K2O
+# - s: null means the source states no sulphur figure. It stays empty in the form, never 0.
+# - density_kg_per_l: null on a liquid means no usable figure. It stays empty too.
+# - generic types only: no brand, vendor or price fields.
+- slug: urea
+  name: Urea
+  group: Nitrogen
+  n: 46
+  p2o5: 0
+  k2o: 0
+  s: null
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.186; cross-checked with OMAFRA Publication 811 Agronomy Guide for Field Crops Table 9-18 p.243, OMAFRA 2018 and 2017, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Granular: urea, Grade 46-0-0, Other nutrients –. Pub 811 Table 9–18: Urea (46-0-0), dry, Primary Nutrient 45%–46%, Sulphur blank.'
+  notes: 'Typical grade 46-0-0; Pub 811 also gives a 45%-46% N range. S not stated as a figure: Pub 611 Table 8-1 prints ''-'' (legend: none) under Other nutrients. s is null; take it from the label. Pub 811 Chapter 9: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf'
+- slug: ammonium_nitrate
+  name: Ammonium nitrate
+  group: Nitrogen
+  n: 34
+  p2o5: 0
+  k2o: 0
+  s: null
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.186; cross-checked with OMAFRA Publication 811 Agronomy Guide for Field Crops Table 9-18 p.243, OMAFRA 2018 and 2017, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Granular: ammonium nitrate, Grade 34-0-0, Other nutrients –. Pub 811 Table 9–18: Ammonium nitrate (34-0-0), dry, Primary Nutrient 30%–34%, Sulphur blank.'
+  notes: 'Typical grade 34-0-0; Pub 811 gives a 30%-34% N range, so check the label. Pub 611 p.184: no longer produced in Canada; Transport of Dangerous Goods Class 5.1; text mentions prills. S not stated as a figure: Pub 611 Table 8-1 prints ''-'' (legend: none) under Other nutrients. s is null; take it from the label. Pub 811 Chapter 9: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf'
+- slug: calcium_ammonium_nitrate
+  name: Calcium ammonium nitrate
+  group: Nitrogen
+  n: 27
+  p2o5: 0
+  k2o: 0
+  s: null
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.186; cross-checked with OMAFRA Publication 811 Agronomy Guide for Field Crops Table 9-18 p.243, OMAFRA 2018 and 2017, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Granular: calcium ammonium nitrate, Grade 27-0-0, Other nutrients 4%–6% Ca, 0%–2% Mg. Pub 811 Table 9–18: Calcium ammonium nitrate (27-0-0), dry, 27%, Sulphur blank.'
+  notes: 'S not stated; s is null, take it from the label. Pub 811 Chapter 9: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf'
+- slug: ammonium_sulphate
+  name: Ammonium sulphate
+  group: Nitrogen
+  n: 21
+  p2o5: 0
+  k2o: 0
+  s: 24
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.186; cross-checked with OMAFRA Publication 811 Agronomy Guide for Field Crops Table 9-18 p.243, OMAFRA 2018 and 2017, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Granular: ammonium sulphate, Grade 21-0-0, Other nutrients 24% S. Pub 811 Table 9–18: Ammonium sulphate (21-0-0), dry, Primary Nutrient 21%, Sulphur 24%.'
+  notes: 'Pub 611 p.185: granular or coarse powder depending on source. Do not use Pub 611 Table 8-3 for N: it prints 34% N for ammonium sulphate, which contradicts 21-0-0 in both grade tables. Pub 811 Chapter 9: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf'
+- slug: calcium_nitrate
+  name: Calcium nitrate
+  group: Nitrogen
+  n: 15
+  p2o5: 0
+  k2o: 0
+  s: null
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.186, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Granular: calcium nitrate, Grade 15-0-0, Other nutrients 19% Ca.'
+  notes: Pub 611 Table 8-3 prints 15.5% N; the grade 15-0-0 is used. S not stated; s is null, take it from the label.
+- slug: sodium_nitrate
+  name: Sodium nitrate
+  group: Nitrogen
+  n: 16
+  p2o5: 0
+  k2o: 0
+  s: null
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.186, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Granular: sodium nitrate, Grade 16-0-0, Other nutrients –.'
+  notes: 'S not stated as a figure: Pub 611 Table 8-1 prints ''-'' (legend: none) under Other nutrients. s is null; take it from the label.'
+- slug: single_superphosphate
+  name: Single superphosphate
+  group: Phosphate
+  n: 0
+  p2o5: 20
+  k2o: 0
+  s: 12
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.186, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Granular: single superphosphate, Grade 0-20-0, Other nutrients 20% Ca, 12% S.'
+  notes: 'Pub 611 p.187: no longer handled by major fertilizer suppliers in Ontario.'
+- slug: triple_superphosphate
+  name: Triple superphosphate
+  group: Phosphate
+  n: 0
+  p2o5: 46
+  k2o: 0
+  s: null
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.186, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Granular: triple superphosphate, Grade 0-46-0, Other nutrients 21% Ca.'
+  notes: 'Pub 611 p.187: rarely available in Ontario; should not be blended with urea. Manitoba Soil Fertility Guide (rev. 2007) Table 17 p.28 prints 0-45-0, so check the label. S not stated; s is null. Manitoba: https://www.gov.mb.ca/agriculture/crops/soil-fertility/soil-fertility-guide/pubs/soil_fertility_guide.pdf'
+- slug: monoammonium_phosphate
+  name: Monoammonium phosphate (MAP)
+  group: Phosphate
+  n: 11
+  p2o5: 52
+  k2o: 0
+  s: null
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.186; cross-checked with OMAFRA Publication 811 Agronomy Guide for Field Crops Table 9-18 p.243, OMAFRA 2018 and 2017, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Granular: mono-ammonium phosphate, Grade 11-52-0, Other nutrients –. Pub 811 Table 9–18: Monoammonium phosphate (11-52-0), dry, Primary Nutrient 48%–52%, Sulphur blank.'
+  notes: 'Typical grade 11-52-0; Pub 611 p.188 gives ranges of 10%-12.5% N and 48%-52% P2O5 and says the balance includes sulphates, so check the label. S not stated as a figure: Pub 611 Table 8-1 prints ''-'' (legend: none) under Other nutrients. s is null; take it from the label. Pub 811 Chapter 9: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf'
+- slug: diammonium_phosphate
+  name: Diammonium phosphate (DAP)
+  group: Phosphate
+  n: 18
+  p2o5: 46
+  k2o: 0
+  s: null
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.186; cross-checked with OMAFRA Publication 811 Agronomy Guide for Field Crops Table 9-18 p.243, OMAFRA 2018 and 2017, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Granular: di-ammonium phosphate, Grade 18-46-0, Other nutrients –. Pub 811 Table 9–18: Diammonium phosphate (18-46-0), dry, Primary Nutrient 46%, Sulphur blank.'
+  notes: 'Pub 611 p.188: availability in Ontario is very limited; ammonia injury risk in starter use. S not stated as a figure: Pub 611 Table 8-1 prints ''-'' (legend: none) under Other nutrients. s is null; take it from the label. Pub 811 Chapter 9: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf'
+- slug: muriate_of_potash_red
+  name: Muriate of potash, red (potassium chloride)
+  group: Potash
+  n: 0
+  p2o5: 0
+  k2o: 60
+  s: null
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.186; cross-checked with OMAFRA Publication 811 Agronomy Guide for Field Crops Table 9-18 p.243, OMAFRA 2018 and 2017, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Granular: muriate of potash (red), Grade 0-0-60, Other nutrients 45% Cl. Pub 811 Table 9–18: Muriate of potash (0-0-60), dry, Primary Nutrient 60%–62%, Sulphur blank.'
+  notes: 'S not stated; s is null, take it from the label. Pub 811 Chapter 9: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf'
+- slug: muriate_of_potash_white
+  name: Muriate of potash, white (potassium chloride)
+  group: Potash
+  n: 0
+  p2o5: 0
+  k2o: 62
+  s: null
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.186, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Granular: muriate of potash (white), Grade 0-0-62, Other nutrients 46% Cl.'
+  notes: S not stated; s is null, take it from the label.
+- slug: potassium_sulphate
+  name: Potassium sulphate
+  group: Potash
+  n: 0
+  p2o5: 0
+  k2o: 50
+  s: 18
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.186; cross-checked with OMAFRA Publication 811 Agronomy Guide for Field Crops Table 9-18 p.243, OMAFRA 2018 and 2017, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Granular: potassium sulphate, Grade 0-0-50, Other nutrients 18% S. Pub 811 Table 9–18: Potassium sulphate (0-0-50), dry, Primary Nutrient 50%, Sulphur 18%.'
+  notes: 'Pub 611 p.189 text prints 0-0-50-17S; both grade tables print 18% S, which is used. Check the label. Pub 811 Chapter 9: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf'
+- slug: sulphate_of_potash_magnesia
+  name: Sulphate of potash magnesia
+  group: Potash
+  n: 0
+  p2o5: 0
+  k2o: 22
+  s: 20
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.186; cross-checked with OMAFRA Publication 811 Agronomy Guide for Field Crops Table 9-18 p.243, OMAFRA 2018 and 2017, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Granular: sulphate of potash-magnesia, Grade 0-0-22, Other nutrients 20% S, 11% Mg. Pub 811 Table 9–18: Sulphate of potash magnesia (0-0-22), dry, Primary Nutrient 22%, Sulphur 20%.'
+  notes: 'Pub 611 p.189 text and the sulphur row of Table 8-3 print 22% S; Tables 8-1 and 9-18 print 20% S, which is used. Check the label. Pub 811 Chapter 9: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf'
+- slug: elemental_sulphur
+  name: Elemental sulphur
+  group: Sulphur
+  n: 0
+  p2o5: 0
+  k2o: 0
+  s: 90
+  form: granular
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., p.192 and Table 8-3 p.191, OMAFRA 2018; Manitoba Soil Fertility Guide, Table 17 p.29, Province of Manitoba 2007, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 p.192: Granular elemental sulphur (90% S). Pub 611 Table 8–3: granular sulphur 90%. Pub 811 Table 9–19: Elemental sulphur 90% S. Manitoba Table 17: Elemental Sulphur 0-0-0-90.'
+  notes: 'Zeros for N, P2O5 and K2O come from the Manitoba grade. Pub 611 p.192: must oxidize to sulphate first, which can take several months. Manitoba: https://www.gov.mb.ca/agriculture/crops/soil-fertility/soil-fertility-guide/pubs/soil_fertility_guide.pdf'
+- slug: anhydrous_ammonia
+  name: Anhydrous ammonia
+  group: Nitrogen
+  n: 82
+  p2o5: 0
+  k2o: 0
+  s: null
+  form: liquid
+  density_kg_per_l: null
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.187, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Liquid: anhydrous ammonia, Grade 82-0-0, Other nutrients –, Bulk density 37 lb/ft3 and 0.6 kg/L. Pub 611 p.184: Anhydrous ammonia (82-0-0). Pub 811 Table 9–18 prints: Anhydrous ammonia (0-0-82), liquid (footnote: Liquid under pressure), Primary Nutrient 82%, under the Nitrogen (N) heading.'
+  notes: 'SAFETY: do not copy the Pub 811 grade (0-0-82). It is a misprint in the N-P-K order; the row is under Nitrogen and Pub 611 and Manitoba Table 17 print 82-0-0. Pressurized liquid; Manitoba calls it hazardous. Density 0.6 is printed to one decimal only (37 lb/ft3 x 0.45359237 / 28.3168 = 0.593 kg/L); no temperature is stated, and this is a hazardous product, so density_kg_per_l is null: take it from the label or safety data sheet. S not stated as a figure: Pub 611 Table 8-1 prints ''-'' (legend: none) under Other nutrients. s is null; take it from the label.'
+- slug: uan_28
+  name: Urea-ammonium nitrate solution (UAN) 28%
+  group: Nitrogen
+  n: 28
+  p2o5: 0
+  k2o: 0
+  s: null
+  form: liquid
+  density_kg_per_l: 1.28
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.187; cross-checked with OMAFRA Publication 811 Agronomy Guide for Field Crops Table 9-20 p.244, OMAFRA 2018 and 2017, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Liquid: urea-ammonium nitrate (UAN), Grade 28-0-0, Other nutrients –, Bulk density 80 lb/ft3 and 1.28 kg/L. Pub 811 Table 9–18: Urea-ammonium nitrate (28-0-0), liquid, 28%, Sulphur blank. Pub 811 Table 9–20: 28%, 1.28 kg/L, 781.8 L/t, 12.8 lb/imp. gal.'
+  notes: 'Pub 611 p.184: the most commonly used liquid fertilizer in Ontario; can salt out below -18 C. No reference temperature is stated for the density. S not stated as a figure: Pub 611 Table 8-1 prints ''-'' (legend: none) under Other nutrients. s is null; take it from the label. Pub 811 Chapter 9: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf'
+- slug: uan_32
+  name: Urea-ammonium nitrate solution (UAN) 32%
+  group: Nitrogen
+  n: 32
+  p2o5: 0
+  k2o: 0
+  s: null
+  form: liquid
+  density_kg_per_l: 1.32
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.187, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Liquid: urea-ammonium nitrate (UAN), Grade 32-0-0, Other nutrients –, Bulk density 82 lb/ft3 and 1.32 kg/L.'
+  notes: 'Pub 611 p.184: not often used in Ontario because it salts out at 0 C. The two printed densities differ slightly (82 lb/ft3 = 1.314 kg/L); the printed kg/L is used. S not stated as a figure: Pub 611 Table 8-1 prints ''-'' (legend: none) under Other nutrients. s is null; take it from the label.'
+- slug: ammonium_polyphosphate_10_34_0
+  name: Ammonium polyphosphate 10-34-0
+  group: Phosphate
+  n: 10
+  p2o5: 34
+  k2o: 0
+  s: null
+  form: liquid
+  density_kg_per_l: 1.4
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-1 p.187; cross-checked with OMAFRA Publication 811 Agronomy Guide for Field Crops Table 9-20 p.244, OMAFRA 2018 and 2017, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–1, Liquid: ammonium polyphosphate, Grade 10-34-0 / 11-37-0, Other nutrients –, Bulk density 87 lb/ft3 and 1.40 kg/L. Pub 611 p.188: liquid solution, 10-34-0 analysis (can also be 11-37-0). Pub 611 Table 8–2: 10-34-0, 11.6 lb/US gal. Pub 811 Table 9–18: Ammonium polyphosphate (10-34-0), liquid, 34%. Pub 811 Table 9–20: 10-34-0, 1.40–1.41 kg/L.'
+  notes: 'Typical grade 10-34-0. Density: Pub 611 states the single value 1.40; Pub 811 gives 1.40-1.41. S not stated as a figure: Pub 611 Table 8-1 prints ''-'' (legend: none) under Other nutrients. s is null; take it from the label. Pub 811 Chapter 9: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf'
+- slug: phosphoric_acid
+  name: Phosphoric acid
+  group: Phosphate
+  n: 0
+  p2o5: 54
+  k2o: 0
+  s: null
+  form: liquid
+  density_kg_per_l: 1.58
+  source: Manitoba Soil Fertility Guide, Table 17 p.28, Province of Manitoba 2007 (grade, form); OMAFRA Publication 811 Agronomy Guide for Field Crops Table 9-20 p.244, OMAFRA 2017 (density), accessed 2026-11-18; unconfirmed, check the product label
+  url: https://www.gov.mb.ca/agriculture/crops/soil-fertility/soil-fertility-guide/pubs/soil_fertility_guide.pdf
+  printed: 'Manitoba Table 17: Phosphoric Acid, 0-54-0, Liquid, contains 1.87 lb P2O5/litre or 8.50 lb P2O5/imperial gallon. Pub 811 Table 9–20: 54% phos. acid, 1.58 kg/L, 633.5 L/t, 15.8 lb/imp. gal.'
+  notes: 'Manitoba: burns skin on contact, corrosive, needs specialized delivery systems. Pub 611 p.190: acid solutions are not commonly used in Ontario. Manitoba figures imply 1.87 / 0.54 = 3.46 lb/L = 1.57 kg/L, in line with Pub 811. S not stated; s is null. Pub 811 Chapter 9: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf'
+- slug: ammonium_thiosulphate
+  name: Ammonium thiosulphate
+  group: Sulphur
+  n: 12
+  p2o5: 0
+  k2o: 0
+  s: 26
+  form: liquid
+  density_kg_per_l: 1.33
+  source: Manitoba Soil Fertility Guide, Table 17 p.29, Province of Manitoba 2007 (grade, form); Univ. of Arkansas FSA2222, Table 2 p.3, UA Cooperative Extension 2025 (density), accessed 2026-11-18; unconfirmed, check the product label
+  url: https://www.gov.mb.ca/agriculture/crops/soil-fertility/soil-fertility-guide/pubs/soil_fertility_guide.pdf
+  printed: 'Manitoba Table 17: Ammonium Thiosulphate, 12-0-0-26, Liquid, contains 0.35 lb N and 0.76 lb S/litre or 1.60 lb N and 3.46 lb S/imperial gallon. Pub 811 Table 9–19: Ammonium thiosulphate 12% N, 26% S. Arkansas FSA2222 Table 2: Ammonium Thiosulfate (ATS), Density 11.10 lb/gal (reported at 68°F), N 12, S 26.'
+  notes: 'Density conversion: 11.10 lb/gal x 0.45359237 / 3.785 L = 1.330 kg/L, reading gal as US gallon (US publication; the unit is not spelled out). Manitoba per-litre figures imply about 1.32-1.33 kg/L. Virginia Tech SPES-199 Table 2 prints 11.18 lb/gal (1.340 kg/L). Manitoba also lists a 15-0-0-20 product, so check the label. Arkansas: https://www.uaex.uada.edu/publications/pdf/FSA2222.pdf'
+- slug: liquid_blend_8_25_3
+  name: Blended liquid fertilizer 8-25-3
+  group: Blended liquids
+  n: 8
+  p2o5: 25
+  k2o: 3
+  s: null
+  form: liquid
+  density_kg_per_l: 1.33
+  source: OMAFRA Publication 811 Agronomy Guide for Field Crops, Table 9-20 p.244, OMAFRA 2017; OMAFRA Publication 611 Soil Fertility Handbook 3rd ed. Table 8-2 p.190, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf
+  printed: 'Pub 811 Table 9–20 (Analyses, kg/L, L/t, imp. gal/t, lb/L, lb/imp. gal): 8-25-3, 1.33, 749.9, 165.1, 2.94, 13.35. Pub 611 Table 8–2 (Analyses, lb/US gal, lb/imp. gal, lb/L, imp. gal/t, US gal/t, L/t): 8-25-3, 11.11, 13.35, 2.94, 165.1, 198.4, 749.9.'
+  notes: S not stated; s is null, take it from the label. No reference temperature is stated for the density.
+- slug: liquid_blend_6_18_6
+  name: Blended liquid fertilizer 6-18-6
+  group: Blended liquids
+  n: 6
+  p2o5: 18
+  k2o: 6
+  s: null
+  form: liquid
+  density_kg_per_l: 1.28
+  source: OMAFRA Publication 811 Agronomy Guide for Field Crops, Table 9-20 p.244, OMAFRA 2017; OMAFRA Publication 611 Soil Fertility Handbook 3rd ed. Table 8-2 p.190, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf
+  printed: 'Pub 811 Table 9–20 (Analyses, kg/L, L/t, imp. gal/t, lb/L, lb/imp. gal): 6-18-6, 1.28, 779.0, 171.6, 2.83, 12.85. Pub 611 Table 8–2 (Analyses, lb/US gal, lb/imp. gal, lb/L, imp. gal/t, US gal/t, L/t): 6-18-6, 10.69, 12.85, 2.83, 171.6, 206.2, 779.0.'
+  notes: S not stated; s is null, take it from the label. No reference temperature is stated for the density.
+- slug: liquid_blend_3_11_11
+  name: Blended liquid fertilizer 3-11-11
+  group: Blended liquids
+  n: 3
+  p2o5: 11
+  k2o: 11
+  s: null
+  form: liquid
+  density_kg_per_l: 1.25
+  source: OMAFRA Publication 811 Agronomy Guide for Field Crops, Table 9-20 p.244, OMAFRA 2017; OMAFRA Publication 611 Soil Fertility Handbook 3rd ed. Table 8-2 p.190, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf
+  printed: 'Pub 811 Table 9–20 (Analyses, kg/L, L/t, imp. gal/t, lb/L, lb/imp. gal): 3-11-11, 1.25, 798.8, 175.7, 2.76, 12.55. Pub 611 Table 8–2 (Analyses, lb/US gal, lb/imp. gal, lb/L, imp. gal/t, US gal/t, L/t): 3-11-11, 10.45, 12.55, 2.76, 175.7, 211.0, 798.8.'
+  notes: S not stated; s is null, take it from the label. No reference temperature is stated for the density.
+- slug: liquid_blend_6_24_6
+  name: Blended liquid fertilizer 6-24-6
+  group: Blended liquids
+  n: 6
+  p2o5: 24
+  k2o: 6
+  s: null
+  form: liquid
+  density_kg_per_l: 1.33
+  source: OMAFRA Publication 811 Agronomy Guide for Field Crops, Table 9-20 p.244, OMAFRA 2017; OMAFRA Publication 611 Soil Fertility Handbook 3rd ed. Table 8-2 p.190, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf
+  printed: 'Pub 811 Table 9–20 (Analyses, kg/L, L/t, imp. gal/t, lb/L, lb/imp. gal): 6-24-6, 1.33, 752.4, 165.8, 2.93, 13.30. Pub 611 Table 8–2 (Analyses, lb/US gal, lb/imp. gal, lb/L, imp. gal/t, US gal/t, L/t): 6-24-6, 11.07, 13.30, 2.93, 165.8, 199.2, 752.4.'
+  notes: S not stated; s is null, take it from the label. No reference temperature is stated for the density.
+- slug: liquid_blend_9_18_9
+  name: Blended liquid fertilizer 9-18-9
+  group: Blended liquids
+  n: 9
+  p2o5: 18
+  k2o: 9
+  s: null
+  form: liquid
+  density_kg_per_l: 1.33
+  source: OMAFRA Publication 811 Agronomy Guide for Field Crops, Table 9-20 p.244, OMAFRA 2017; OMAFRA Publication 611 Soil Fertility Handbook 3rd ed. Table 8-2 p.190, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf
+  printed: 'Pub 811 Table 9–20 (Analyses, kg/L, L/t, imp. gal/t, lb/L, lb/imp. gal): 9-18-9, 1.33, 755.0, 165.8, 2.92, 13.30. Pub 611 Table 8–2 (Analyses, lb/US gal, lb/imp. gal, lb/L, imp. gal/t, US gal/t, L/t): 9-18-9, 11.07, 13.30, 2.92, 165.8, 199.2, 755.'
+  notes: The other printed columns imply 1.32-1.33 kg/L. S not stated; s is null, take it from the label. No reference temperature is stated for the density.
+- slug: liquid_blend_2_10_15
+  name: Blended liquid fertilizer 2-10-15
+  group: Blended liquids
+  n: 2
+  p2o5: 10
+  k2o: 15
+  s: null
+  form: liquid
+  density_kg_per_l: 1.28
+  source: OMAFRA Publication 811 Agronomy Guide for Field Crops, Table 9-20 p.244, OMAFRA 2017; OMAFRA Publication 611 Soil Fertility Handbook 3rd ed. Table 8-2 p.190, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf
+  printed: 'Pub 811 Table 9–20 (Analyses, kg/L, L/t, imp. gal/t, lb/L, lb/imp. gal): 2-10-15, 1.28, 784.6, 172.9, 2.81, 12.75. Pub 611 Table 8–2 (Analyses, lb/US gal, lb/imp. gal, lb/L, imp. gal/t, US gal/t, L/t): 2-10-15, 10.62, 12.75, 2.81, 172.9, 207.6, 784.6.'
+  notes: The other printed columns imply about 1.27 kg/L, slightly below the printed 1.28. S not stated; s is null, take it from the label. No reference temperature is stated for the density.
+- slug: liquid_blend_5_10_15
+  name: Blended liquid fertilizer 5-10-15
+  group: Blended liquids
+  n: 5
+  p2o5: 10
+  k2o: 15
+  s: null
+  form: liquid
+  density_kg_per_l: null
+  source: OMAFRA Publication 811 Agronomy Guide for Field Crops, Table 9-20 p.244, OMAFRA 2017; OMAFRA Publication 611 Soil Fertility Handbook 3rd ed. Table 8-2 p.190, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf
+  printed: 'Pub 811 Table 9–20 (Analyses, kg/L, L/t, imp. gal/t, lb/L, lb/imp. gal): 5-10-15, 1.25, 799.0, 171.6, 2.83, 12.85. Pub 611 Table 8–2 (Analyses, lb/US gal, lb/imp. gal, lb/L, imp. gal/t, US gal/t, L/t): 5-10-15, 10.7, 12.85, 2.83, 171.6, 206.0, 799.'
+  notes: 'Density left null: the columns conflict. 1.25 kg/L and 799 L/t imply 1.25; 2.83 lb/L, 12.85 lb/imp. gal and 10.7 lb/US gal imply 1.28. Take it from the label. S not stated; s is null, take it from the label. No reference temperature is stated for the density.'
+- slug: liquid_blend_9_9_9
+  name: Blended liquid fertilizer 9-9-9
+  group: Blended liquids
+  n: 9
+  p2o5: 9
+  k2o: 9
+  s: null
+  form: liquid
+  density_kg_per_l: 1.257
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-2 p.190, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–2 (Analyses, lb/US gal, lb/imp. gal, lb/L, imp. gal/t, US gal/t, L/t): 9-9-9, 10.49, 12.60, 2.77, 175.0, 210.2, 795.9.'
+  notes: 'Density conversion: 10.49 lb/US gal x 0.45359237 / 3.785 L = 1.257 kg/L. S not stated; s is null, take it from the label. No reference temperature is stated.'
+- slug: liquid_blend_7_7_7
+  name: Blended liquid fertilizer 7-7-7
+  group: Blended liquids
+  n: 7
+  p2o5: 7
+  k2o: 7
+  s: null
+  form: liquid
+  density_kg_per_l: 1.248
+  source: OMAFRA Publication 611 Soil Fertility Handbook 3rd ed., Table 8-2 p.190, OMAFRA 2018, accessed 2026-11-18; unconfirmed, check the product label
+  url: https://files.ontario.ca/omafra-soil-fertility-handbook-en-2022-10-13.pdf
+  printed: 'Pub 611 Table 8–2 (Analyses, lb/US gal, lb/imp. gal, lb/L, imp. gal/t, US gal/t, L/t): 7-7-7, 10.41, 12.5, 2.75, 176.4, 211.8, 801.7.'
+  notes: 'Density conversion: 10.41 lb/US gal x 0.45359237 / 3.785 L = 1.248 kg/L. S not stated; s is null, take it from the label. No reference temperature is stated.'

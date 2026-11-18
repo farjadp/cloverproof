@@ -1,0 +1,16 @@
+{# Picker results: part of /products, and the htmx response of /products/presets (`swap`). #}
+<p class="preset-count" id="preset-count" role="status"{% if swap %} hx-swap-oob="true"{% endif %}>{{ preset_count }} type{{ "s" if preset_count != 1 }}{% if preset_query %} found{% endif %}</p>
+{% if not swap %}<div class="preset-scroll">{% endif %}
+<div class="preset-results" id="preset-results"{% if swap %} hx-swap-oob="true"{% endif %}>
+  {% for group, items in preset_groups %}
+  <h4 class="preset-group">{{ group }}</h4>
+  <ul class="preset-list">
+    {% for p in items %}
+    <li><a href="/products?preset={{ p.key }}{% if preset_query %}&q={{ preset_query | urlencode }}{% endif %}#product-form"{% if preset and preset.key == p.key %} aria-current="true"{% endif %}><span class="preset-name">{{ p.name }}</span> <span class="preset-grade">{{ p.grade }}</span></a></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No type matches “{{ preset_query }}”. Try a grade such as 46-0-0, or <a href="/products?add=manual#name">enter the product manually</a>.</p>
+  {% endfor %}
+</div>
+{% if not swap %}</div>{% endif %}

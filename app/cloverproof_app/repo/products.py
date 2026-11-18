@@ -63,6 +63,16 @@ def list_products(conn: psycopg.Connection, *, include_drafts: bool) -> list[Pro
         return cur.execute(sql).fetchall()  # type: ignore[arg-type]
 
 
+def get_product(conn: psycopg.Connection, product_id: UUID) -> Product | None:
+    """One product, if RLS lets this user see it (drafts: a superadmin only)."""
+    with conn.cursor(row_factory=class_row(Product)) as cur:
+        return cur.execute(
+            "select id, country_code, name, n, p2o5, k2o, s, form, density_kg_per_l, status,"
+            " grade_source from fertilizer_product where id = %s",
+            (product_id,),
+        ).fetchone()
+
+
 def active_name_exists(conn: psycopg.Connection, country_code: str, name: str) -> bool:
     """Same test as the unique index: per country, ignoring case."""
     row = conn.execute(
@@ -96,12 +106,16 @@ def add_draft(conn: psycopg.Connection, product: NewProduct, *, created_by: UUID
     return row[0]
 
 
-def activate(conn: psycopg.Connection, product_id: UUID) -> Activation:
+def activate(
+    conn: psycopg.Connection, product_id: UUID, *, grade_source: str | None = None
+) -> Activation:
+    """Draft -> active. A given grade_source replaces the source of the draft."""
     with conn.transaction():
         updated = conn.execute(
-            "update fertilizer_product set status = 'active'"
+            "update fertilizer_product set status = 'active',"
+            " grade_source = coalesce(%s, grade_source)"
             " where id = %s and status = 'draft' returning id",
-            (product_id,),
+            (grade_source, product_id),
         ).fetchone()
     if updated is not None:
         return Activation.ACTIVATED

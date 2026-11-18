@@ -4,6 +4,10 @@ Any signed-in user reads active products. A human superadmin also sees drafts, a
 and activates them. The same rules are enforced again by RLS and CHECK constraints in
 migration 0027; a refusal there becomes a plain error page, never a 500.
 
+Adding a product can start from a published fertilizer type (`product_presets`). A preset only
+fills the form on a GET: the values come back through the normal POST and are validated like
+typed ones, and activating needs a separate confirmation that the label was checked.
+
 The catalog is global, so no organisation is required: one is resolved only for the header.
 """
 
@@ -19,6 +23,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 from psycopg import errors as pg_errors
 
+from cloverproof_app import product_presets as presets
 from cloverproof_app.auth import (
     Conn,
     CurrentUser,
@@ -27,7 +32,18 @@ from cloverproof_app.auth import (
     UserDep,
     current_org,
 )
+from cloverproof_app.countries import COUNTRIES, DEFAULT_COUNTRY
 from cloverproof_app.plan_web import form_data, not_found, text
+from cloverproof_app.product_presets import (
+    DENSITY_MAX,
+    DENSITY_PLACES,
+    GRADE_PLACES,
+    NAME_MAX,
+    SOURCE_MAX,
+    Preset,
+    decimal_places,
+    plain_number,
+)
 from cloverproof_app.repo import products as repo
 from cloverproof_app.web import render
 
@@ -43,21 +59,27 @@ DUPLICATE_ON_ACTIVATE = (
     "An active product with this name already exists in this country. This product stays a draft."
 )
 ALREADY_ACTIVE = "This product is already active."
+UNKNOWN_PRESET = "That fertilizer type is not in the list. Choose another or enter it manually."
+# Ends every preset citation: an active product must name the label actually checked.
+UNCONFIRMED_SOURCE = "unconfirmed, check the product label"
+CHECKED_SOURCE_MISSING = (
+    "Enter the product label or data sheet you checked, with its edition or date."
+)
+LABEL_NOT_CONFIRMED = (
+    "Tick the box to confirm you checked these values against the product label."
+    " The product stays a draft."
+)
 DONE_MESSAGES = {
-    "added": "Draft added. It stays hidden from other users until you activate it.",
+    "added": "Saved as a draft. Only superadmins can see it.",
     "activated": "Product activated. Every signed-in user can now see it.",
 }
 
 FORMS = {"granular": "Granular", "liquid": "Liquid"}
 GRADES = {"n": "N", "p2o5": "P₂O₅", "k2o": "K₂O", "s": "S"}
-NAME_MAX = 200
-SOURCE_MAX = 500
-DENSITY_MAX = Decimal("999.999")  # numeric(6,3)
-GRADE_PLACES = 2  # numeric(5,2): more digits would be rounded silently
-DENSITY_PLACES = 3
 NUMBER = re.compile(r"-?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)")
 COUNTRY = re.compile(r"[A-Za-z]{2}")
-FORM_DEFAULTS = {"country_code": "CA", "product_form": "granular"}
+FORM_DEFAULTS = {"country_code": DEFAULT_COUNTRY, "product_form": "granular"}
+PRESET_KEY_MAX = 100
 
 
 def page_org(request: Request, user: UserDep, conn: Conn, settings: SettingsDep) -> None:
@@ -85,21 +107,11 @@ def require_catalog_admin(user: UserDep) -> CurrentUser:
 CatalogAdmin = Annotated[CurrentUser, Depends(require_catalog_admin)]
 
 
-def plain_number(value: Decimal) -> str:
-    """10.50 -> 10.5, 100.00 -> 100 (never scientific notation)."""
-    return format(value.normalize(), "f")
-
-
 def parse_decimal(raw: str) -> Decimal | None:
     value = raw.strip().replace(",", ".")
     if len(value) > 32 or NUMBER.fullmatch(value) is None:
         return None
     return Decimal(value)
-
-
-def decimal_places(value: Decimal) -> int:
-    exponent = value.normalize().as_tuple().exponent
-    return max(0, -exponent) if isinstance(exponent, int) else 0
 
 
 def clean_text(
@@ -122,8 +134,9 @@ def validate(form: Any) -> tuple[repo.NewProduct | None, dict[str, str], dict[st
 
     country = text(form, "country_code", 10).strip()
     values["country_code"] = country
-    if COUNTRY.fullmatch(country) is None:
-        errors["country_code"] = "Enter a two-letter country code, for example CA."
+    # The pattern comes first: "ß".upper() is "SS", which is a real code.
+    if COUNTRY.fullmatch(country) is None or country.upper() not in COUNTRIES:
+        errors["country_code"] = "Choose a country from the list."
     country = country.upper()
 
     values["name"] = clean_text(
@@ -197,6 +210,16 @@ def validate(form: Any) -> tuple[repo.NewProduct | None, dict[str, str], dict[st
     return product, values, {}
 
 
+def preset_context(query: str, chosen: Preset | None) -> dict[str, Any]:
+    groups = presets.search(query)
+    return {
+        "preset_groups": groups,
+        "preset_count": sum(len(items) for _, items in groups),
+        "preset_query": query,
+        "preset": chosen,
+    }
+
+
 def catalog_page(
     request: Request,
     conn: psycopg.Connection,
@@ -207,60 +230,172 @@ def catalog_page(
     problem: str | None = None,
     done: str | None = None,
     status: int = 200,
+    open_form: bool = False,
+    preset: Preset | None = None,
+    query: str = "",
+    new_draft: str = "",
 ) -> Response:
     manage = may_manage(user)
+    products = repo.list_products(conn, include_drafts=manage)
     ctx = {
-        "products": repo.list_products(conn, include_drafts=manage),
+        "products": products,
         "manage": manage,
+        # The form opens on request, when it has content to show, or when nothing is listed.
+        "show_form": manage and (open_form or values is not None or not products),
         "values": values if values is not None else FORM_DEFAULTS,
         "errors": errors or {},
         "problem": problem,
         "done": done,
+        "new_draft": next(
+            (p for p in products if str(p.id) == new_draft and p.status == "draft"), None
+        ),
         "form_labels": FORMS,
         "grades": GRADES,
+        "countries": COUNTRIES,
         "number": plain_number,
+        **preset_context(query, preset),
     }
     return render(request, "products.html", ctx, status)
 
 
 @router.get("/products", dependencies=[Depends(page_org)])
-def products_list(request: Request, conn: Conn, user: UserDep, done: str = "") -> Response:
-    return catalog_page(request, conn, user, done=DONE_MESSAGES.get(done))
+def products_list(
+    request: Request,
+    conn: Conn,
+    user: UserDep,
+    done: str = "",
+    add: str = "",
+    preset: str = "",
+    q: str = "",
+    draft: str = "",
+) -> Response:
+    message = DONE_MESSAGES.get(done)
+    if not may_manage(user):  # Readers get the catalog, whatever the address asks for.
+        return catalog_page(request, conn, user, done=message)
+    chosen = presets.BY_KEY.get(preset)
+    return catalog_page(
+        request,
+        conn,
+        user,
+        values={**FORM_DEFAULTS, **chosen.form_values()} if chosen else None,
+        problem=UNKNOWN_PRESET if preset and chosen is None else None,
+        done=message,
+        status=404 if preset and chosen is None else 200,
+        open_form=bool(add or preset or q),
+        preset=chosen,
+        query=q,
+        new_draft=draft if done == "added" else "",
+    )
+
+
+@router.get("/products/presets")
+def preset_results(request: Request, _: CatalogAdmin, q: str = "", preset: str = "") -> Response:
+    """The picker's result list, for htmx. The same search also works through GET /products."""
+    context = preset_context(q, presets.BY_KEY.get(preset))
+    return render(request, "_preset_results.html", {**context, "swap": True})
 
 
 @router.post("/products", dependencies=[Depends(page_org)])
 async def product_add(request: Request, conn: Conn, user: CatalogAdmin) -> Response:
-    product, values, errors = validate(await form_data(request))
+    form = await form_data(request)
+    product, values, errors = validate(form)
+    # Only for the notice and hints: every saved value comes from the submitted fields.
+    chosen = presets.BY_KEY.get(text(form, "preset", PRESET_KEY_MAX))
     if product is None:
-        return catalog_page(request, conn, user, values=values, errors=errors, status=422)
+        return catalog_page(
+            request, conn, user, values=values, errors=errors, status=422, preset=chosen
+        )
 
     def refused(problem: str, status: int) -> Response:
-        return catalog_page(request, conn, user, values=values, problem=problem, status=status)
+        return catalog_page(
+            request, conn, user, values=values, problem=problem, status=status, preset=chosen
+        )
 
     # The database allows such a draft, but it could never be activated: say so now.
     if repo.active_name_exists(conn, product.country_code, product.name):
         return refused(DUPLICATE_ON_ADD.format(country=product.country_code), 409)
     try:
-        repo.add_draft(conn, product, created_by=user.id)
+        draft_id = repo.add_draft(conn, product, created_by=user.id)
     except pg_errors.InsufficientPrivilege:
         return refused(DB_DENIED, 403)
     except (psycopg.IntegrityError, psycopg.DataError):
         return refused(DB_REFUSED, 422)
-    return RedirectResponse("/products?done=added", status_code=303)
+    return RedirectResponse(f"/products?done=added&draft={draft_id}", status_code=303)
+
+
+def activation_page(
+    request: Request,
+    product: repo.Product,
+    *,
+    errors: dict[str, str] | None = None,
+    checked_source: str = "",
+    problem: str | None = None,
+    status: int = 200,
+) -> Response:
+    ctx = {
+        "product": product,
+        "errors": errors or {},
+        "needs_checked_source": UNCONFIRMED_SOURCE in product.grade_source.lower(),
+        "checked_source": checked_source,
+        "problem": problem,
+        "form_labels": FORMS,
+        "grades": GRADES,
+        "country": COUNTRIES.get(product.country_code, product.country_code),
+        "number": plain_number,
+    }
+    return render(request, "product_activate.html", ctx, status)
+
+
+@router.get("/products/{product_id}/activate", dependencies=[Depends(page_org)])
+def product_activate_form(
+    request: Request, conn: Conn, user: CatalogAdmin, product_id: UUID
+) -> Response:
+    product = repo.get_product(conn, product_id)
+    if product is None:
+        raise not_found("Product")
+    if product.status != "draft":
+        return catalog_page(request, conn, user, problem=ALREADY_ACTIVE, status=409)
+    return activation_page(request, product)
 
 
 @router.post("/products/{product_id}/activate", dependencies=[Depends(page_org)])
-def product_activate(
+async def product_activate(
     request: Request, conn: Conn, user: CatalogAdmin, product_id: UUID
 ) -> Response:
+    form = await form_data(request)
+    product = repo.get_product(conn, product_id)
+    if product is None:
+        raise not_found("Product")
+    if product.status != "draft":
+        return catalog_page(request, conn, user, problem=ALREADY_ACTIVE, status=409)
+    errors: dict[str, str] = {}
+    checked_source = ""
+    if UNCONFIRMED_SOURCE in product.grade_source.lower():
+        checked_source = clean_text(
+            form, "grade_source", SOURCE_MAX, "Source", errors, CHECKED_SOURCE_MISSING
+        )
+        if UNCONFIRMED_SOURCE in checked_source.lower():
+            errors["grade_source"] = CHECKED_SOURCE_MISSING
+    if text(form, "label_checked", 10) != "yes":
+        errors["label_checked"] = LABEL_NOT_CONFIRMED
+    if errors:
+        return activation_page(
+            request, product, errors=errors, checked_source=checked_source, status=422
+        )
+
+    def refused(problem: str, status: int) -> Response:
+        return activation_page(
+            request, product, checked_source=checked_source, problem=problem, status=status
+        )
+
     try:
-        outcome = repo.activate(conn, product_id)
+        outcome = repo.activate(conn, product_id, grade_source=checked_source or None)
     except pg_errors.UniqueViolation:
-        return catalog_page(request, conn, user, problem=DUPLICATE_ON_ACTIVATE, status=409)
+        return refused(DUPLICATE_ON_ACTIVATE, 409)
     except pg_errors.InsufficientPrivilege:
-        return catalog_page(request, conn, user, problem=DB_DENIED, status=403)
+        return refused(DB_DENIED, 403)
     except (psycopg.IntegrityError, psycopg.DataError):
-        return catalog_page(request, conn, user, problem=DB_REFUSED, status=422)
+        return refused(DB_REFUSED, 422)
     if outcome is repo.Activation.NOT_FOUND:
         raise not_found("Product")
     if outcome is repo.Activation.ALREADY_ACTIVE:
