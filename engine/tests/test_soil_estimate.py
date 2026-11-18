@@ -96,6 +96,70 @@ def test_bad_value_is_refused(soil_estimate_data, overrides: dict[str, Any]) -> 
         SoilEstimate.model_validate(data)
 
 
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"value": 14.1},
+        {"q05": 6.0, "q95": 14.5},
+        {"q05": 14.2, "q95": 14.5},
+    ],
+)
+def test_ph_outside_its_scale_is_refused(soil_estimate_data, overrides: dict[str, Any]) -> None:
+    data = soil_estimate_data(values=[_value(soil_estimate_data, **overrides)])
+    with pytest.raises(ValidationError, match="scale"):
+        SoilEstimate.model_validate(data)
+
+
+def _percent_value(prop: str = "clay", **overrides: Any) -> dict[str, Any]:
+    return {
+        "property": prop,
+        "depth": "0-5cm",
+        "value": 30.0,
+        "unit": "%",
+        "resolution_m": 250.0,
+        "retrieved_on": "2026-11-18",
+        **overrides,
+    }
+
+
+@pytest.mark.parametrize("prop", ["clay", "sand", "silt"])
+@pytest.mark.parametrize(
+    "overrides", [{"value": 100.1}, {"q05": 20.0, "q95": 100.5}, {"q05": 101.0, "q95": 102.0}]
+)
+def test_percent_above_100_is_refused(
+    soil_estimate_data, prop: str, overrides: dict[str, Any]
+) -> None:
+    data = soil_estimate_data(values=[_percent_value(prop, **overrides)])
+    with pytest.raises(ValidationError, match="scale"):
+        SoilEstimate.model_validate(data)
+
+
+def test_scale_ends_are_accepted(soil_estimate_data) -> None:
+    values = [
+        _value(soil_estimate_data, value=14.0, q05=0.0, q95=14.0),
+        _percent_value(value=100.0, q05=0.0, q95=100.0),
+    ]
+    assert len(SoilEstimate.model_validate(soil_estimate_data(values=values)).values) == 2
+
+
+def test_texture_sum_may_pass_100(soil_estimate_data) -> None:
+    """Three separately rounded layers: only each value is bounded, not their sum."""
+    values = [
+        _percent_value("clay", value=30.1),
+        _percent_value("sand", value=35.0),
+        _percent_value("silt", value=35.0),
+    ]
+    assert len(SoilEstimate.model_validate(soil_estimate_data(values=values)).values) == 3
+
+
+@pytest.mark.parametrize("present", ["q05", "q95"])
+def test_quantiles_come_together(soil_estimate_data, present: str) -> None:
+    value = _value(soil_estimate_data)
+    del value["q05" if present == "q95" else "q95"]
+    with pytest.raises(ValidationError, match="together"):
+        SoilEstimate.model_validate(soil_estimate_data(values=[value]))
+
+
 def test_estimate_needs_values(soil_estimate_data) -> None:
     with pytest.raises(ValidationError):
         SoilEstimate.model_validate(soil_estimate_data(values=[]))

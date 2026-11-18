@@ -255,11 +255,23 @@ class SoilEstimateValue(_Frozen):
 
     @model_validator(mode="after")
     def _check(self) -> Self:
+        # Imported here: units.py imports this module.
+        from cloverproof_engine import units
+
         expected = SOIL_ESTIMATE_UNITS[self.property]
         if self.unit != expected:
             raise ValueError(f"{self.property} must be in {expected}, got {self.unit}")
+        if (self.q05 is None) != (self.q95 is None):
+            raise ValueError("q05 and q95 must be given together")
         if self.q05 is not None and self.q95 is not None and self.q05 > self.q95:
             raise ValueError("q05 must not be greater than q95")
+        # Each value only. Clay, sand and silt are separate layers of separately rounded
+        # integers and `data_sources` does not close them, so their sum can pass 100.
+        scale_max = units.UNIT_SCALE_MAX.get(self.unit)
+        if scale_max is not None:
+            for name, number in (("value", self.value), ("q05", self.q05), ("q95", self.q95)):
+                if number is not None and number > scale_max:
+                    raise ValueError(f"{name} is above the {self.unit} scale ({scale_max:g})")
         return self
 
 
