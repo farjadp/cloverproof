@@ -28,7 +28,7 @@ Org scoping lives in one data-access layer (`app/cloverproof_app/repo/*`, every 
   - `app_ctx_user()` = `nullif(current_setting('app.user_id', true), '')::uuid`
   - `app_ctx_org()` = `app.org_id` **only if** `app_ctx_user()` is an enabled member of it, else NULL (criterion 2.5)
   - `app_ctx_is_human()` = context user exists, enabled, `actor_kind = 'human'`
-  - `app_ctx_platform_role()` = `app.platform_role` only if it equals the user's column (narrows, never elevates); **not used by any policy in v0**.
+  - `app_ctx_platform_role()` = `app.platform_role` only if it equals the user's column (narrows, never elevates); used only by the `catalog` class policies (§5, migration 0027), by no tenant policy.
 - **Deny by default:** unset, `''` (after a `SET LOCAL` ends) or a user/org mismatch all give NULL, which matches no row; a non-uuid raises `22P02`. No `coalesce` wildcard, no `app.*` in `ALTER ROLE/DATABASE ... SET`.
 
 ## 4. Pool contract
@@ -45,6 +45,7 @@ Table classes are listed in `db/rls_tables.yaml`; every `public` table must appe
 | identity | `organisation`, `app_user`, `user_session`, `membership`, `admin_event` | Grants + SECURITY DEFINER functions (ADR 0007). **RLS disabled until v1 (S3)**; the catalog test pins that state so a half-done change shows. |
 | website | `pilot_request`, `site_event` | `ENABLE` (not FORCE; global tables, the owner is the operator). One INSERT policy TO `cp_website` each; no SELECT policy. |
 | website_admin | `website_user`, `website_user_recovery_code`, `website_session`, `website_one_time_token`, `website_rate_limit`, `website_log`, `website_job_run` (migration 0024) | Grants to `cp_website_admin` only + SECURITY DEFINER `website_log_purge()`. RLS disabled; never organisation-scoped, not part of identity RLS v1 (ADR 0012, 0014). |
+| catalog | `fertilizer_product` (migration 0027) | Global reference data, deliberately **not** organisation-scoped: no organisation column, no org boundary. `ENABLE` + `FORCE`. Active rows: any context with an existing, enabled `app.user_id`. Drafts, INSERT (draft only) and UPDATE (drafts only; may activate): human superadmin context via `app_ctx_platform_role()`, or `cp_admin` (no context, or a human one). No DELETE grant. Tests: `app/tests/db/test_fertilizer_product.py`. |
 | global | `schema_migrations`, `spatial_ref_sys` | No RLS. |
 
 Special cases:
@@ -54,7 +55,7 @@ Special cases:
 - Triggers that read other tables (`review_check_reviewer`, `proof_document_check_approved`, record_kind, soil-test lock, access_grant guard) run as the invoker and so read **through** the policies. From the wrong context they see nothing and fail closed (e.g. `proof_document` insert into another org → `23514` before the policy check).
 
 ## 6. Superadmin, service and AI contexts (CLAUDE.md rules 8, 11, 12)
-- `app.platform_role = 'superadmin'` grants nothing through `cp_app`: no policy names it (catalog test), and a superadmin in another org's context sees 0 rows (`test_missing_or_wrong_context_sees_nothing[superadmin_wrong_org]`). A superadmin acts on an org's data only as a member of that org.
+- `app.platform_role = 'superadmin'` grants no organisation data through `cp_app`: only `catalog` class policies name it (catalog test, which excludes that class by an explicit list), and a superadmin in another org's context sees 0 rows (`test_missing_or_wrong_context_sees_nothing[superadmin_wrong_org]`). A superadmin acts on an org's data only as a member of that org.
 - `cp_admin` (CLI) is a member of `cp_app` and gets the same policies. Changing `farmer.record_kind` needs a human superadmin in `app.user_id` **and** an org context they belong to. The design in criterion 5.1 (cp_admin with no table privileges, `admin_*` SECURITY DEFINER functions writing `audit_event` in the same transaction) is **not built** (open question Q2).
 - Approval stays human-only (ADR 0005, migration 0012): `review_check_reviewer` refuses `approve` by a non-human or non-agronomist, whatever the platform role. `ai_reviewed` reviews never change `recommendation_state.status` (0019) and never appear in `recommendation_diff`.
 - Service/AI accounts (`actor_kind = 'service'`, e.g. `cp-agronomist`) see no identifying rows of real farmers (rule 12) and cannot grant or revoke access (0020: actor must be the farmer's own login or a **human** org_admin).
