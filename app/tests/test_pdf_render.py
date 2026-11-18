@@ -398,9 +398,9 @@ def test_old_document_timing_column_has_no_mark() -> None:
 
 
 def test_new_proofs_use_template_v1() -> None:
-    assert TEMPLATE_VERSION == "proof-v2"
+    assert TEMPLATE_VERSION == "proof-v3"
     text = visible_text(render_html(proof()))
-    assert "Template proof-v2" in text and "proof-v1" not in text
+    assert "Template proof-v3" in text and "proof-v2" not in text
 
 
 def test_no_split_line_has_no_growth_stage_claim() -> None:

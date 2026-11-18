@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from cloverproof_app import planning
+from cloverproof_app import line_diff, planning
 from cloverproof_app.db.migrate import REPO_ROOT
 from cloverproof_app.line_diff import diff_lines
 from cloverproof_app.review_queue import parse_filters
@@ -96,3 +96,8 @@ def test_filters_default_and_fall_back() -> None:
         "all", "low", "wheat", "yes", "farmer",
     )  # fmt: skip
     assert len(good.q) == 100
+
+
+def test_pk_advice_in_the_diff_does_not_say_an_agronomist_decided() -> None:
+    doc = {"phosphorus_potassium": {"text": "the agronomist decides P and K from the soil test."}}
+    assert line_diff._pk_text(doc) == "an agronomist must decide P and K from the soil test."
