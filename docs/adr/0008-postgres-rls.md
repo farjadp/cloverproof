@@ -48,7 +48,7 @@ Table classes are listed in `db/rls_tables.yaml`; every `public` table must appe
 | global | `schema_migrations`, `spatial_ref_sys` | No RLS. |
 
 Special cases:
-- `access_grant`: the owning org reads and writes; a grantee org or grantee user may **read** its grants from its own valid context. Revoke = UPDATE by the owner side with `revoked_by = app_ctx_user()`. Grants give **no** read path to farm data until the S9 portal (DM-R1).
+- `access_grant`: the owning org reads and writes; a grantee org or grantee user may **read** its grants from its own valid context. A member whose only role in the context organisation is `farmer` reads only grants about their own farmer record or naming them as grantee user (0028, restrictive `access_grant_farmer_scope`). Revoke = UPDATE by the owner side with `revoked_by = app_ctx_user()`. Grants give **no** read path to farm data until the S9 portal (DM-R1).
 - Rule 12 (AI data boundary): RESTRICTIVE `*_ai_boundary` on `farmer`, `farm`, `field`, `field_geometry_version`: a non-human context sees and writes only rows of farmers with `record_kind <> 'real'` (0017).
 - Views (`recommendation_diff`, `recommendation_state`) are `security_invoker`; no materialized views.
 - Triggers that read other tables (`review_check_reviewer`, `proof_document_check_approved`, record_kind, soil-test lock, access_grant guard) run as the invoker and so read **through** the policies. From the wrong context they see nothing and fail closed (e.g. `proof_document` insert into another org → `23514` before the policy check).
