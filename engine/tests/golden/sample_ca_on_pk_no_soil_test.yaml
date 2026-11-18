@@ -1,5 +1,5 @@
 # SAMPLE golden case - NOT agronomist-approved.
-# N side worked out by hand from packs/ca-on/v1.yaml (PLACEHOLDER constants): yield
+# N side worked out by hand from packs/ca-on/v2.yaml (PLACEHOLDER constants): yield
 # 6.5 t/ha, price ratio 5.5, after corn -> 115.0 kg N/ha; 20 ha -> 2300 kg N.
 # No soil test: N only, never a P or K rate (CLAUDE.md rule 3).
 id: sample_ca_on_pk_no_soil_test
@@ -7,7 +7,7 @@ kind: sample  # not agronomist-approved; never counts toward the agreement gate
 description: Without a soil test there is no P or K result at all.
 pack:
   id: ca-on
-  version: v1
+  version: v2
 # TODO(agronomist): set agreement tolerances for real cases.
 tolerance:
   kg_n_per_ha: 0.5
@@ -39,4 +39,4 @@ expected:
     outcome: not_calculated
   potassium:
     outcome: not_calculated
-  reason: SAMPLE derived from the ca-on v1 pack; not an agronomist decision.
+  reason: SAMPLE derived from the ca-on v2 pack; not an agronomist decision.

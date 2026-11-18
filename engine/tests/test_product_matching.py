@@ -32,8 +32,8 @@ RULES_PATH = PACKS_DIR / "placeholder" / "v0-product-rules.yaml"
 V0_PATH = PACKS_DIR / "placeholder" / "v0.yaml"
 CA_ON_PATH = PACKS_DIR / "ca-on" / "v1.yaml"
 
-# Fingerprint of packs/ca-on/v1.yaml, updated on purpose for the P/K tables (engine 0.6.0).
-CA_ON_V1_SHA256 = "4ee2ad7e7781ab4faafd1c5815d8e9afe9cf233eda9edf3b237865505b2b2f7b"
+# Fingerprint before product matching (engine 0.4.0): this pack must not change.
+CA_ON_V1_SHA256 = "84d874e7c6f0119cfeb44e5c5de8a9dfe04e3e9961a0dae0819cd856b1996e58"
 
 LIQUID = "TEST FIXTURE liquid N 25"
 GRANULAR = "TEST FIXTURE granular N 40"

@@ -9,9 +9,14 @@ from pydantic import ValidationError
 
 from cloverproof_engine.loaders import load_pack
 from cloverproof_engine.models import Crop, ExtractionMethod, NutrientForm
-from cloverproof_engine.pack import CitationBasis, ConstantStatus, Pack, parse_pack
+from cloverproof_engine.pack import CitationBasis, ConstantStatus, Pack, pack_sha256, parse_pack
 
-CA_ON_PATH = Path(__file__).resolve().parents[2] / "packs" / "ca-on" / "v1.yaml"
+CA_ON_DIR = Path(__file__).resolve().parents[2] / "packs" / "ca-on"
+CA_ON_PATH = CA_ON_DIR / "v2.yaml"
+
+# Fingerprints. v1 is frozen: recommendations may record it, so P/K went into a new version.
+CA_ON_V1_SHA256 = "84d874e7c6f0119cfeb44e5c5de8a9dfe04e3e9961a0dae0819cd856b1996e58"
+CA_ON_V2_SHA256 = "2f2c8cf38dba08d73e38d86ea8219664a8716fd99d5b3ed8c97e7cda3b77aca7"
 
 # Second, separate entry of the winter wheat columns (low, high, kg/ha, rating), from
 # OMAFRA Pub 811 (PDF edition 2022-10-13) p. 131 Table 4-20 and p. 132 Table 4-21.
@@ -170,3 +175,13 @@ def test_placeholder_table_must_have_no_source(pack: Pack) -> None:
     _p_table(data)["source"] = "somewhere"
     with pytest.raises(ValidationError, match="source: null"):
         parse_pack(data)
+
+
+def test_v1_stays_frozen_without_p_and_k_tables() -> None:
+    v1 = load_pack(CA_ON_DIR / "v1.yaml")
+    assert (v1.version, pack_sha256(v1)) == ("v1", CA_ON_V1_SHA256)
+    assert v1.crops[Crop.WHEAT].phosphorus_potassium is None
+
+
+def test_v2_is_pinned(pack: Pack) -> None:
+    assert (pack.id, pack.version, pack_sha256(pack)) == ("ca-on", "v2", CA_ON_V2_SHA256)

@@ -20,7 +20,7 @@ from cloverproof_engine.pack import Pack, parse_pack
 from cloverproof_engine.results import ExplainedNumber, PkRecommended, PkRefused, Recommendation
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CA_ON_PATH = REPO_ROOT / "packs" / "ca-on" / "v1.yaml"
+CA_ON_PATH = REPO_ROOT / "packs" / "ca-on" / "v2.yaml"
 GOLDEN_DIR = REPO_ROOT / "engine" / "tests" / "golden"
 
 OLSEN_P = {"form": "P", "value": 7, "unit": "mg/kg", "extraction_method": "olsen"}

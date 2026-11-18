@@ -1,5 +1,5 @@
 # SAMPLE golden case - NOT agronomist-approved. SYNTHETIC soil values.
-# N side worked out by hand from packs/ca-on/v1.yaml (PLACEHOLDER constants): yield
+# N side worked out by hand from packs/ca-on/v2.yaml (PLACEHOLDER constants): yield
 # 6.5 t/ha, price ratio 5.5, after corn -> 115.0 kg N/ha; 20 ha -> 2300 kg N.
 # Mehlich-3 P and K: the pack has no Mehlich-3 table, so neither value may read the
 # Olsen or ammonium acetate tables. No rate for either.
@@ -8,7 +8,7 @@ kind: sample  # not agronomist-approved; never counts toward the agreement gate
 description: Mehlich-3 values never read the Olsen or ammonium acetate tables.
 pack:
   id: ca-on
-  version: v1
+  version: v2
 # TODO(agronomist): set agreement tolerances for real cases.
 tolerance:
   kg_n_per_ha: 0.5
@@ -49,4 +49,4 @@ expected:
     outcome: no_table_for_method
   potassium:
     outcome: no_table_for_method
-  reason: SAMPLE derived from the ca-on v1 pack; not an agronomist decision.
+  reason: SAMPLE derived from the ca-on v2 pack; not an agronomist decision.

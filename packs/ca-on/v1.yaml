@@ -16,10 +16,9 @@
 #
 # Scope: nitrogen for winter wheat grown as pastry (soft) wheat. Hard wheat is NOT
 # covered (Pub 811: optimum N 35-70 kg/ha higher than pastry wheat).
-# P and K: rates come only from a lab soil test (rule 3), from the table for that
-# value's extraction method: Olsen P (Pub 811 Table 4-20) and ammonium acetate K
-# (Table 4-21), winter wheat column, not seeded down. Any other method gets no rate.
-# Without a soil test the engine gives N only (max medium).
+# P and K: this pack only names the soil tests its guidance assumes (Olsen P,
+# ammonium acetate K, mg/kg, element form). P/K rates arrive in S3 and only with a
+# lab soil test (rule 3). Without a soil test the engine gives N only (max medium).
 #
 # Inputs this pack needs beyond the base input: `n_price` (N price per kg N, wheat
 # price per kg, currency, source, date; ratio = N price / wheat price, Pub 811
@@ -27,7 +26,7 @@
 # Not applied by this pack (Pub 811 Table 4-14 notes): +30 kg N/ha spring N with a T2 or
 # T3 fungicide and no lodging concern. TODO(agronomist): decide whether to model it.
 #
-# See docs/agronomist-todo.md items #12-#20 and #35-#42.
+# See docs/agronomist-todo.md items #12-#20.
 
 id: ca-on
 version: v1
@@ -293,124 +292,9 @@ crops:
           basis: derived
           note: "The page says 'For most farms, sampling once every three years is adequate.' cp-engine uses that sampling interval as a staleness limit; the page does not state one."
 
-    # P and K rates from a lab soil test. A table is reached only through its own
-    # extraction method; a method with no table gets no rate. Rows are entered by hand
-    # from the cited PDF pages (checked against the rendered page, 2026-11-18), winter
-    # wheat column only; the lb/acre line is not used.
-    phosphorus_potassium:
-      method: pk_soil_test_table
-      # TODO(agronomist): validate 15 cm, and whether other depths may use these tables
-      # (docs/agronomist-todo.md #37).
-      sample_depth_cm:
-        value: 15
-        unit: cm
-        status: PLACEHOLDER
-        source: null
-        citation:
-          title: "Agronomy Guide for Field Crops (Publication 811), Chapter 9: Soil Fertility and Nutrient Use (PDF edition 2022-10-13)"
-          publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
-          year: 2022
-          locator: "section 'Technology Options for Soil Testing', p. 216"
-          url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-9-en-2022-10-13.pdf"
-          accessed_on: 2026-11-18
-          basis: stated
-          note: "'Sample depth should be 15 cm (6 in.), with the exception of nitrate nitrogen samples ... and pH samples taken in continuous no-till.'"
-      nutrients:
-        P:
-          tables:
-            olsen:
-              # TODO(agronomist): validate every row for the pilot farms and give source
-              # (docs/agronomist-todo.md #35).
-              label: "sodium bicarbonate (Olsen) phosphorus soil test"
-              soil_test_unit: ppm
-              rate_form: P2O5
-              status: PLACEHOLDER
-              source: null
-              citation:
-                title: "Agronomy Guide for Field Crops (Publication 811), Chapter 4: Cereals (PDF edition 2022-10-13)"
-                publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
-                year: 2022
-                locator: "Table 4-20, Phosphate (P2O5) guidelines for cereals, column 'Winter Wheat, Winter Rye, Winter Barley, Winter Triticale', rows 0-3 ppm to 61 ppm +, p. 131"
-                url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-4-en-2022-10-13.pdf"
-                accessed_on: 2026-11-18
-                basis: stated
-                note: "All 13 rows of the column, kg/ha of P2O5 with the response rating. Row label = the band shown with each rate."
-              assumes: >-
-                winter wheat not seeded down (Pub 811 has a separate, higher column for
-                winter or spring grains seeded down), with no manure or other organic
-                amendment applied
-              response_legend:
-                HR: high response
-                MR: medium response
-                LR: low response
-                RR: rare response
-                NR: no response
-              bands:
-                - {low: 0, high: 3, rate: 70, response: HR}
-                - {low: 4, high: 5, rate: 60, response: HR}
-                - {low: 6, high: 7, rate: 50, response: HR}
-                - {low: 8, high: 9, rate: 30, response: HR}
-                - {low: 10, high: 12, rate: 20, response: MR}
-                - {low: 13, high: 15, rate: 20, response: MR}
-                - {low: 16, high: 20, rate: 20, response: MR}
-                - {low: 21, high: 25, rate: 20, response: MR}
-                - {low: 26, high: 30, rate: 20, response: MR}
-                - {low: 31, high: 40, rate: 0, response: LR}
-                - {low: 41, high: 50, rate: 0, response: RR}
-                - {low: 51, high: 60, rate: 0, response: RR}
-                - low: 61
-                  rate: 0
-                  response: NR
-                  caution: "Pub 811 Table 4-20 footnote 2: at a no-response rating, application of phosphorus in fertilizer or manure may reduce crop yield or quality, and may increase the risk of water pollution."
-        K:
-          tables:
-            ammonium-acetate:
-              # TODO(agronomist): validate every row for the pilot farms and give source
-              # (docs/agronomist-todo.md #36).
-              label: "ammonium acetate potassium soil test"
-              soil_test_unit: ppm
-              rate_form: K2O
-              status: PLACEHOLDER
-              source: null
-              citation:
-                title: "Agronomy Guide for Field Crops (Publication 811), Chapter 4: Cereals (PDF edition 2022-10-13)"
-                publisher: "Ontario Ministry of Agriculture, Food and Rural Affairs (OMAFRA), ontario.ca"
-                year: 2022
-                locator: "Table 4-21, Potash (K2O) guidelines for cereals, column 'Winter Wheat, Winter Rye, Winter Barley, Winter Triticale', rows 0-15 ppm to 251 ppm +, p. 132"
-                url: "https://www.ontario.ca/files/2022-10/omafra-agronomy-guide-for-field-crops-chapter-4-en-2022-10-13.pdf"
-                accessed_on: 2026-11-18
-                basis: stated
-                note: "All 12 rows of the column, kg/ha of K2O with the response rating. Row label = the band shown with each rate. In this PDF edition the first column header reads 'Ammonium Acetate Potassium Soil Test'."
-              assumes: >-
-                winter wheat not seeded down (Pub 811 has a separate, higher column for
-                winter or spring grains seeded down), with no manure or other organic
-                amendment applied
-              response_legend:
-                HR: high response
-                MR: medium response
-                LR: low response
-                RR: rare response
-                NR: no response
-              bands:
-                - {low: 0, high: 15, rate: 50, response: HR}
-                - {low: 16, high: 30, rate: 40, response: HR}
-                - {low: 31, high: 45, rate: 30, response: HR}
-                - {low: 46, high: 60, rate: 20, response: HR}
-                - {low: 61, high: 80, rate: 20, response: MR}
-                - {low: 81, high: 100, rate: 20, response: MR}
-                - {low: 101, high: 120, rate: 20, response: LR}
-                - {low: 121, high: 150, rate: 0, response: RR}
-                - {low: 151, high: 180, rate: 0, response: RR}
-                - {low: 181, high: 210, rate: 0, response: RR}
-                - {low: 211, high: 250, rate: 0, response: RR}
-                - low: 251
-                  rate: 0
-                  response: NR
-                  caution: "Pub 811 Table 4-21 footnote 1: at a no-response rating, application of potash in fertilizer or manure may reduce crop yield or quality."
-
     # Soil tests the Ontario P and K guidance is calibrated for (OMAFA-accredited
-    # tests; values in ppm = mg/kg, element form). The tables above are keyed to the
-    # same methods.
+    # tests; values in ppm = mg/kg, element form). Declarative only in this
+    # version: no P/K rates yet.
     # TODO(agronomist): confirm the soil tests this pack assumes (Olsen P, ammonium
     # acetate K, mg/kg, element form); see docs/agronomist-todo.md #17.
     soil_test_methods:

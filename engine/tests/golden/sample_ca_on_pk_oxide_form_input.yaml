@@ -1,5 +1,5 @@
 # SAMPLE golden case - NOT agronomist-approved. SYNTHETIC soil values.
-# Expected values are worked out by hand from packs/ca-on/v1.yaml (PLACEHOLDER
+# Expected values are worked out by hand from packs/ca-on/v2.yaml (PLACEHOLDER
 # constants; P and K tables read from OMAFRA Pub 811 Tables 4-20 and 4-21).
 # N side: yield 6.5 t/ha, price ratio 5.5, after corn -> 115.0 kg N/ha; 20 ha -> 2300 kg N.
 # Oxide factors from standard atomic weights: P = 0.436421 x P2O5, K = 0.830152 x K2O.
@@ -10,7 +10,7 @@ kind: sample  # not agronomist-approved; never counts toward the agreement gate
 description: Soil-test values reported as P2O5 and K2O are converted before the table is read.
 pack:
   id: ca-on
-  version: v1
+  version: v2
 # TODO(agronomist): set agreement tolerances for real cases.
 tolerance:
   kg_n_per_ha: 0.5
@@ -65,4 +65,4 @@ expected:
     total_elemental_kg: 332.06
     soil_test_elemental_mg_kg: 49.8091
     soil_test_oxide_mg_kg: 60.0
-  reason: SAMPLE derived from the ca-on v1 pack; not an agronomist decision.
+  reason: SAMPLE derived from the ca-on v2 pack; not an agronomist decision.
