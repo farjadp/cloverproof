@@ -656,8 +656,9 @@ def c6_placeholder_constant_used(pack_id: str, version: str, paths: list[str]) -
 def c8_pk_placeholder_not_in_plan(pack_id: str, version: str, paths: list[str]) -> str:
     return (
         f"The P and K table check used PLACEHOLDER constants from pack '{pack_id}' {version}: "
-        f"{', '.join(paths)}. Those P and K results are not part of this plan; this rule "
-        "still keeps confidence low until a human agronomist validates the constants."
+        f"{', '.join(paths)}. Those P and K results are not part of this plan and do not "
+        "change the nitrogen rate; this rule still caps the confidence shown for the nitrogen "
+        "line at low until a human agronomist validates the constants."
     )
 
 

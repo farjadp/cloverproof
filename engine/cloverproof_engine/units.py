@@ -124,6 +124,8 @@ def convert_form(value: float, from_form: NutrientForm, to_form: NutrientForm) -
     """Convert between forms of the same element, e.g. P2O5 -> P."""
     if element_of(from_form) != element_of(to_form):
         raise ValueError(f"cannot convert {from_form.value} to {to_form.value}")
+    if from_form is to_form:
+        return value
     return to_elemental(value, from_form) / _TO_ELEMENTAL[to_form]
 
 

@@ -126,7 +126,11 @@ def test_ca_on_plan_with_all_inputs(db: psycopg.Connection, org_a: Org) -> None:
         ({"price_date": ""}, "price_date", "Enter the date of the prices."),
         ({"currency": "C1"}, "currency", "3-letter code"),
         ({"wheat_class": ""}, "wheat_class", "Choose the wheat class"),
-        ({"manure_applied": ""}, "manure_applied", "Say whether manure was applied"),
+        (
+            {"manure_applied": ""},
+            "manure_applied",
+            "Say whether manure or another organic amendment was applied",
+        ),
     ],
 )
 def test_ca_on_missing_or_bad_input_is_422(
