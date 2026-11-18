@@ -13,6 +13,7 @@ Names only — values go in Railway variables, never in git. `.env.example` must
 | `WEBSITE_SECRETS_KEK_ID` | **required, no default**: short id for that key, e.g. `k2026a` (letters, digits, `_ . -`). Use a new id for every new key |
 | `WEBSITE_ADMIN_HMAC_KEY` | 32 random bytes, base64 (rate-limit keys, CSRF, recovery codes) |
 | `WEBSITE_SECRETS_KEK_PREVIOUS`, `WEBSITE_SECRETS_KEK_PREVIOUS_ID` | only during a KEK rotation; both or neither. The id must differ from `WEBSITE_SECRETS_KEK_ID` (the site refuses to start the admin otherwise) |
+| `ADMIN_MFA_OPTIONAL` | **normally unset.** Only the exact value `true` makes two-step sign-in optional for accounts that have not enrolled (§7). Anything else keeps it required |
 | `TRUSTED_PROXY_HEADER` | **leave empty** until the staging probe in §5 passes; then the one header Railway sets with the client IP (e.g. `X-Real-IP`) |
 
 Keep a copy of `WEBSITE_SECRETS_KEK` in Farjad Iranmehr's password manager. Losing it means every enrolled two-step sign-in (and later every API key) must be set up again.
@@ -32,6 +33,7 @@ In the website service shell:
 npm run admin:create -- --email <his email> --name "Farjad Iranmehr"
 ```
 It prints a one-time link (72 h; the token is in the `#fragment`, so it never reaches server logs). Open it, set a password (≥ 12 characters), sign in, scan the QR code, save the 10 recovery codes.
+With `ADMIN_MFA_OPTIONAL=true` the QR step is skipped at sign-in; set it up from the dashboard (§7).
 The CLI refuses a second admin unless `--additional` is given; later users are invited from the admin.
 
 ## 4. Lost phone / locked out
@@ -67,3 +69,19 @@ With `X-Forwarded-For`, only the last entry is used. Any other header must hold 
   3. In the website service shell, run `npm run secrets:rewrap`. Wait for "Rotation complete". The command re-seals everything under the new key in one transaction, then checks that no active value is still under the old id and that each opens with the new key alone. If not, it rolls back and changes nothing.
   4. Only after "Rotation complete": delete the two `_PREVIOUS` variables and redeploy. Keep the old key in the password manager for a few days.
   5. If a leak is suspected, also rotate the provider keys themselves.
+
+## 7. Optional two-step sign-in (`ADMIN_MFA_OPTIONAL`, ADR 0012 amendment 2026-11-18)
+Decided by Farjad Iranmehr on 2026-11-18, with the risks listed in the ADR. Temporary: required is the default.
+
+**Turn on:** set `ADMIN_MFA_OPTIONAL` to `true` (lower case, nothing else) on the website service and redeploy. Check:
+1. Sign in: you land on the dashboard, which says "Two-step sign-in is off".
+2. `/admin/keys` and `/admin/users` show "You need two-step sign-in…" with a set-up link.
+3. System log: the sign-in shows as `login.password_only`, `via: mfa_optional`.
+
+**While it is on:**
+- Accounts with two-step sign-in enrolled still need their code. Nothing changes for them.
+- Users, API keys and log export stay locked for an account until it enrols and gives a fresh code.
+- Watch the system log for `login.password_only` at unexpected times and for any `mfa.enrol` you did not do. An unexpected `mfa.enrol` means someone else has the password: run `npm run admin:reset -- --email <email> --mfa` (§4), which also ends all sessions and prints a password link.
+- The per-IP limit stays off until `TRUSTED_PROXY_HEADER` is set (§5). The per-e-mail throttle still applies.
+
+**Turn off (the goal):** enrol at `/admin/mfa`, save the recovery codes, sign out and back in with a code, then delete `ADMIN_MFA_OPTIONAL` and redeploy. Do this soon: until the owner enrols, anyone with the password could enrol first. If the variable is removed before enrolling, the next page load goes to the forced enrolment screen, as before.
