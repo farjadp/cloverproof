@@ -5,6 +5,7 @@ Every product, grade, density and rule here is a TEST FIXTURE, not agronomy.
 
 import copy
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ import pytest
 from pydantic import ValidationError
 
 from cloverproof_engine import recommend
+from cloverproof_engine.confidence import Confidence
 from cloverproof_engine.golden import ExpectedCase, compare
 from cloverproof_engine.loaders import load_golden_case, load_pack, pack_path, read_yaml
 from cloverproof_engine.models import RecommendationInput
@@ -35,6 +37,7 @@ CA_ON_V1_SHA256 = "84d874e7c6f0119cfeb44e5c5de8a9dfe04e3e9961a0dae0819cd856b1996
 
 LIQUID = "TEST FIXTURE liquid N 25"
 GRANULAR = "TEST FIXTURE granular N 40"
+C7 = "C7_PLACEHOLDER_PRODUCT_RULE_USED"
 
 
 def product(name: str = GRANULAR, **overrides: Any) -> dict[str, Any]:
@@ -314,15 +317,144 @@ def test_line_with_no_n_needs_no_product() -> None:
 # --- what must not change ----------------------------------------------------------
 
 
-def test_nutrient_numbers_and_confidence_do_not_change() -> None:
+def test_matching_changes_no_nutrient_number_and_only_adds_c7() -> None:
     pack = rules_pack()
     without = recommend(inputs(None), pack)
     with_match = recommend(inputs([product()]), pack)
     assert with_match.nitrogen.rate == without.nitrogen.rate
     assert [s.rate for s in lines(with_match)] == [s.rate for s in lines(without)]
     assert with_match.confidence == without.confidence
-    assert with_match.confidence_reasons == without.confidence_reasons
+    assert with_match.confidence_reasons[:-1] == without.confidence_reasons
+    assert with_match.confidence_reasons[-1].rule_id == C7
     assert with_match.notes == without.notes
+
+
+def test_a_line_without_a_match_leaves_confidence_alone() -> None:
+    pack = rules_pack(preference=[])
+    without = recommend(inputs(None), pack)
+    other = product("TEST FIXTURE other", n_pct=30)
+    rec = recommend(inputs([product(), other]), pack)
+    assert unmatched(rec).code == "several_fit"
+    assert unmatched(rec).rules_used
+    assert rec.confidence_reasons == without.confidence_reasons
+
+
+# --- confidence: unvalidated product rule --------------------------------------------
+
+
+def validated_pack_with_placeholder_rules() -> Pack:
+    """TEST FIXTURE: only the product rules are unvalidated, and no timing window applies."""
+    raw = raw_rules_pack()
+    data = _all_validated(raw_rules_pack())
+    data["status"] = raw["status"]
+    wheat = data["crops"]["wheat"]
+    wheat["product_rules"] = raw["crops"]["wheat"]["product_rules"]
+    del wheat["nitrogen"]["splits"]
+    return parse_pack(data)
+
+
+def test_a_placeholder_product_rule_caps_confidence_at_low() -> None:
+    pack = validated_pack_with_placeholder_rules()
+    assert recommend(inputs(None), pack).confidence == Confidence.MEDIUM
+    rec = recommend(inputs([product()]), pack)
+    assert rec.confidence == Confidence.LOW
+    hit = next(h for h in rec.confidence_reasons if h.rule_id == C7)
+    assert hit.cap == Confidence.LOW
+    for rule in matched(rec).rules_used:
+        assert hit.reason.count(rule.path) == 1
+
+
+def test_validated_product_rules_do_not_fire_c7() -> None:
+    rec = recommend(inputs([product()]), parse_pack(_all_validated(raw_rules_pack())))
+    assert isinstance(lines(rec)[0].product_match, ProductMatch)
+    assert C7 not in [h.rule_id for h in rec.confidence_reasons]
+
+
+# --- quantities that cannot be computed ----------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "catalog",
+    [
+        [product(n_pct=1e-320)],
+        [product(n_pct=5e-324)],
+        [liquid(density_kg_per_l=1e-320)],
+    ],
+)
+def test_an_unusable_grade_or_density_is_a_coded_non_match(catalog: list[dict[str, Any]]) -> None:
+    pack = rules_pack(preference=[catalog[0]["name"]])
+    rec = recommend(inputs(catalog), pack)
+    for i, line in enumerate(lines(rec), 1):
+        result = line.product_match
+        assert isinstance(result, ProductNotMatched)
+        assert result.code == "quantity_out_of_range"
+        assert result.fitting_products == []
+        assert catalog[0]["name"] in result.explanation
+        assert f"application {i}" in result.explanation
+    assert Recommendation.model_validate(rec.model_dump(mode="json")) == rec
+
+
+def test_a_field_total_too_large_to_compute_is_a_coded_non_match() -> None:
+    rec = recommend(inputs([product()], area_ha=1e308), rules_pack())
+    assert unmatched(rec).code == "quantity_out_of_range"
+
+
+# --- rule citations ------------------------------------------------------------------
+
+
+def cited_rules_pack(basis: str) -> Pack:
+    citation: dict[str, Any] = {
+        "title": "TEST FIXTURE guide",
+        "publisher": "TEST FIXTURE publisher",
+        "year": 2020,
+        "locator": "Table 1",
+        "url": "https://example.org/fixture",
+        "accessed_on": "2026-11-01",
+        "basis": basis,
+    }
+    if basis != "stated":
+        citation["note"] = "TEST FIXTURE note"
+    data = raw_rules_pack()
+    data["crops"]["wheat"]["product_rules"]["sulphur"]["citation"] = citation
+    return parse_pack(data)
+
+
+@pytest.mark.parametrize(
+    ("basis", "wording"),
+    [
+        ("stated", "read from TEST FIXTURE guide, Table 1"),
+        ("derived", "derived by the engine from TEST FIXTURE guide, Table 1"),
+        ("inferred", "inferred by the engine from TEST FIXTURE guide, Table 1"),
+    ],
+)
+def test_a_cited_rule_is_copied_and_shown_by_basis(basis: str, wording: str) -> None:
+    rec = recommend(inputs([product()]), cited_rules_pack(basis))
+    match = matched(rec)
+    rule = next(r for r in match.rules_used if r.path.endswith(".sulphur"))
+    assert rule.citation is not None
+    assert rule.citation.basis == basis
+    rules_text = match.explanation.split("Rules used: ")[1]
+    assert wording in rules_text
+    assert ("read from" in rules_text) is (basis == "stated")
+    assert Recommendation.model_validate(rec.model_dump(mode="json")) == rec
+
+
+def test_a_rule_without_citation_has_none() -> None:
+    match = matched(recommend(inputs([product()]), rules_pack()))
+    assert all(r.citation is None for r in match.rules_used)
+
+
+# --- explanation operands -------------------------------------------------------------
+
+
+def test_product_explanations_can_be_reproduced_by_hand() -> None:
+    catalog = [liquid(s_pct=5)]
+    match = matched(recommend(inputs(catalog), rules_pack(sulphur="allow")), 1)
+    assert match.volume_rate is not None and match.sulphur_rate is not None
+    assert "89.25 kg N/ha / 25 % N = 357.0 kg product/ha" in match.rate.explanation
+    assert "357 kg product/ha x 40 ha = 14,280.0 kg product" in match.total.explanation
+    assert "357 kg product/ha / 1.25 kg/L" in match.volume_rate.explanation
+    assert "357 kg product/ha x 5 % S = 17.9 kg S/ha" in match.sulphur_rate.explanation
 
 
 def test_absent_products_leave_input_and_output_shape_alone() -> None:
@@ -367,6 +499,7 @@ def test_shipped_packs_have_no_rules_and_keep_their_fingerprint() -> None:
         (product(form="liquid"), "density"),
         (product(density_kg_per_l=1.2), "density"),
         (liquid(density_kg_per_l=0), "density"),
+        (liquid(density_kg_per_l=math.inf), "density"),
         (product(n_pct=60, s_pct=50), "100"),
         (product(n_pct=-1), "n_pct"),
         (product(name="  "), "name"),

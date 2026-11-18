@@ -1,6 +1,7 @@
 """Unit conversions: chemistry and unit facts only (no agronomy)."""
 
 import math
+from collections.abc import Callable
 
 import pytest
 
@@ -155,3 +156,23 @@ def test_grades_fit_in_one_hundred_percent() -> None:
     # Sums to exactly 100 on the label, slightly over in binary floats.
     assert units.grades_fit_in_product([33.33, 33.33, 33.34])
     assert not units.grades_fit_in_product([60.0, 30.0, 20.0])
+
+
+@pytest.mark.parametrize(
+    ("convert", "args"),
+    [
+        (units.nutrient_to_product_kg, (100.0, 1e-320)),
+        (units.nutrient_to_product_kg, (100.0, 5e-324)),
+        (units.product_kg_to_nutrient, (math.inf, 50.0)),
+        (units.kg_to_litres, (100.0, 1e-320)),
+        (units.kg_to_litres, (100.0, math.inf)),
+        (units.kg_to_litres, (100.0, math.nan)),
+        (units.litres_to_kg, (1e308, 1e308)),
+        (units.litres_to_kg, (100.0, math.inf)),
+    ],
+)
+def test_product_conversions_refuse_a_result_that_is_not_finite(
+    convert: Callable[[float, float], float], args: tuple[float, float]
+) -> None:
+    with pytest.raises(ValueError, match="finite"):
+        convert(*args)

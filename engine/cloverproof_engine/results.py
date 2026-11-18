@@ -70,6 +70,8 @@ class UsedProductRule(_Frozen):
     value: str
     status: ConstantStatus
     source: str | None
+    # Where the rule comes from, with its `basis`. Not a validation (rule 9).
+    citation: Citation | None = None
 
 
 class ProductGrade(_Frozen):
@@ -110,6 +112,7 @@ class ProductNotMatched(_Frozen):
         "no_choice_rule",
         "several_fit",
         "single_fit_not_allowed",
+        "quantity_out_of_range",  # the grade, density or area gives no usable number
         "rate_edited",  # set when an agronomist's edit changes the line's N rate
     ]
     # Products that fit but were not selected, sorted by name. Not a ranking.

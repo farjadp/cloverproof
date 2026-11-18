@@ -126,6 +126,17 @@ def grades_fit_in_product(grades_pct: Iterable[float]) -> bool:
     return total <= PERCENT or math.isclose(total, PERCENT)
 
 
+class NonFiniteQuantityError(ValueError):
+    """A product quantity came out as infinity or not-a-number, so it cannot be used."""
+
+
+def finite_quantity(value: float, what: str) -> float:
+    """`value`, or NonFiniteQuantityError when it is not a finite number."""
+    if not math.isfinite(value):
+        raise NonFiniteQuantityError(f"{what} is not a finite number")
+    return value
+
+
 def _check_grade(grade_pct: float) -> None:
     if not 0 <= grade_pct <= PERCENT:
         raise ValueError(f"grade must be between 0 and {PERCENT} %, got {grade_pct}")
@@ -136,29 +147,33 @@ def nutrient_to_product_kg(nutrient_kg: float, grade_pct: float) -> float:
     _check_grade(grade_pct)
     if grade_pct == 0:
         raise ValueError("grade must be > 0: this product does not hold the nutrient")
-    return nutrient_kg / (grade_pct / PERCENT)
+    fraction = grade_pct / PERCENT
+    if fraction == 0:  # a grade so small that it underflows
+        raise NonFiniteQuantityError("product mass is not a finite number")
+    return finite_quantity(nutrient_kg / fraction, "product mass")
 
 
 def product_kg_to_nutrient(product_kg: float, grade_pct: float) -> float:
     """Nutrient mass held by `product_kg`, in the form the grade is expressed in."""
     _check_grade(grade_pct)
-    return product_kg * (grade_pct / PERCENT)
+    return finite_quantity(product_kg * (grade_pct / PERCENT), "nutrient mass")
 
 
 def _check_density(density_kg_per_l: float) -> None:
     if density_kg_per_l <= 0:
         raise ValueError("density_kg_per_l must be > 0")
+    finite_quantity(density_kg_per_l, "density_kg_per_l")
 
 
 def kg_to_litres(kg: float, density_kg_per_l: float) -> float:
     """Volume of a liquid. The density is a product fact supplied by the caller."""
     _check_density(density_kg_per_l)
-    return kg / density_kg_per_l
+    return finite_quantity(kg / density_kg_per_l, "product volume")
 
 
 def litres_to_kg(litres: float, density_kg_per_l: float) -> float:
     _check_density(density_kg_per_l)
-    return litres * density_kg_per_l
+    return finite_quantity(litres * density_kg_per_l, "product mass")
 
 
 # Julian year (unit definition, IAU): exactly 365.25 days.

@@ -185,12 +185,16 @@ def grade_pct(x: float) -> str:
     return f"{x:g} %"
 
 
+def operand(x: float) -> str:
+    """A number a sum is worked from, precise enough to redo the sum by hand."""
+    return f"{x:g}"
+
+
 def _rule_tag(status: ConstantStatus, source: str | None, citation: Citation | None = None) -> str:
+    where = f"; {cited(citation)}" if citation is not None else ""
     if status is ConstantStatus.PLACEHOLDER:
-        if citation is not None:
-            return f"(PLACEHOLDER, not agronomist-validated; {cited(citation)})"
-        return "(PLACEHOLDER, not agronomist-validated)"
-    return f"(source: {source})"
+        return f"(PLACEHOLDER, not agronomist-validated{where})"
+    return f"(source: {source}{where})"
 
 
 def _pack_rule(rule: RuleValue[Any]) -> str:
@@ -236,6 +240,15 @@ def product_rate_edited(index: int) -> str:
     return (
         f"The N rate of application {index} was edited after matching, so the engine's product "
         "quantity no longer applies and is withdrawn. The agronomist sets the product."
+    )
+
+
+def product_quantity_out_of_range(index: int, name: str) -> str:
+    return (
+        f"No usable quantity of {name} can be computed for application {index}: its label "
+        "grade or density, or the field area, gives a number too large or too small to "
+        "calculate. Check the catalog entry. This line stays nutrient-only; the agronomist "
+        "chooses."
     )
 
 
@@ -288,7 +301,7 @@ def product_match_line(
         if s_pct > 0
         else "It contains no sulphur."
     )
-    labels = "; ".join(f"{r.path} {_rule_tag(r.status, r.source)}" for r in rules)
+    labels = "; ".join(f"{r.path} {_rule_tag(r.status, r.source, r.citation)}" for r in rules)
     return (
         f"{name} carries this line's N. {selection} It adds no P or K. {sulphur} "
         f"Rules used: {labels}. The engine does not judge whether this product suits the "
@@ -302,14 +315,15 @@ def product_grade(name: str, value: float, unit: str, grade_source: str) -> str:
 
 def product_rate(index: int, need: float, n_pct: float, rate: float) -> str:
     return (
-        f"Application {index} product rate = {num(need)} kg N/ha / {grade_pct(n_pct)} N "
+        f"Application {index} product rate = {operand(need)} kg N/ha / {grade_pct(n_pct)} N "
         f"= {num(rate)} kg product/ha."
     )
 
 
 def product_total(index: int, rate: float, area_ha: float, total: float) -> str:
     return (
-        f"Application {index} product total = {num(rate)} kg product/ha x {num(area_ha)} ha "
+        f"Application {index} product total = {operand(rate)} kg product/ha x "
+        f"{operand(area_ha)} ha "
         f"= {num(total)} kg product."
     )
 
@@ -318,14 +332,15 @@ def product_volume_rate(
     index: int, rate: float, density: float, litres: float, grade_source: str
 ) -> str:
     return (
-        f"Application {index} product volume = {num(rate)} kg product/ha / {density:g} kg/L "
+        f"Application {index} product volume = {operand(rate)} kg product/ha / "
+        f"{operand(density)} kg/L "
         f"(source: {grade_source}) = {num(litres)} L product/ha."
     )
 
 
 def product_sulphur_rate(index: int, rate: float, s_pct: float, sulphur: float) -> str:
     return (
-        f"Sulphur brought by application {index} = {num(rate)} kg product/ha x "
+        f"Sulphur brought by application {index} = {operand(rate)} kg product/ha x "
         f"{grade_pct(s_pct)} S = {num(sulphur)} kg S/ha. A side effect of the product, not a "
         "sulphur recommendation."
     )
@@ -464,6 +479,14 @@ def c6_placeholder_constant_used(pack_id: str, version: str, paths: list[str]) -
     return (
         f"This recommendation uses PLACEHOLDER constants or timing windows from pack "
         f"'{pack_id}' {version}: {', '.join(paths)}. "
+        "Confidence is low until the agronomist validates them."
+    )
+
+
+def c7_placeholder_product_rule_used(pack_id: str, version: str, paths: list[str]) -> str:
+    return (
+        f"The engine's product choice relied on PLACEHOLDER rules from pack '{pack_id}' "
+        f"{version}: {', '.join(paths)}. "
         "Confidence is low until the agronomist validates them."
     )
 

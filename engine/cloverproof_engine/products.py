@@ -5,7 +5,9 @@ need (it holds N and adds no P or K: rule 3, and the engine gives no P/K rate ye
 choice among safe products is agronomy and comes only from the pack's `product_rules`.
 Without a rule, or when the rule does not settle it, the line stays nutrient-only and
 says why. Nothing here looks at prices or vendors, and matching never touches the N
-numbers or the confidence.
+numbers. Its one effect on confidence is rule C7 in `confidence.py`: a matched product
+chosen under a PLACEHOLDER rule caps it at low. A grade, density or area that gives no
+finite quantity is a coded non-match on the line, not an error.
 """
 
 from dataclasses import dataclass, field
@@ -66,7 +68,9 @@ def _unsafe_reason(product: ProductInput) -> str | None:
 
 
 def _used(path: str, value: str, rule: RuleValue[object]) -> UsedProductRule:
-    return UsedProductRule(path=path, value=value, status=rule.status, source=rule.source)
+    return UsedProductRule(
+        path=path, value=value, status=rule.status, source=rule.source, citation=rule.citation
+    )
 
 
 def _by_name(products: list[ProductInput]) -> list[ProductInput]:
@@ -192,7 +196,15 @@ def _line_outcome(
                 "explanation": decision.explanation,
             }
         )
-    return _matched_line(index, line, product, decision, area_ha)
+    try:
+        return _matched_line(index, line, product, decision, area_ha)
+    except units.NonFiniteQuantityError:
+        return ProductNotMatched(
+            code="quantity_out_of_range",
+            fitting_products=[],
+            rules_used=decision.rules_used,
+            explanation=explain.product_quantity_out_of_range(index, product.name),
+        )
 
 
 def _grade_number(name: str, value: float, unit: str, product: ProductInput) -> ExplainedNumber:
@@ -214,7 +226,7 @@ def _matched_line(
 ) -> ProductMatch:
     need = line.rate.value
     rate = units.nutrient_to_product_kg(need, product.n_pct)
-    total = rate * area_ha
+    total = units.finite_quantity(rate * area_ha, "product total")
     # A quantity is only as settled as the N rate and the rules that chose the product.
     placeholder = line.rate.uses_placeholder or any(
         rule.status == "PLACEHOLDER" for rule in decision.rules_used

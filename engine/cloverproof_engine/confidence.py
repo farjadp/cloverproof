@@ -23,6 +23,10 @@ Rules (each TODO(agronomist): review):
   too, under the path `crops.<crop>.nitrogen.splits[i].timing`.
 - C6_TIMING_WINDOW_MISSING  a line has no timing window (the pack
                             defines no split plan)              -> cap medium
+- C7_PLACEHOLDER_PRODUCT_RULE_USED a line's matched product relied
+                            on a PLACEHOLDER pack product rule (its
+                            `rules_used`)                       -> cap low
+  (a line with no matched product does not trigger C7, even if rules were read)
 
 Timing windows have no status of their own yet, so every window is PLACEHOLDER: a
 plan with a split plan is `low`, one without is at most `medium`, and no plan can
@@ -168,6 +172,25 @@ def assess(
                 rule_id="C6_TIMING_WINDOW_MISSING",
                 cap=Confidence.MEDIUM,
                 reason=explain.c6_timing_window_missing(pack.id, pack.version),
+            )
+        )
+
+    # C7 — TODO(agronomist): review, including the draft cap.
+    product_rules = dict.fromkeys(
+        rule.path
+        for line in nitrogen.splits
+        if line.product_match is not None and line.product_match.matched
+        for rule in line.product_match.rules_used
+        if rule.status is ConstantStatus.PLACEHOLDER
+    )
+    if product_rules:
+        hits.append(
+            ConfidenceRuleHit(
+                rule_id="C7_PLACEHOLDER_PRODUCT_RULE_USED",
+                cap=Confidence.LOW,
+                reason=explain.c7_placeholder_product_rule_used(
+                    pack.id, pack.version, list(product_rules)
+                ),
             )
         )
 
