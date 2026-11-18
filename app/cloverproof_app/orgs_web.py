@@ -41,9 +41,9 @@ BAD_NAME = f"Enter a name of 1 to {MAX_NAME} characters, without line breaks."
 NAME_TAKEN = "An organisation with this name already exists. Join it from the list instead."
 BAD_ROLE = "Choose Org admin or Advisor. The Agronomist role cannot be taken here."
 DONE = {
-    "created": "Organisation created. You are a member and it is now your current organisation.",
-    "joined": "You joined. It is now your current organisation.",
-    "already": "You already had this role here. It is now your current organisation.",
+    "created": "Organisation created. You are its first member.",
+    "joined": "You joined this organisation.",
+    "already": "You already had this role here. Nothing changed.",
 }
 
 

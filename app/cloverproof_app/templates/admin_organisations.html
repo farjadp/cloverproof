@@ -68,7 +68,7 @@
   <div class="split-side">
     <section class="panel" aria-labelledby="create-heading">
       <h2 id="create-heading">Create organisation</h2>
-      <p class="hint">You become its first member. Add other people on its Users page.</p>
+      <p class="hint">You become its first member. As Org admin you can add people on its Users page.</p>
       <form method="post" action="/admin/organisations" novalidate>
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         {% if errors %}<p class="alert" role="alert">Fix the marked fields before creating the organisation.</p>{% endif %}
