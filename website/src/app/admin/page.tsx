@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { purgeHealth } from "@/lib/admin/log";
+import { isPasswordOnly } from "@/lib/admin/mfa-policy";
 import { can } from "@/lib/admin/permissions";
-import { adminDb, adminReady, csrfField, requirePage } from "@/lib/admin/server";
+import { adminDb, adminReady, csrfField, mfaOptional, requirePage } from "@/lib/admin/server";
 import { AdminShell } from "./shell";
 import { NotConfigured } from "./ui";
 
@@ -20,6 +22,19 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
         <p role="alert" className="mt-6 rounded-md border border-rule bg-ivory px-4 py-3 text-sm text-ink">
           You don&apos;t have permission for that page.
         </p>
+      ) : null}
+      {isPasswordOnly(current, mfaOptional()) ? (
+        <section aria-labelledby="mfa-title" className="mt-8 max-w-xl rounded-lg border border-rule bg-ivory p-5">
+          <h2 id="mfa-title" className="font-serif text-xl text-ink">
+            Two-step sign-in is off
+          </h2>
+          <p className="mt-2 text-sm text-ink-soft">
+            Your account is protected by your password alone. Managing users and API keys and exporting the log stay locked until you set it up.
+          </p>
+          <Link href="/admin/mfa" className="mt-3 inline-flex min-h-11 items-center font-semibold text-olive underline underline-offset-4">
+            Set up two-step sign-in
+          </Link>
+        </section>
       ) : null}
       {health ? (
         <section aria-labelledby="health-title" className="mt-8 max-w-xl rounded-lg border border-rule bg-ivory p-5">

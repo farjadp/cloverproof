@@ -19,6 +19,7 @@ export type AdminConfig = {
   keks: Kek[]; // first = current KEK (seal), all = accepted for open (rotation)
   hmacKey: Buffer;
   siteUrl: string;
+  mfaOptional?: boolean; // ADMIN_MFA_OPTIONAL (mfa-policy.ts); absent = two-step sign-in required
 };
 
 export type RequestMeta = { ipPrefix: string | null; uaFamily: string | null };
@@ -285,7 +286,7 @@ export async function login(
   input: { email: string; password: string },
   meta: RequestMeta,
   now: Date,
-): Promise<{ ok: true; token: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; token: string; mfaEnrolled: boolean } | { ok: false; error: string }> {
   const email = normaliseEmail(input.email);
   const fail = async (reason: string, actor: string | null = null) => {
     await writeLog(db, { actor, kind: "auth", action: "login", outcome: "failed", meta, detail: { reason } });
@@ -322,9 +323,19 @@ export async function login(
   if (needsRehash(user.password_hash)) {
     await db.query("update website_user set password_hash = $2 where id = $1", [user.id, await hashPassword(input.password)]);
   }
+  // Never marked MFA-verified here, even when the password alone is enough (mfa-policy.ts).
   const token = await createSession(db, user.id, meta, now, false);
-  await writeLog(db, { actor: user.id, kind: "auth", action: "login.password", outcome: "ok", meta });
-  return { ok: true, token };
+  const mfaEnrolled = Boolean(user.mfa_enabled_at);
+  const passwordOnly = config.mfaOptional === true && !mfaEnrolled;
+  await writeLog(db, {
+    actor: user.id,
+    kind: "auth",
+    action: passwordOnly ? "login.password_only" : "login.password",
+    outcome: "ok",
+    meta,
+    detail: passwordOnly ? { via: "mfa_optional" } : undefined,
+  });
+  return { ok: true, token, mfaEnrolled };
 }
 
 function isLocked(user: Pick<User, "locked_until">, now: Date): boolean {

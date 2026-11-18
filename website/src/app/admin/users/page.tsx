@@ -30,7 +30,7 @@ export default async function UsersPage() {
       <h1 className="font-serif text-3xl text-ink">Users</h1>
       <p className="mt-1 mb-6 text-ink-soft">Website staff accounts. Every change is recorded in the system log.</p>
       {!fresh ? (
-        <StepUpForm csrf={csrf} path="/admin/users" what="manage users" />
+        <StepUpForm enrolled={Boolean(current.user.mfa_enabled_at)} csrf={csrf} path="/admin/users" what="manage users" />
       ) : (
         <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
           <ul className="space-y-4" aria-label="Users">

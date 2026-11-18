@@ -19,7 +19,8 @@ export async function listUsers(db: Db, now: Date): Promise<UserRow[]> {
     `select u.id, u.email, u.display_name, u.role, u.mfa_enabled_at is not null as mfa, u.created_at,
             u.password_hash is not null as password_set, u.disabled_at is not null as disabled,
             coalesce(u.locked_until > $1, false) as locked,
-            (select max(s.mfa_verified_at) from website_session s where s.user_id = u.id) as last_sign_in
+            (select max(case when u.mfa_enabled_at is null then s.created_at else s.mfa_verified_at end)
+               from website_session s where s.user_id = u.id) as last_sign_in
        from website_user u
       where u.deleted_at is null
       order by u.disabled_at is not null, u.role, lower(u.display_name)`,

@@ -148,7 +148,7 @@ export default async function LogPage({ searchParams }: { searchParams: Promise<
           </form>
         ) : (
           <div className="mt-3">
-            <StepUpForm csrf={csrf} path="/admin/log" what="export the log" />
+            <StepUpForm enrolled={Boolean(current.user.mfa_enabled_at)} csrf={csrf} path="/admin/log" what="export the log" />
           </div>
         )}
       </section>

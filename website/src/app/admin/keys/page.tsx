@@ -24,7 +24,7 @@ export default async function KeysPage() {
         server, and never shown again after saving. No farmer or pilot data is ever sent to these providers. Every change is logged.
       </p>
       {!fresh ? (
-        <StepUpForm csrf={csrf} path="/admin/keys" what="manage API keys" />
+        <StepUpForm enrolled={Boolean(current.user.mfa_enabled_at)} csrf={csrf} path="/admin/keys" what="manage API keys" />
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2" aria-label="Providers">
           {(Object.keys(PROVIDERS) as Provider[]).map((p) => {
