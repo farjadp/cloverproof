@@ -15,11 +15,18 @@ ISRIC_ACCESS_DOC: Final = "https://docs.isric.org/globaldata/soilgrids/SoilGrids
 # Public WebDAV/HTTP file tree: <base>/<prop>/<prop>_<depth>_<stat>.vrt
 DEFAULT_BASE_URL: Final = "https://files.isric.org/soilgrids/latest/data"
 SOILGRIDS_VERSION: Final = "2.0"
+SOURCE_NAME: Final = "SoilGrids"
 LICENSE: Final = "CC BY 4.0"
-ATTRIBUTION: Final = (
-    "SoilGrids 2.0, ISRIC - World Soil Information, CC BY 4.0. Poggio et al. (2021), "
-    "SOIL 7, 217-240, doi:10.5194/soil-7-217-2021"
-)
+# Attribution string exactly as docs/data-sources.md requires it.
+ATTRIBUTION: Final = "SoilGrids 2.0, ISRIC - World Soil Information, CC BY 4.0"
+# Volume, pages and DOI as in docs/data-sources.md. First author per Crossref metadata for
+# this DOI (checked 2026-11-18); the docs row says "de Sousa et al. (author order to verify)".
+CITATION: Final = "Poggio et al. 2021, SOIL 7, 217-240, doi:10.5194/soil-7-217-2021"
+
+# Ontario's extreme points, rounded outwards to 0.1 degree. A bounding box, not the
+# provincial boundary: it also covers parts of Manitoba, Quebec, Nunavut and the US.
+ONTARIO_BBOX: Final = (-95.2, 41.6, -74.3, 56.9)
+REGIONS: Final[dict[str, tuple[float, float, float, float]]] = {"ontario": ONTARIO_BBOX}
 
 # SoilGrids SRS: Interrupted Goode Homolosine on WGS84 (ESRI:54052; ISRIC pseudo-code
 # EPSG:152160). Source: ISRIC_ACCESS_DOC, "How can I use the Homolosine projection?".

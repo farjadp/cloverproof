@@ -55,6 +55,18 @@ def test_fetch_writes_clips_and_manifest(sg, tmp_path: Path, opener) -> None:
     assert {layer["statistic"] for layer in layers} == {"mean", "Q0.05", "Q0.95", "uncertainty"}
 
 
+def test_every_manifest_layer_is_self_describing(sg, tmp_path: Path, opener) -> None:
+    manifest = json.loads((_run(sg, tmp_path, opener) / "manifest.json").read_text())
+    assert manifest["attribution"] == "SoilGrids 2.0, ISRIC - World Soil Information, CC BY 4.0"
+    assert "10.5194/soil-7-217-2021" in manifest["citation"]
+    for layer in manifest["layers"]:
+        assert layer["source"] == "SoilGrids"
+        assert layer["version"] == "2.0"
+        assert layer["retrieved_on"] == "2026-11-16"
+        assert layer["resolution_m"] == [250.0, 250.0]
+        assert layer["depth"] in DEPTHS
+
+
 def test_clip_is_a_crs_preserving_sub_window(sg, tmp_path: Path, opener) -> None:
     out = _run(sg, tmp_path, opener)
     with rasterio.open(out / "nitrogen_0-5cm_mean.tif") as ds:

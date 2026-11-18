@@ -6,22 +6,36 @@
 
 from data_sources.soilgrids.catalog import (
     ALLOWED_PROPERTIES,
+    ATTRIBUTION,
+    CITATION,
     UnsupportedDepthError,
     UnsupportedPropertyError,
 )
-from data_sources.soilgrids.estimate import CacheMissingError, NoDataError, estimate_at
+from data_sources.soilgrids.estimate import (
+    CacheMissingError,
+    NoDataError,
+    OutsideCacheError,
+    estimate_at,
+    lookup_estimate,
+)
 from data_sources.soilgrids.fetch import FetchError, fetch
-from data_sources.soilgrids.models import EstimateValue, SoilEstimate
+from data_sources.soilgrids.models import EstimateValue, NoEstimate, SoilEstimate, SoilLookup
 
 __all__ = [
     "ALLOWED_PROPERTIES",
+    "ATTRIBUTION",
+    "CITATION",
     "CacheMissingError",
     "EstimateValue",
     "FetchError",
     "NoDataError",
+    "NoEstimate",
+    "OutsideCacheError",
     "SoilEstimate",
+    "SoilLookup",
     "UnsupportedDepthError",
     "UnsupportedPropertyError",
     "estimate_at",
     "fetch",
+    "lookup_estimate",
 ]
