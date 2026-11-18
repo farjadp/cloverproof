@@ -35,7 +35,7 @@
           <label class="choice is-locked" for="role-{{ value }}"><input id="role-{{ value }}" type="checkbox" disabled{% if value in member.roles %} checked{% endif %} aria-describedby="cli-roles-note"> {{ label }} (set by a platform administrator)</label>
           {% endfor %}
         </fieldset>
-        <p class="hint" id="cli-roles-note">Only Agronomist can approve plans. Agronomist and Org admin are granted and removed only with the <code>user-create</code> command, never on this page.</p>
+        <p class="hint" id="cli-roles-note">Only an agronomist or a superadmin can approve plans. Agronomist and Org admin are granted and removed only with the <code>user-create</code> command, never on this page.</p>
         <div class="actions"><button class="button" type="submit">Save roles</button></div>
       </form>
     </section>

@@ -66,7 +66,7 @@
             <option value="{{ value }}"{% if form.role == value %} selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
-          <p class="hint" id="role-hint">Only Agronomist can approve plans. Org admin manages users. {{ cli_roles | join(' and ') }} accounts are added by a platform administrator with the <code>user-create</code> command.</p>
+          <p class="hint" id="role-hint">Only an agronomist or a superadmin can approve plans. Org admin manages users. {{ cli_roles | join(' and ') }} accounts are added by a platform administrator with the <code>user-create</code> command.</p>
           {% if errors.role %}<p class="field-error" id="role-error">Error: {{ errors.role }}</p>{% endif %}
         </div>
         <button class="button" type="submit">Add user</button>
