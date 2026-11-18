@@ -6,6 +6,7 @@ of the route it links to, so nobody is offered a link that ends in a 403:
 - Farmers, My account: `InternalOrg` (an internal role in the current organisation)
 - Review queue: `InternalOrg` + `plan_web.is_agronomist`
 - Users: `require_org_role("org_admin")`
+- Organisations: `orgs_web.require_superadmin` (a human superadmin, with or without an org)
 - Products, Change password: any signed-in user
 """
 
@@ -43,6 +44,7 @@ class Nav:
     org_name: str | None
     can_switch_org: bool
     must_choose_org: bool
+    can_manage_orgs: bool = False
 
 
 def role_label(roles: Sequence[str]) -> str:
@@ -89,6 +91,9 @@ def build_nav(
         links.append(NavLink("Products", "/products", _within(path, "/products")))
         if org is not None and "org_admin" in org.roles:
             links.append(NavLink("Users", "/admin/users", _within(path, "/admin/users")))
+        if user.is_superadmin:
+            current_page = _within(path, "/admin/organisations")
+            links.append(NavLink("Organisations", "/admin/organisations", current_page))
         if internal:
             account = NavLink("My account", "/account", _within(path, "/account"))
         else:
@@ -103,4 +108,5 @@ def build_nav(
         org_name=org.org.name if org else None,
         can_switch_org=not locked and org is not None and len(org.organisations) > 1,
         must_choose_org=not locked and must_choose_org,
+        can_manage_orgs=not locked and user.is_superadmin,
     )

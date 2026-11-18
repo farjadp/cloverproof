@@ -37,6 +37,7 @@
         <a href="/orgs/choose">Choose organisation</a>
         {% else %}
         <span class="org-name">No organisation</span>
+        {% if nav.can_manage_orgs %}<a href="/admin/organisations">Create or join one</a>{% endif %}
         {% endif %}
       </div>
       {% if nav.links %}
