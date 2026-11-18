@@ -11,7 +11,7 @@ from cloverproof_engine.models import (
 )
 from cloverproof_engine.pack import Pack, pack_sha256
 from cloverproof_engine.products import match_products
-from cloverproof_engine.results import Note, Recommendation
+from cloverproof_engine.results import Note, PkRefused, PkResults, Recommendation
 from cloverproof_engine.version import ENGINE_VERSION
 
 
@@ -26,7 +26,7 @@ def recommend(inputs: RecommendationInput, pack: Pack) -> Recommendation:
     nitrogen = match_products(inputs, pack, method.calculate(inputs, pack))
 
     soil = inputs.soil_test
-    pk = _pk_note(soil)
+    pk, pk_rates = _phosphorus_potassium(inputs, pack)
 
     notes: list[Note] = []
     if pack.has_placeholders:
@@ -43,7 +43,7 @@ def recommend(inputs: RecommendationInput, pack: Pack) -> Recommendation:
             )
         )
 
-    level, hits = assess(inputs, pack, nitrogen)
+    level, hits = assess(inputs, pack, nitrogen, pk_rates)
 
     return Recommendation(
         engine_version=ENGINE_VERSION,
@@ -58,7 +58,26 @@ def recommend(inputs: RecommendationInput, pack: Pack) -> Recommendation:
         confidence=level,
         confidence_reasons=hits,
         input_snapshot=inputs.model_dump(mode="json"),
+        phosphorus_potassium_rates=pk_rates,
     )
+
+
+def _phosphorus_potassium(inputs: RecommendationInput, pack: Pack) -> tuple[Note, PkResults | None]:
+    """The P/K note, plus rates when a lab test meets a pack with P/K tables (rule 3)."""
+    note = _pk_note(inputs.soil_test)
+    cfg = pack.crops[inputs.crop].phosphorus_potassium
+    if cfg is None or note.code != "PK_NOT_CALCULATED_V0":
+        return note, None
+    method = get_method(cfg.method)
+    if method.nutrient != "PK":
+        raise ValueError(f"method {method.method_id!r} is not a P/K method")
+    rates: PkResults = method.calculate(inputs, pack)
+    refusals = [line.explanation for line in rates.lines if isinstance(line, PkRefused)]
+    if len(refusals) == len(rates.lines):
+        return Note(
+            code="PK_NOT_CALCULATED_LAB_TEST", text=explain.pk_lab_test_no_rate(refusals)
+        ), rates
+    return Note(code="PK_FROM_LAB_TEST", text=explain.pk_from_lab_test(refusals)), rates
 
 
 def _pk_note(soil: SoilTest | None) -> Note:

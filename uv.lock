@@ -312,7 +312,7 @@ requires-dist = [
 
 [[package]]
 name = "cloverproof-engine"
-version = "0.5.0"
+version = "0.6.0"
 source = { editable = "engine" }
 dependencies = [
     { name = "pydantic" },

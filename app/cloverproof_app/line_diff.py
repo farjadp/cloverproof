@@ -87,7 +87,7 @@ def _pk_text(doc: Mapping[str, Any]) -> str:
     note = doc.get("phosphorus_potassium") or {}
     if note.get("code") == "PK_SOIL_TEST_RECOMMENDED":
         return "Soil test recommended. No P or K rate without a soil test."
-    return str(note.get("text") or "No P/K advice recorded")
+    return split_display.without_agronomist_claim(str(note.get("text") or "No P/K advice recorded"))
 
 
 def diff_lines(engine: Mapping[str, Any], final: Mapping[str, Any]) -> list[DiffLine]:

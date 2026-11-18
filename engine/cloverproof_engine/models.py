@@ -91,7 +91,9 @@ class SoilTestValue(_Frozen):
     form: NutrientForm
     value: NonNegativeFloat
     unit: ConcentrationUnit
-    extraction_method: ExtractionMethod
+    # Always given; null states that the report names no method. The field cannot be
+    # left out. P and K are then refused: no method means no table to read (rule 7).
+    extraction_method: ExtractionMethod | None
     # Free text naming the method; required when extraction_method is `other`.
     extraction_method_detail: str | None = None
 

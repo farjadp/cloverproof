@@ -1,0 +1,68 @@
+# SAMPLE golden case - NOT agronomist-approved. SYNTHETIC soil values.
+# Expected values are worked out by hand from packs/ca-on/v2.yaml (PLACEHOLDER
+# constants; P and K tables read from OMAFRA Pub 811 Tables 4-20 and 4-21).
+# N side: yield 6.5 t/ha, price ratio 5.5, after corn -> 115.0 kg N/ha; 20 ha -> 2300 kg N.
+# Oxide factors from standard atomic weights: P = 0.436421 x P2O5, K = 0.830152 x K2O.
+# Lab values given as oxides. 10 mg P2O5/kg = 4.3642 mg P/kg -> band 4-5 ppm -> 60 kg
+# P2O5/ha. 60 mg K2O/kg = 49.8091 mg K/kg -> band 46-60 ppm -> 20 kg K2O/ha.
+id: sample_ca_on_pk_oxide_form_input
+kind: sample  # not agronomist-approved; never counts toward the agreement gate
+description: Soil-test values reported as P2O5 and K2O are converted before the table is read.
+pack:
+  id: ca-on
+  version: v2
+# TODO(agronomist): set agreement tolerances for real cases.
+tolerance:
+  kg_n_per_ha: 0.5
+  kg_n: 10
+  kg_pk_per_ha: 0.01
+  kg_pk: 0.1
+  mg_pk_per_kg: 0.01
+input:
+  crop: wheat
+  target_yield_t_ha: 6.5
+  previous_crop: corn
+  area_ha: 20.0
+  plan_date: "2027-03-15"
+  n_price:
+    n_price_per_kg_n: 1.375
+    grain_price_per_kg: 0.25
+    currency: CAD
+    source: SAMPLE (not a real price list)
+    price_date: "2027-01-20"
+  wheat_class: pastry
+  manure_applied: false
+  soil_test:
+    sample_date: "2026-09-15"
+    depth_top_cm: 0
+    depth_bottom_cm: 15
+    source: lab
+    lab: SAMPLE lab (synthetic)
+    values:
+      - {form: P2O5, value: 10, unit: mg/kg, extraction_method: olsen}
+      - {form: K2O, value: 60, unit: mg/kg, extraction_method: ammonium-acetate}
+expected:
+  n_rate_kg_ha: 115.0
+  n_total_kg: 2300.0
+  split_rates_kg_ha: [115.0]
+  confidence: low
+  pk_note: PK_FROM_LAB_TEST
+  phosphorus:
+    outcome: recommended
+    rate_form: P2O5
+    rate_oxide_kg_ha: 60.0
+    rate_elemental_kg_ha: 26.1853
+    total_oxide_kg: 1200.0
+    total_elemental_kg: 523.71
+    soil_test_elemental_mg_kg: 4.3642
+    soil_test_oxide_mg_kg: 10.0
+  potassium:
+    outcome: recommended
+    rate_form: K2O
+    rate_oxide_kg_ha: 20.0
+    rate_elemental_kg_ha: 16.603
+    total_oxide_kg: 400.0
+    total_elemental_kg: 332.06
+    soil_test_elemental_mg_kg: 49.8091
+    soil_test_oxide_mg_kg: 60.0
+  reason: SAMPLE derived from the ca-on v2 pack; not an agronomist decision.

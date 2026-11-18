@@ -26,6 +26,7 @@ RESCALED = "Rescaled from the reviewer's N rate, keeping this line's current sha
 RESCALED_NO_SPLIT = "Rescaled to the reviewer's N rate; the pack defines no split plan."
 # TEST FIXTURE pack and product: not agronomy.
 PRODUCT_RULES_PACK = Path(__file__).resolve().parents[2] / "packs/placeholder/v0-product-rules.yaml"
+CA_ON_V2_PACK = Path(__file__).resolve().parents[2] / "packs/ca-on/v2.yaml"
 FIXTURE_PRODUCT = {
     "id": "id-fixture",
     "name": "TEST FIXTURE granular N 40",
@@ -93,6 +94,43 @@ def matched_doc() -> dict[str, Any]:
     assert len(result["nitrogen"]["splits"]) >= 2, "tests need a pack with two or more splits"
     assert all(s["product_match"]["matched"] for s in result["nitrogen"]["splits"])
     return result
+
+
+def test_edited_document_drops_the_unreviewed_p_and_k_rates() -> None:
+    inputs = RecommendationInput.model_validate(
+        {
+            "crop": "wheat",
+            "target_yield_t_ha": 6,
+            "previous_crop": "corn",
+            "area_ha": 10,
+            "plan_date": "2027-03-01",
+            "n_price": {
+                "n_price_per_kg_n": 1.5,
+                "grain_price_per_kg": 0.25,
+                "currency": "CAD",
+                "source": "TEST FIXTURE",
+                "price_date": "2027-01-20",
+            },
+            "wheat_class": "pastry",
+            "manure_applied": False,
+            "soil_test": {
+                "sample_date": "2026-10-01",
+                "depth_top_cm": 0,
+                "depth_bottom_cm": 15,
+                "source": "lab",
+                "values": [
+                    {"form": "P", "value": 7, "unit": "mg/kg", "extraction_method": "olsen"},
+                ],
+            },
+        }
+    )
+    doc = planning.run_engine(inputs, load_pack(CA_ON_V2_PACK))
+    assert "phosphorus_potassium_rates" in doc
+    rate = engine_rate(doc) + 5
+    edited = apply(doc, f"{rate:g}", [f"{rate:g}"])
+    assert "phosphorus_potassium_rates" not in edited
+    assert "phosphorus_potassium_rates" in doc  # the engine document is untouched
+    Recommendation.model_validate(edited)
 
 
 def engine_rate(doc: dict[str, Any]) -> float:

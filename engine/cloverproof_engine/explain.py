@@ -14,6 +14,7 @@ from cloverproof_engine.pack import (
     CitationBasis,
     ConstantStatus,
     PackConstant,
+    PkCaution,
     RuleValue,
 )
 
@@ -237,7 +238,7 @@ def product_has_no_n(name: str) -> str:
 def product_adds_p_or_k(name: str, p2o5_pct: float, k2o_pct: float) -> str:
     return (
         f"{name} would add P or K ({grade_pct(p2o5_pct)} P2O5, {grade_pct(k2o_pct)} K2O), and "
-        "the engine gives no P or K rate"
+        "an N line takes only products without P or K"
     )
 
 
@@ -450,6 +451,150 @@ def pk_not_calculated_v0() -> str:
     )
 
 
+def _with_reasons(text: str, reasons: Sequence[str]) -> str:
+    return " ".join([text, *reasons])
+
+
+def pk_from_lab_test(refusals: Sequence[str]) -> str:
+    """Quotes no rate: this text stays true when a reviewer changes the plan's numbers."""
+    return _with_reasons(
+        "This plan covers nitrogen only: it has no P or K rate. The engine checked the lab "
+        "soil test against the pack's P and K tables, but those results are unreviewed, are "
+        "not shown and are not part of this plan; the agronomist decides P and K from the "
+        "soil test.",
+        refusals,
+    )
+
+
+def pk_lab_test_no_rate(refusals: Sequence[str]) -> str:
+    return _with_reasons(
+        "This plan covers nitrogen only: it has no P or K rate. No value from this lab soil "
+        "test could be checked against the pack's P and K tables; the agronomist decides P "
+        "and K from the soil test.",
+        refusals,
+    )
+
+
+_PK_NAME = {"P": "Phosphorus (P)", "K": "Potassium (K)"}
+
+
+def _pk_no_rate(nutrient: str) -> str:
+    """Says nothing about the other nutrient: no P or K rate is shown in a plan."""
+    return f"{_PK_NAME[nutrient]} was not checked against a pack table:"
+
+
+def _methods(methods: Sequence[str]) -> str:
+    return ", ".join(methods)
+
+
+def pk_no_lab_test(nutrient: str) -> str:
+    return f"{_pk_no_rate(nutrient)} a lab soil test is required; there is none."
+
+
+def pk_no_pack_guidance(nutrient: str, pack_id: str, version: str) -> str:
+    return f"{_pk_no_rate(nutrient)} pack '{pack_id}' {version} has no table for this nutrient."
+
+
+def pk_no_soil_test_value(nutrient: str) -> str:
+    return f"{_pk_no_rate(nutrient)} the lab soil test has no value for this nutrient."
+
+
+def pk_no_method(nutrient: str, available: Sequence[str]) -> str:
+    return (
+        f"{_pk_no_rate(nutrient)} the soil-test value has no extraction method, so the engine "
+        f"cannot tell which table applies. The pack has a table for: {_methods(available)}. "
+        "Get the method from the lab report."
+    )
+
+
+def pk_no_table_for_method(
+    nutrient: str, method: str, detail: str | None, available: Sequence[str]
+) -> str:
+    named = f"{method} ({detail.strip()})" if detail and detail.strip() else method
+    return (
+        f"{_pk_no_rate(nutrient)} the soil-test value was extracted by {named}, and the pack has "
+        f"no table for that method. It has a table for: {_methods(available)}. Results from "
+        "one extraction method are not read from another method's table."
+    )
+
+
+def pk_sample_depth_mismatch(
+    nutrient: str, top_cm: float, bottom_cm: float, depth: PackConstant
+) -> str:
+    return (
+        f"{_pk_no_rate(nutrient)} the sample was taken at {operand(top_cm)}-{operand(bottom_cm)} "
+        f"cm, and the pack's table is read for a sample from the surface to "
+        f"{operand(depth.value)} cm {tag(depth)}. Refusing another depth is an engine choice."
+    )
+
+
+def pk_outside_table(nutrient: str, level: float, first: str, last: str) -> str:
+    return (
+        f"{_pk_no_rate(nutrient)} the soil-test level {num(level)} is outside the pack table "
+        f"(bands {first} to {last}). The engine does not extrapolate (engine choice)."
+    )
+
+
+def pk_soil_test_value(
+    form: str,
+    amount: float,
+    reported_form: str,
+    reported: float,
+    reported_unit: str,
+    table_label: str,
+    sample_date: str,
+) -> str:
+    where = f"lab soil test of {sample_date}, {table_label}"
+    if form == reported_form:
+        return f"Soil test = {operand(amount)} mg {form}/kg, as reported ({where})."
+    return (
+        f"Soil test = {operand(amount)} mg {form}/kg, converted from the reported "
+        f"{operand(reported)} {reported_unit} {reported_form} by atomic weights ({where})."
+    )
+
+
+def pk_table_rate(
+    form: str,
+    rate: float,
+    table_label: str,
+    band: str,
+    response: str,
+    response_label: str,
+    cell: PackConstant,
+    assumes: str,
+    caution: PkCaution | None,
+) -> str:
+    """The rate and the response rating are separate facts: neither is worded as the other."""
+    parts = [
+        f"Table rate = {num(rate)} kg {form}/ha: pack table for the {table_label}, band "
+        f"{band} {tag(cell)}. Assumes {assumes}. The band is the last one whose lower limit "
+        "the soil-test level reaches, with no interpolation between bands (engine choice, "
+        "not stated by the table).",
+        f"Response rating for this band, separate from the rate: {response_label} ({response}).",
+    ]
+    if rate == 0:
+        parts.append("A rate of 0 is the table's entry for this band, not a response rating.")
+    if caution is not None:
+        parts.append(f"Caution printed with the table: {caution.text} ({cited(caution.citation)}).")
+    return " ".join(parts)
+
+
+def pk_converted_rate(
+    form: str, amount: float, table_form: str, table_rate: float, assumes: str
+) -> str:
+    return (
+        f"The same rate as the element or oxide: {num(table_rate)} kg {table_form}/ha "
+        f"= {operand(amount)} kg {form}/ha, by atomic weights. Assumes {assumes}."
+    )
+
+
+def pk_total(form: str, rate: float, area_ha: float, total: float, assumes: str) -> str:
+    return (
+        f"Total for the field = {operand(rate)} kg {form}/ha x {operand(area_ha)} ha "
+        f"= {num(total)} kg {form}. Assumes {assumes}."
+    )
+
+
 def pack_has_placeholders(pack_id: str, version: str) -> str:
     return (
         f"Pack '{pack_id}' {version} contains PLACEHOLDER constants that are not "
@@ -505,6 +650,15 @@ def c6_placeholder_constant_used(pack_id: str, version: str, paths: list[str]) -
         f"This recommendation uses PLACEHOLDER constants or timing windows from pack "
         f"'{pack_id}' {version}: {', '.join(paths)}. "
         "Confidence is low until a human agronomist validates them."
+    )
+
+
+def c8_pk_placeholder_not_in_plan(pack_id: str, version: str, paths: list[str]) -> str:
+    return (
+        f"The P and K table check used PLACEHOLDER constants from pack '{pack_id}' {version}: "
+        f"{', '.join(paths)}. Those P and K results are not part of this plan and do not "
+        "change the nitrogen rate; this rule still caps the confidence shown for the nitrogen "
+        "line at low until a human agronomist validates the constants."
     )
 
 

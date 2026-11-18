@@ -457,7 +457,7 @@ def test_report_external_section_is_information_only(tmp_path: Path) -> None:
     assert "100.0 lb/ac" in ext
     assert f"{units.lb_per_ac_to_kg_per_ha(100.0):.1f}" in ext
     assert "30.0 lb/ac P2O5" in ext and "20.0 kg/ha K2O" in ext
-    assert ext.count("reference only, engine gives no P/K") == 2
+    assert ext.count("reference only, not compared") == 2
     assert "Test Tool" in ext and "2026-11-16" in ext and "Test Region" in ext
 
 

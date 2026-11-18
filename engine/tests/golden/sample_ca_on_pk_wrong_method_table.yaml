@@ -1,0 +1,52 @@
+# SAMPLE golden case - NOT agronomist-approved. SYNTHETIC soil values.
+# N side worked out by hand from packs/ca-on/v2.yaml (PLACEHOLDER constants): yield
+# 6.5 t/ha, price ratio 5.5, after corn -> 115.0 kg N/ha; 20 ha -> 2300 kg N.
+# Mehlich-3 P and K: the pack has no Mehlich-3 table, so neither value may read the
+# Olsen or ammonium acetate tables. No rate for either.
+id: sample_ca_on_pk_wrong_method_table
+kind: sample  # not agronomist-approved; never counts toward the agreement gate
+description: Mehlich-3 values never read the Olsen or ammonium acetate tables.
+pack:
+  id: ca-on
+  version: v2
+# TODO(agronomist): set agreement tolerances for real cases.
+tolerance:
+  kg_n_per_ha: 0.5
+  kg_n: 10
+  kg_pk_per_ha: 0.01
+  kg_pk: 0.1
+  mg_pk_per_kg: 0.01
+input:
+  crop: wheat
+  target_yield_t_ha: 6.5
+  previous_crop: corn
+  area_ha: 20.0
+  plan_date: "2027-03-15"
+  n_price:
+    n_price_per_kg_n: 1.375
+    grain_price_per_kg: 0.25
+    currency: CAD
+    source: SAMPLE (not a real price list)
+    price_date: "2027-01-20"
+  wheat_class: pastry
+  manure_applied: false
+  soil_test:
+    sample_date: "2026-09-15"
+    depth_top_cm: 0
+    depth_bottom_cm: 15
+    source: lab
+    lab: SAMPLE lab (synthetic)
+    values:
+      - {form: P, value: 7, unit: mg/kg, extraction_method: mehlich-3}
+      - {form: K, value: 40, unit: mg/kg, extraction_method: mehlich-3}
+expected:
+  n_rate_kg_ha: 115.0
+  n_total_kg: 2300.0
+  split_rates_kg_ha: [115.0]
+  confidence: low
+  pk_note: PK_NOT_CALCULATED_LAB_TEST
+  phosphorus:
+    outcome: no_table_for_method
+  potassium:
+    outcome: no_table_for_method
+  reason: SAMPLE derived from the ca-on v2 pack; not an agronomist decision.

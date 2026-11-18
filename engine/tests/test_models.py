@@ -107,6 +107,13 @@ def test_extraction_method_is_required_on_a_value() -> None:
         SoilTestValue(form=NutrientForm.P, value=12.0, unit=ConcentrationUnit.MG_PER_KG)
 
 
+def test_an_unknown_extraction_method_is_stated_as_null() -> None:
+    value = SoilTestValue(
+        form=NutrientForm.P, value=12.0, unit=ConcentrationUnit.MG_PER_KG, extraction_method=None
+    )
+    assert value.extraction_method is None
+
+
 @pytest.mark.parametrize("detail", [None, "", "   "])
 def test_other_method_requires_a_detail(detail: str | None) -> None:
     with pytest.raises(ValidationError):

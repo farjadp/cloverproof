@@ -27,6 +27,10 @@ Rules (each TODO(agronomist): review):
                             on a PLACEHOLDER pack product rule (its
                             `rules_used`)                       -> cap low
   (a line with no matched product does not trigger C7, even if rules were read)
+- C8_PK_PLACEHOLDER_NOT_IN_PLAN a P or K table check used a PLACEHOLDER
+                            constant; those results are not part of
+                            the plan, so this reason is separate
+                            from C6. A refused line used none   -> cap low
 
 Timing windows have no status of their own yet, so every window is PLACEHOLDER: a
 plan is `low` with or without a split plan, so removing timing can never raise confidence,
@@ -46,7 +50,7 @@ from cloverproof_engine.pack import ConstantStatus, Pack
 from cloverproof_engine.units import years_between
 
 if TYPE_CHECKING:
-    from cloverproof_engine.results import NutrientResult
+    from cloverproof_engine.results import NutrientResult, PkResults
 
 
 class Confidence(StrEnum):
@@ -91,7 +95,10 @@ class ConfidenceRuleHit(BaseModel):
 
 
 def assess(
-    inputs: RecommendationInput, pack: Pack, nitrogen: NutrientResult
+    inputs: RecommendationInput,
+    pack: Pack,
+    nitrogen: NutrientResult,
+    pk: PkResults | None = None,
 ) -> tuple[Confidence, list[ConfidenceRuleHit]]:
     """Apply the draft rules. Returns the level and every rule that fired."""
     thresholds = pack.crops[inputs.crop].confidence
@@ -190,6 +197,26 @@ def assess(
                 cap=Confidence.LOW,
                 reason=explain.c7_placeholder_product_rule_used(
                     pack.id, pack.version, list(product_rules)
+                ),
+            )
+        )
+
+    # C8 — TODO(agronomist): review, including the draft cap.
+    # Table level only: the exact row would reveal the rate this plan does not show.
+    pk_placeholders = dict.fromkeys(
+        c.path.split(".bands[")[0]
+        for line in (pk.lines if pk is not None else ())
+        if line.outcome == "recommended"
+        for c in line.constants_used
+        if c.is_placeholder
+    )
+    if pk_placeholders:
+        hits.append(
+            ConfidenceRuleHit(
+                rule_id="C8_PK_PLACEHOLDER_NOT_IN_PLAN",
+                cap=Confidence.LOW,
+                reason=explain.c8_pk_placeholder_not_in_plan(
+                    pack.id, pack.version, list(pk_placeholders)
                 ),
             )
         )

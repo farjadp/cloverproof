@@ -17,6 +17,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from cloverproof_app import split_display
 from cloverproof_engine import explain, recommend
 from cloverproof_engine.methods import MissingInputError, OutOfScopeError
 from cloverproof_engine.methods._shared import (
@@ -271,7 +272,9 @@ def _validate_pack_inputs(f: PlanForm, needs: PackInputs, errors: dict[str, str]
             extra["wheat_class"] = WheatClass(f.wheat_class)
     if needs.manure:
         if f.manure_applied not in {"yes", "no"}:
-            errors["manure_applied"] = "Say whether manure was applied for this crop."
+            errors["manure_applied"] = (
+                "Say whether manure or another organic amendment was applied for this crop."
+            )
         else:
             extra["manure_applied"] = f.manure_applied == "yes"
     if needs.n_price:
@@ -527,6 +530,13 @@ def parse_edit(
     return EditParsed(rate, final_splits, changed, typed), {}
 
 
+def pk_note_text(text: str, final_review: Any | None) -> str:
+    """The P/K note for the plan page, with the same wording rules as the proof."""
+    if final_review is not None and final_review.review_kind == "agronomist_approved":
+        return split_display.without_line_choice_claim(text)
+    return split_display.without_agronomist_claim(text)
+
+
 def edited_document(doc: Mapping[str, Any], edit: EditParsed, reason: str) -> dict[str, Any]:
     """Same document shape as the engine output, with the reviewer's final numbers.
 
@@ -536,6 +546,8 @@ def edited_document(doc: Mapping[str, Any], edit: EditParsed, reason: str) -> di
     typed or rescaled, loses its product outcome: it was worked out from the old rate.
     """
     new = copy.deepcopy(dict(doc))
+    # Unreviewed engine results, not plan lines: a reviewed version does not carry them.
+    new.pop("phosphorus_potassium_rates", None)
     nitrogen = new["nitrogen"]
     area = float(new["input_snapshot"]["area_ha"])
     note = f"Set by reviewer: {reason.strip()}"

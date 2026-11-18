@@ -101,6 +101,20 @@ def element_of(form: NutrientForm) -> str:
     return nutrient_of(form)
 
 
+_ELEMENTAL_FORM: dict[str, NutrientForm] = {"P": NutrientForm.P, "K": NutrientForm.K}
+_OXIDE_FORM: dict[str, NutrientForm] = {"P": NutrientForm.P2O5, "K": NutrientForm.K2O}
+
+
+def elemental_form(nutrient: str) -> NutrientForm:
+    """The element form of "P" or "K"."""
+    return _ELEMENTAL_FORM[nutrient]
+
+
+def oxide_form(nutrient: str) -> NutrientForm:
+    """The oxide form of "P" (P2O5) or "K" (K2O)."""
+    return _OXIDE_FORM[nutrient]
+
+
 def to_elemental(value: float, form: NutrientForm) -> float:
     """Express a value given in `form` as the element (P2O5 -> P, K2O -> K)."""
     return value * _TO_ELEMENTAL[form]
@@ -110,6 +124,8 @@ def convert_form(value: float, from_form: NutrientForm, to_form: NutrientForm) -
     """Convert between forms of the same element, e.g. P2O5 -> P."""
     if element_of(from_form) != element_of(to_form):
         raise ValueError(f"cannot convert {from_form.value} to {to_form.value}")
+    if from_form is to_form:
+        return value
     return to_elemental(value, from_form) / _TO_ELEMENTAL[to_form]
 
 

@@ -50,7 +50,13 @@ from cloverproof_engine.models import (
     RecommendationInput,
     nutrient_of,
 )
-from cloverproof_engine.results import ProductMatch, ProductNotMatched, Recommendation
+from cloverproof_engine.results import (
+    PkRecommended,
+    PkRefused,
+    ProductMatch,
+    ProductNotMatched,
+    Recommendation,
+)
 
 NonBlankStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -85,6 +91,47 @@ class Tolerance(_Frozen):
     kg_product_per_ha: float | None = Field(default=None, ge=0)
     kg_product: float | None = Field(default=None, ge=0)
     l_product_per_ha: float | None = Field(default=None, ge=0)
+    # Needed by cases that expect a P or K rate.
+    kg_pk_per_ha: float | None = Field(default=None, ge=0)
+    kg_pk: float | None = Field(default=None, ge=0)
+    mg_pk_per_kg: float | None = Field(default=None, ge=0)
+
+
+# `outcome` value of an expected P or K line when the engine gives no P/K result at all.
+PK_NOT_CALCULATED = "not_calculated"
+PK_RECOMMENDED = "recommended"
+
+
+class ExpectedPkLine(_Frozen):
+    """Expected P or K outcome: `recommended` with its numbers, a refusal code, or
+    `not_calculated` (the document has no P/K result).
+    """
+
+    outcome: NonBlankStr
+    rate_form: NutrientForm | None = None
+    rate_oxide_kg_ha: float | None = None
+    rate_elemental_kg_ha: float | None = None
+    total_oxide_kg: float | None = None
+    total_elemental_kg: float | None = None
+    soil_test_elemental_mg_kg: float | None = None
+    soil_test_oxide_mg_kg: float | None = None
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        numbers = (
+            self.rate_form,
+            self.rate_oxide_kg_ha,
+            self.rate_elemental_kg_ha,
+            self.total_oxide_kg,
+            self.total_elemental_kg,
+            self.soil_test_elemental_mg_kg,
+            self.soil_test_oxide_mg_kg,
+        )
+        if self.outcome == PK_RECOMMENDED and any(n is None for n in numbers):
+            raise ValueError("a recommended P or K line needs its form and every number")
+        if self.outcome != PK_RECOMMENDED and any(n is not None for n in numbers):
+            raise ValueError("a P or K line without a rate has no numbers")
+        return self
 
 
 class ExpectedSplitProduct(_Frozen):
@@ -122,7 +169,16 @@ class GoldenExpected(_Frozen):
     split_products: list[ExpectedSplitProduct] | None = None
     confidence: Confidence
     pk_note: str
+    # Optional: the P and K outcome. Both or neither.
+    phosphorus: ExpectedPkLine | None = None
+    potassium: ExpectedPkLine | None = None
     reason: str | None = None
+
+    @model_validator(mode="after")
+    def _check_pk(self) -> Self:
+        if (self.phosphorus is None) != (self.potassium is None):
+            raise ValueError("expected phosphorus and potassium go together")
+        return self
 
 
 class ExpectedCase(_Frozen):
@@ -137,6 +193,21 @@ class ExpectedCase(_Frozen):
     tolerance: Tolerance
     input: RecommendationInput
     expected: GoldenExpected
+
+    @model_validator(mode="after")
+    def _check_pk_tolerances(self) -> Self:
+        lines = (self.expected.phosphorus, self.expected.potassium)
+        if not any(line is not None and line.outcome == PK_RECOMMENDED for line in lines):
+            return self
+        needed = {
+            "kg_pk_per_ha": self.tolerance.kg_pk_per_ha,
+            "kg_pk": self.tolerance.kg_pk,
+            "mg_pk_per_kg": self.tolerance.mg_pk_per_kg,
+        }
+        missing = [name for name, value in needed.items() if value is None]
+        if missing:
+            raise ValueError(f"expected P or K rates need tolerance: {', '.join(missing)}")
+        return self
 
     @model_validator(mode="after")
     def _check_product_tolerances(self) -> Self:
@@ -208,7 +279,7 @@ class ReferenceNutrient(ReferenceRate):
 
 class ReferenceOutput(_Frozen):
     """What the external tool reported, as entered by hand. Stored for comparison only:
-    the engine compares N; P/K are kept for reference (the engine gives no P/K rate).
+    the engine compares N; P/K are kept for reference and not compared yet.
     """
 
     n_rate: ReferenceRate
@@ -397,6 +468,55 @@ def compare(case: ExpectedCase, rec: Recommendation) -> list[DiffRow]:
             rows.extend(_product_rows(i + 1, e_p, a_p, tol))
     rows.append(_label("confidence", exp.confidence.value, rec.confidence.value))
     rows.append(_label("pk_note", exp.pk_note, rec.phosphorus_potassium.code))
+    pk = rec.phosphorus_potassium_rates
+    if exp.phosphorus is not None:
+        rows.extend(_pk_rows("phosphorus", exp.phosphorus, pk.phosphorus if pk else None, tol))
+    if exp.potassium is not None:
+        rows.extend(_pk_rows("potassium", exp.potassium, pk.potassium if pk else None, tol))
+    return rows
+
+
+def _pk_rows(
+    name: str,
+    exp: ExpectedPkLine,
+    actual: PkRecommended | PkRefused | None,
+    tol: Tolerance,
+) -> list[DiffRow]:
+    """The outcome as a label; numbers when either side has a rate."""
+    match actual:
+        case PkRecommended():
+            outcome = PK_RECOMMENDED
+        case PkRefused():
+            outcome = actual.code
+        case _:
+            outcome = PK_NOT_CALCULATED
+    rows = [_label(f"{name}_outcome", exp.outcome, outcome)]
+    rate = actual if isinstance(actual, PkRecommended) else None
+    if exp.outcome != PK_RECOMMENDED and rate is None:
+        return rows
+    rows.append(
+        _label(
+            f"{name}_rate_form",
+            exp.rate_form.value if exp.rate_form else "-",
+            rate.rate_form.value if rate else "-",
+        )
+    )
+    kg_ha, kg, mg_kg = tol.kg_pk_per_ha or 0, tol.kg_pk or 0, tol.mg_pk_per_kg or 0
+    for field, expected, amount, tolerance in (
+        ("rate_oxide_kg_ha", exp.rate_oxide_kg_ha, rate and rate.rate_oxide, kg_ha),
+        ("rate_elemental_kg_ha", exp.rate_elemental_kg_ha, rate and rate.rate_elemental, kg_ha),
+        ("total_oxide_kg", exp.total_oxide_kg, rate and rate.total_oxide, kg),
+        ("total_elemental_kg", exp.total_elemental_kg, rate and rate.total_elemental, kg),
+        (
+            "soil_test_elemental_mg_kg",
+            exp.soil_test_elemental_mg_kg,
+            rate and rate.soil_test_elemental,
+            mg_kg,
+        ),
+        ("soil_test_oxide_mg_kg", exp.soil_test_oxide_mg_kg, rate and rate.soil_test_oxide, mg_kg),
+    ):
+        value = amount.amount.value if amount else None
+        rows.append(_number(f"{name}_{field}", expected, value, tolerance))
     return rows
 
 
@@ -505,7 +625,7 @@ def _external_row(field: str, engine: float | None, ref: ReferenceRate | None) -
 
 
 def compare_external(case: ExternalReferenceCase, rec: Recommendation) -> list[ExternalRow]:
-    """N rate and splits (by position). P/K are not compared: the engine gives no P/K."""
+    """N rate and splits (by position). P/K references are not compared yet."""
     ref = case.reference_output
     rows = [_external_row("n_rate", rec.nitrogen.rate.value, ref.n_rate)]
     if ref.n_splits:
@@ -544,7 +664,6 @@ def format_external(
     for name, value in (("phosphorus", ref.phosphorus), ("potassium", ref.potassium)):
         if value is not None:
             lines.append(
-                f"  {name}: {_as_entered(value)} {value.form.value} "
-                "- reference only, engine gives no P/K"
+                f"  {name}: {_as_entered(value)} {value.form.value} - reference only, not compared"
             )
     return "\n".join(line.rstrip() for line in lines)
