@@ -114,6 +114,41 @@ def test_rate_edit_on_a_no_split_line_claims_no_pack_share(
         assert "split share" not in line[key]["explanation"]
 
 
+def thirds_doc(pack: Any) -> dict[str, Any]:
+    data = pack.model_dump(mode="json")
+    nitrogen = data["crops"]["wheat"]["nitrogen"]
+    template = nitrogen["splits"][0]
+    nitrogen["splits"] = [
+        {**copy.deepcopy(template), "stage_label": f"Stage {i} (TEST)"} for i in range(3)
+    ]
+    for spec in nitrogen["splits"]:
+        spec["fraction"]["value"] = 1 / 3
+    inputs = RecommendationInput(
+        crop=Crop.WHEAT, target_yield_t_ha=6, previous_crop="canola", area_ha=10,
+        plan_date=date(2027, 3, 1), soil_test=None,
+    )  # fmt: skip
+    return planning.run_engine(inputs, parse_pack(data))
+
+
+def test_rate_edit_adds_a_rounding_note_when_lines_stop_adding_up(pack: Any) -> None:
+    doc = thirds_doc(pack)
+    new = apply(doc, "100", [repr(v) for v in engine_splits(doc)])  # 33.3 x 3 = 99.9
+    for s in new["nitrogen"]["splits"]:
+        assert s["rate"]["explanation"].endswith(planning.explain.rounded_for_display())
+
+
+def test_typed_lines_that_add_up_lose_a_stale_rounding_note(doc: dict[str, Any]) -> None:
+    stale = copy.deepcopy(doc)
+    suffix = planning.explain.rounded_for_display()
+    for s in stale["nitrogen"]["splits"]:
+        s["rate"]["explanation"] += suffix
+    rates = engine_splits(doc)
+    typed = [f"{round(rates[0] + 1, 1):g}", *fmt(rates[1:])]
+    new = apply(stale, f"{round(rates[0] + 1, 1) + sum(rates[1:]):g}", typed)
+    for s in new["nitrogen"]["splits"]:
+        assert not s["rate"]["explanation"].endswith(suffix)
+
+
 def test_rate_edit_on_an_engine_0_3_0_line_keeps_the_old_text(
     no_split_doc: dict[str, Any],
 ) -> None:
