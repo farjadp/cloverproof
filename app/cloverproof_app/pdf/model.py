@@ -20,13 +20,15 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-TEMPLATE_VERSION = "proof-v0"
+from cloverproof_app import split_display
+
+TEMPLATE_VERSION = "proof-v1"
 PLACEHOLDER_BANNER = "PLACEHOLDER values — not for field use"
 NOT_YET_VALIDATED = "PLACEHOLDER — not yet validated"
 HASH_STATEMENT = "SHA-256 of this file is recorded in CloverProof"
@@ -135,10 +137,21 @@ class ProofInput:
         nitrogen = self.doc["nitrogen"]
         if any(c.get("status") == "PLACEHOLDER" for c in nitrogen.get("constants_used", [])):
             return True
-        windows = [s.get("timing_window") or {} for s in nitrogen.get("splits", [])]
-        if any(w.get("status") == "PLACEHOLDER" for w in windows):
-            return True  # a timing window has no validated status yet (engine rule C6)
+        # A timing window has no validated status yet (engine rule C6); a product rule may
+        # be PLACEHOLDER on a line whose numbers carry no flag.
+        if split_display.has_placeholder(nitrogen.get("splits", [])):
+            return True
         return any(n.get("uses_placeholder") for n in explained_numbers(self.doc))
+
+    def product_text(self, text: str) -> str:
+        """Engine wording; it names the agronomist only on an agronomist's approval."""
+        if self.approval is not None and self.approval.review_kind == AGRONOMIST_APPROVED:
+            return split_display.without_line_choice_claim(text)
+        return split_display.without_agronomist_claim(text)
+
+    def number_text(self, text: str) -> str:
+        """A number's explanation; an edited number names the reviewer, whatever their role."""
+        return split_display.neutral_edit_text(text)
 
     @property
     def input_snapshot_sha256(self) -> str:
@@ -151,7 +164,7 @@ def snapshot_sha256(snapshot: Any) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def explained_numbers(doc: dict[str, Any]) -> Iterator[dict[str, Any]]:
+def explained_numbers(doc: dict[str, Any]) -> Iterator[Mapping[str, Any]]:
     """Every number in the document that carries its own explanation."""
     n = doc["nitrogen"]
     yield n["rate"]
@@ -161,6 +174,7 @@ def explained_numbers(doc: dict[str, Any]) -> Iterator[dict[str, Any]]:
         yield split["fraction"]
         yield split["rate"]
         yield split["total"]
+        yield from split_display.product_numbers(split)
 
 
 def approval_line(approval: Approval) -> str:

@@ -282,7 +282,7 @@ def test_diff_shows_engine_vs_edited_values_and_reason(db: psycopg.Connection, o
     assert diff.count("Soil test recommended. No P or K rate without a soil test.") == 2
     assert "Set by rule, not editable: no P or K rate without a soil test." in diff
     # Every number keeps its explanation on both sides.
-    assert "Set by agronomist: Manure last fall" in diff and "Recommended N rate" in diff
+    assert "Set by reviewer: Manure last fall" in diff and "Recommended N rate" in diff
     # Still nothing approved: no human final review yet.
     assert "Approved by" not in page and "status-in_review" in page
 

@@ -1,14 +1,14 @@
 {# Engine output vs the version on screen, line by line (docs/design/review-queue.md §4.4).
    Needs `line_diff` (cloverproof_app.line_diff.LineDiff). Read-only. #}
-{% from "_macros.html" import explained, share, confidence, num %}
+{% from "_macros.html" import explained, share, share_value, confidence, num %}
 {% macro side(cell, value) -%}
 {% if cell.kind == "number" %}{{ explained(value) }}
-{% elif cell.kind == "share" %}{{ share(value) }}
+{% elif cell.kind == "share" %}{{ share(value, cell.whole_share) }}
 {% elif cell.kind == "confidence" %}{{ confidence(value) }}
 {% else %}<p class="diff-text">{{ value }}</p>{% endif %}
 {%- endmacro %}
 {% macro was(cell) -%}
-{% if cell.engine is none %}nothing{% elif cell.kind == "number" %}{{ num(cell.engine.value) }} {{ cell.engine.unit }}{% elif cell.kind == "share" %}{{ num(cell.engine.value * 100, 0) }}%{% else %}{{ cell.engine }}{% endif %}
+{% if cell.engine is none %}nothing{% elif cell.kind == "number" %}{{ num(cell.engine.value) }} {{ cell.engine.unit }}{% elif cell.kind == "share" %}{{ share_value(cell.engine, cell.whole_share) }}{% else %}{{ cell.engine }}{% endif %}
 {%- endmacro %}
 {% set d = line_diff %}
 <section aria-labelledby="diff-h" class="diff-section" id="diff">

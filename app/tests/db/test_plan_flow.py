@@ -113,7 +113,7 @@ def test_happy_path_engine_edit_approve(db: psycopg.Connection, org_a: Org) -> N
     )  # fmt: skip
     assert r.status_code == 303, r.text
     page = client.get(plan_url).text
-    assert "Engine vs latest version" in page and "Set by agronomist: Local trial history" in page
+    assert "Engine vs latest version" in page and "Set by reviewer: Local trial history" in page
     assert "Plan v2" in page
 
     final_rec = latest_rec(client, plan_url)
@@ -346,10 +346,8 @@ def test_rate_only_edit_rescales_splits(db: psycopg.Connection, org_a: Org) -> N
     )  # fmt: skip
     assert r.status_code == 303, r.text
     page = client.get(plan_url).text
-    assert "Set by agronomist: Wet spring" in page
-    assert (
-        "Rescaled from the agronomist&#39;s N rate, keeping this line&#39;s current share" in page
-    )
+    assert "Set by reviewer: Wet spring" in page
+    assert "Rescaled from the reviewer&#39;s N rate, keeping this line&#39;s current share" in page
     assert "outside the pack limits" not in page
 
 

@@ -16,6 +16,7 @@ from uuid import UUID
 
 import psycopg
 
+from cloverproof_app import split_display
 from cloverproof_app.repo import review_queue as repo
 
 
@@ -27,6 +28,7 @@ class DiffCell:
     kind: str
     engine: Any
     final: Any
+    whole_share: bool = False  # engine 0.2/0.3 document: shares stay whole percents
 
     @property
     def changed(self) -> bool:
@@ -68,20 +70,17 @@ class LineDiff:
 def _product(split: Mapping[str, Any] | None) -> str | None:
     if split is None:
         return None
-    product = split.get("product")
-    if isinstance(product, Mapping):
-        product = product.get("name") or product.get("label")
-    return str(product) if product else "No product matched yet"
+    return split_display.product_label(split)
 
 
 def _timing(split: Mapping[str, Any] | None) -> str | None:
     if split is None:
         return None
-    window = split.get("timing") or split.get("timing_window")
+    window = split.get("timing")
     if isinstance(window, Mapping) and window.get("start") and window.get("end"):
         basis = f" ({window['basis']})" if window.get("basis") else ""
         return f"{window['start']} to {window['end']}{basis}"
-    return f"{split.get('stage_label', 'Stage not set')} (no dates yet)"
+    return split_display.timing_label(split)
 
 
 def _pk_text(doc: Mapping[str, Any]) -> str:
@@ -111,11 +110,12 @@ def diff_lines(engine: Mapping[str, Any], final: Mapping[str, Any]) -> list[Diff
         f = f_splits[i] if i < len(f_splits) else None
         stage = (f or e or {}).get("stage_label")
         only = "engine" if f is None else ("final" if e is None else None)
+        whole_share = split_display.is_old_line(f or e or {})
         lines.append(
             DiffLine(
                 f"Nitrogen, split {i + 1}", stage,
                 [DiffCell("Rate", "number", e and e["rate"], f and f["rate"]),
-                 DiffCell("Share", "share", e and e["fraction"], f and f["fraction"]),
+                 DiffCell("Share", "share", e and e["fraction"], f and f["fraction"], whole_share),
                  DiffCell("Product", "text", _product(e), _product(f)),
                  DiffCell("Timing", "text", _timing(e), _timing(f))],
                 only_in=only,

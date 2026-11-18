@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import explained, share, num, placeholder, placeholder_pack_banner, n_limits_note, confidence, status, error, invalid, error_summary, breadcrumb %}
+{% from "_macros.html" import explained, share, line_detail, num, placeholder, placeholder_pack_banner, n_limits_note, confidence, status, error, invalid, error_summary, breadcrumb %}
 {% set n = doc.nitrogen %}
 {% set snap = doc.input_snapshot %}
 {% block title %}Plan v{{ v.number }} · {{ v.field.name }}{% endblock %}
@@ -7,7 +7,8 @@
 {% block content %}
 {% set has_placeholder = n.rate.uses_placeholder or n.total.uses_placeholder
      or (n.components | selectattr("uses_placeholder") | list)
-     or (n.constants_used | selectattr("status", "equalto", "PLACEHOLDER") | list) %}
+     or (n.constants_used | selectattr("status", "equalto", "PLACEHOLDER") | list)
+     or split_text.has_placeholder(n.splits) %}
 {% set placeholder_pack = doc.pack_status == "placeholder" %}
 {{ placeholder_pack_banner(doc) }}
 
@@ -82,11 +83,14 @@
     <tbody>
     {% for s in n.splits %}
       <tr>
-        <th scope="row">{{ s.stage_label }}</th>
-        <td data-label="Share">{{ share(s.fraction) }}</td>
+        <th scope="row">{{ s.stage_label }}{% if split_text.timing_is_placeholder(s) %} {{ placeholder() }}{% endif %}</th>
+        <td data-label="Share">{{ share(s.fraction, split_text.is_old_line(s)) }}</td>
         <td data-label="Rate">{{ explained(s.rate) }}</td>
         <td data-label="Total">{{ explained(s.total) }}</td>
       </tr>
+      {%- if split_text.has_line_detail(s) %}
+      <tr><td colspan="4" data-label="Timing and product">{{ line_detail(s) }}</td></tr>
+      {%- endif %}
     {% endfor %}
     </tbody>
   </table>

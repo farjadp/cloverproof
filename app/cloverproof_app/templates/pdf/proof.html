@@ -5,23 +5,63 @@
 <div class="explained {{ cls }}">
 {% if x.explanation %}
   <span class="value">{{ x.value | num(digits) }} {{ x.unit }}</span>{{ placeholder_mark(x.uses_placeholder) }}
-  <p class="why">{{ x.explanation }}</p>
+  <p class="why">{{ p.number_text(x.explanation) }}</p>
 {% else %}
   <span class="value">{{ x.value | num(digits) }} {{ x.unit }}</span>
   <p class="why">No explanation recorded</p>
 {% endif %}
 </div>
 {% endmacro %}
-{% macro share(x) %}
+{#- `whole`: a document from engine 0.2/0.3 keeps the whole percents it was shown with. -#}
+{% macro share_value(x, whole) %}{% if whole %}{{ (x.value * 100) | num(0) }}%{% else %}{{ split_text.share_text(x.value) }}{% endif %}{% endmacro %}
+{% macro share(x, whole=false) %}
 <div class="explained">
 {% if x.explanation %}
-  <span class="value">{{ (x.value * 100) | num(0) }}%</span>{{ placeholder_mark(x.uses_placeholder) }}
-  <p class="why">{{ x.explanation }}</p>
+  <span class="value">{{ share_value(x, whole) }}</span>{{ placeholder_mark(x.uses_placeholder) }}
+  <p class="why">{{ p.number_text(x.explanation) }}</p>
 {% else %}
-  <span class="value">{{ (x.value * 100) | num(0) }}%</span>
+  <span class="value">{{ share_value(x, whole) }}</span>
   <p class="why">No explanation recorded</p>
 {% endif %}
 </div>
+{% endmacro %}
+{% macro grade_number(g) %}
+<div class="explained">
+  <span class="value">{{ g.value | plain }} {{ g.unit }}</span>
+  <p class="why">{{ g.explanation or "No explanation recorded" }}</p>
+</div>
+{% endmacro %}
+{#- One N line's timing and product outcome, as a full-width row under its numbers. -#}
+{% macro line_detail(s) %}
+{% set m = split_text.outcome(s) %}
+<tr><td colspan="4">
+{% if not split_text.is_old_line(s) %}
+{% set w = s.timing_window %}
+  <p><strong>Timing:</strong> {% if w %}{{ w.label }}{{ placeholder_mark(w.status == "PLACEHOLDER") }}{% else %}{{ split_text.NO_TIMING_SET }}{% endif %}</p>
+{% endif %}
+{% if s.get("explanation") %}
+  <p class="why">{{ p.product_text(s.explanation) }}</p>
+{% endif %}
+{% if m and m.matched %}
+  <p><strong>Product:</strong> {{ m.product_name }} ({{ m.form }})</p>
+{% if split_text.selected_by_placeholder_rule(m) %}
+  <p><span class="ph">{{ split_text.PLACEHOLDER_RULE }}</span></p>
+{% endif %}
+  <p class="why">{{ p.product_text(m.explanation) }}</p>
+  <p class="why">Grade source: {{ m.grade_source }}</p>
+  {#- Its own table: under the split table's headers these would read as Timing, Share... -#}
+  <table class="product-numbers">
+    <tr><td>{{ explained(m.rate) }}</td><td>{% if m.get("total") %}{{ explained(m.total) }}{% endif %}</td><td>{% if m.get("volume_rate") %}{{ explained(m.volume_rate) }}{% endif %}</td><td>{% if m.get("sulphur_rate") %}{{ explained(m.sulphur_rate) }}{% endif %}</td></tr>
+    <tr><td>{{ grade_number(m.grade.n) }}</td><td>{{ grade_number(m.grade.p2o5) }}</td><td>{{ grade_number(m.grade.k2o) }}</td><td>{{ grade_number(m.grade.s) }}</td></tr>
+  </table>
+{% elif m %}
+  <p><strong>Product:</strong> {{ split_text.not_matched_title(m) }}</p>
+  <p class="why">{{ p.product_text(m.explanation) }}</p>
+{% if m.fitting_products %}
+  <p class="why">{{ split_text.UNCHOSEN_PRODUCTS }}: {{ m.fitting_products | join(", ") }}</p>
+{% endif %}
+{% endif %}
+</td></tr>
 {% endmacro %}
 {% set soil = snap.soil_test %}
 <!doctype html>
@@ -147,12 +187,15 @@
   </table>
 
   <h3>Split applications and timing</h3>
-  <p class="muted">Timing is the growth-stage text from the country pack (no weather-based window in this version).</p>
+  <p class="muted">{{ split_text.proof_timing_note(n.splits) }}</p>
   <table>
     <thead><tr><th class="w28">Timing</th><th>Share</th><th>Rate</th><th>Total</th></tr></thead>
     <tbody>
     {% for s in n.splits %}
-      <tr><th>{{ s.stage_label }}</th><td>{{ share(s.fraction) }}</td><td>{{ explained(s.rate) }}</td><td>{{ explained(s.total) }}</td></tr>
+      <tr><th>{{ s.stage_label }}{{ placeholder_mark(split_text.timing_is_placeholder(s)) }}</th><td>{{ share(s.fraction, split_text.is_old_line(s)) }}</td><td>{{ explained(s.rate) }}</td><td>{{ explained(s.total) }}</td></tr>
+{% if split_text.has_line_detail(s) %}
+{{ line_detail(s) }}
+{% endif %}
     {% endfor %}
     </tbody>
   </table>
@@ -179,7 +222,7 @@
   {% if doc.confidence_reasons %}
   <p>Why {{ doc.confidence }}:</p>
   <ul>
-    {% for r in doc.confidence_reasons %}<li>{{ r.reason }} <span class="rule-id">({{ r.rule_id }})</span></li>{% endfor %}
+    {% for r in doc.confidence_reasons %}<li>{{ p.product_text(r.reason) }} <span class="rule-id">({{ r.rule_id }})</span></li>{% endfor %}
   </ul>
   {% else %}
   <p class="muted">No rule lowered confidence.</p>
@@ -194,13 +237,13 @@
     <p>This plan covers nitrogen only. Send a sample to a lab to get phosphorus and potassium advice.</p>
   </div>
   {% endif %}
-  <p>{{ doc.phosphorus_potassium.text }}</p>
+  <p>{{ p.product_text(doc.phosphorus_potassium.text) }}</p>
 </section>
 
 {% if doc.notes %}
 <section>
   <h2>Notes</h2>
-  <ul>{% for note in doc.notes %}<li>{{ note.text }}</li>{% endfor %}</ul>
+  <ul>{% for note in doc.notes %}<li>{{ p.product_text(note.text) }}</li>{% endfor %}</ul>
 </section>
 {% endif %}
 

@@ -54,7 +54,7 @@ def test_rate_edit_with_new_shares(engine_doc: dict[str, Any]) -> None:
     rate = lines["Nitrogen, season"].cells[0]
     assert rate.engine["value"] == engine_doc["nitrogen"]["rate"]["value"]
     assert rate.final["value"] == 120.0 and rate.final["unit"] == "kg N/ha"
-    assert rate.final["explanation"].startswith("Set by agronomist: Local trial")
+    assert rate.final["explanation"].startswith("Set by reviewer: Local trial")
 
 
 def test_product_and_timing_placeholders(engine_doc: dict[str, Any]) -> None:

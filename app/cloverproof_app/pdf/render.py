@@ -18,7 +18,7 @@ from urllib.parse import unquote, urlparse
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
-from cloverproof_app import planning
+from cloverproof_app import planning, split_display
 from cloverproof_app.pdf.model import (
     HASH_STATEMENT,
     NO_SOIL_TEST,
@@ -84,6 +84,7 @@ _env = Environment(
 _env.filters["num"] = _num
 _env.filters["plain"] = _plain
 _env.filters["utc"] = _utc
+_env.globals["split_text"] = split_display
 
 
 def render_html(proof: ProofInput) -> str:
