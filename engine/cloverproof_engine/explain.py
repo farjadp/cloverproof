@@ -6,7 +6,7 @@ sentence is tagged PLACEHOLDER (or with its source when validated).
 
 from typing import Literal
 
-from cloverproof_engine.pack import Citation, CitationBasis, ConstantStatus, PackConstant
+from cloverproof_engine.pack import Citation, CitationBasis, PackConstant
 
 
 def num(x: float) -> str:
@@ -129,21 +129,15 @@ def split_total(index: int, split: float, area_ha: float, total: float) -> str:
     )
 
 
-def _timing_tag(status: ConstantStatus, citation: Citation | None) -> str:
-    label = (
-        "PLACEHOLDER, not agronomist-validated"
-        if status is ConstantStatus.PLACEHOLDER
-        else "validated pack"
-    )
+def _timing_tag(citation: Citation | None) -> str:
+    label = "PLACEHOLDER, not agronomist-validated"
     return f"({label}; {cited(citation)})" if citation is not None else f"({label})"
 
 
-def split_line(
-    index: int, count: int, window: str, status: ConstantStatus, citation: Citation | None
-) -> str:
+def split_line(index: int, count: int, window: str, citation: Citation | None) -> str:
     return (
         f"Application {index} of {count} in the pack's split plan. "
-        f"Timing window: {window} {_timing_tag(status, citation)}."
+        f"Timing window: {window} {_timing_tag(citation)}."
     )
 
 

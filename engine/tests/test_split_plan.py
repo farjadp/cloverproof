@@ -122,11 +122,14 @@ def test_cited_window_keeps_its_citation_and_basis() -> None:
     assert "PLACEHOLDER, not agronomist-validated" in line.explanation
 
 
-def test_window_of_a_validated_pack_is_not_called_placeholder(make_input, validated_pack) -> None:
-    line = recommend(make_input(), validated_pack).nitrogen.splits[0]
-    assert line.timing_window is not None
-    assert line.timing_window.status is ConstantStatus.VALIDATED
-    assert "PLACEHOLDER" not in line.explanation.replace(line.timing_window.label, "")
+def test_window_stays_placeholder_even_in_a_validated_pack(make_input, validated_pack) -> None:
+    # Nobody validated the window: a window has no status of its own, so it cannot
+    # inherit one from the pack.
+    for line in recommend(make_input(), validated_pack).nitrogen.splits:
+        assert line.timing_window is not None
+        assert line.timing_window.status is ConstantStatus.PLACEHOLDER
+        assert "PLACEHOLDER, not agronomist-validated" in line.explanation
+        assert "validated pack" not in line.explanation
 
 
 # --- rounding: no pack rule, so rates stay exact ----------------------------------

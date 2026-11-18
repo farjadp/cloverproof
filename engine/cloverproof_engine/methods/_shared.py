@@ -149,9 +149,9 @@ def build_splits(
         UsedConstant.of(f"{base}.splits[{i}].fraction", spec.fraction)
         for i, spec in enumerate(specs)
     ]
-    window_status = (
-        ConstantStatus.VALIDATED if pack.status == "validated" else ConstantStatus.PLACEHOLDER
-    )
+    # A window has no status of its own yet, so nothing can mark it validated; it never
+    # inherits the pack's status. TODO(agronomist): validate each window per pack.
+    window_status = ConstantStatus.PLACEHOLDER
     area = inputs.area_ha
     count = len(specs)
     splits: list[SplitApplication] = []
@@ -167,7 +167,7 @@ def build_splits(
                     label=spec.stage_label, status=window_status, citation=spec.timing_citation
                 ),
                 explanation=explain.split_line(
-                    index, count, spec.stage_label, window_status, spec.timing_citation
+                    index, count, spec.stage_label, spec.timing_citation
                 ),
                 fraction=ExplainedNumber(
                     name=f"split_{index}_fraction",
