@@ -9,9 +9,9 @@ serialised with sorted keys, no whitespace (separators "," and ":"), UTF-8,
 ensure_ascii off. Consequences: comments, YAML layout, mapping key order and
 int-vs-float spelling (30 vs 30.0) do not change the hash; any value, unit,
 status, source, label, description, method id or list order (e.g. splits) does.
-Optional fields added after engine 0.2.0 (`citation`, `soil_test_methods`) are left
-out of the canonical form when absent, so packs that do not use them keep their
-fingerprint.
+Optional fields added after engine 0.2.0 (`citation`, `soil_test_methods`, and
+`splits` since engine 0.4.0) are left out of the canonical form when absent, so packs
+that do not use them keep their fingerprint.
 
 Labels (CLAUDE.md rule 9): every constant is `PLACEHOLDER` (`source: null`) until a
 human agronomist validates it (`VALIDATED` + `source`). A constant taken from a
@@ -35,6 +35,7 @@ from pydantic import (
     Field,
     SerializerFunctionWrapHandler,
     StringConstraints,
+    field_validator,
     model_serializer,
     model_validator,
 )
@@ -226,16 +227,27 @@ class SplitSpec(_Frozen):
 class _NitrogenBase(_Frozen):
     """Fields every nitrogen method shares (the concierge tool reads these)."""
 
+    _OMIT_IF_NONE = ("splits",)
+
     min_rate: KgNPerHa
     max_rate: KgNPerHa
     previous_crop_credits: dict[str, PreviousCrop] = Field(min_length=1)
-    splits: list[SplitSpec] = Field(min_length=1)
+    # None = the pack defines no split plan for this crop (an empty list means the
+    # same): the engine gives one full-rate line with no timing window.
+    splits: list[SplitSpec] | None = Field(default=None, min_length=1)
+
+    @field_validator("splits", mode="before")
+    @classmethod
+    def _empty_splits_mean_none(cls, value: Any) -> Any:
+        return None if value == [] else value
 
     @model_validator(mode="after")
     def _check(self) -> Self:
         if self.min_rate.value > self.max_rate.value:
             raise ValueError("min_rate must not exceed max_rate")
-        if not math.isclose(sum(s.fraction.value for s in self.splits), 1.0):
+        if self.splits is not None and not math.isclose(
+            sum(s.fraction.value for s in self.splits), 1.0
+        ):
             raise ValueError("split fractions must sum to 1")
         for key in self.previous_crop_credits:
             if key != key.strip().lower() or not key:

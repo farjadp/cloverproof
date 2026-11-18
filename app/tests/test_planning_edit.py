@@ -6,6 +6,7 @@ and placeholder flags are whatever the pack says; tests read them from the docum
 
 from __future__ import annotations
 
+import copy
 import math
 from datetime import date
 from typing import Any
@@ -16,9 +17,11 @@ from cloverproof_app import planning
 from cloverproof_app.main import DEFAULT_PACK_PATH
 from cloverproof_engine.loaders import load_pack
 from cloverproof_engine.models import Crop, RecommendationInput
+from cloverproof_engine.pack import parse_pack
 
 REASON = "Field history: lodging at higher rates"
 RESCALED = "Rescaled from the agronomist's N rate using the pack split share"
+RESCALED_NO_SPLIT = "Rescaled to the agronomist's N rate; the pack defines no split plan."
 
 
 @pytest.fixture(scope="module")
@@ -38,6 +41,24 @@ def doc(pack: Any) -> dict[str, Any]:
     )
     result = planning.run_engine(inputs, pack)
     assert len(result["nitrogen"]["splits"]) >= 2, "tests need a pack with two or more splits"
+    return result
+
+
+@pytest.fixture(scope="module")
+def no_split_doc(pack: Any) -> dict[str, Any]:
+    """An engine document from the same pack with its split plan removed."""
+    data = pack.model_dump(mode="json")
+    del data["crops"]["wheat"]["nitrogen"]["splits"]
+    inputs = RecommendationInput(
+        crop=Crop.WHEAT,
+        target_yield_t_ha=6,
+        previous_crop="canola",
+        area_ha=10,
+        plan_date=date(2027, 3, 1),
+        soil_test=None,
+    )
+    result = planning.run_engine(inputs, parse_pack(data))
+    assert result["nitrogen"]["splits"][0]["timing_window"] is None
     return result
 
 
@@ -78,6 +99,64 @@ def test_rate_only_rescales_splits_with_pack_share(doc: dict[str, Any]) -> None:
             assert "Set by agronomist" not in s[key]["explanation"]
             assert s[key]["uses_placeholder"] is old["fraction"]["uses_placeholder"]
         assert s["fraction"]["uses_placeholder"] is old["fraction"]["uses_placeholder"]
+
+
+@pytest.mark.parametrize("new_rate", [100.0, 0.0])
+def test_rate_edit_on_a_no_split_line_claims_no_pack_share(
+    no_split_doc: dict[str, Any], new_rate: float
+) -> None:
+    new = apply(no_split_doc, f"{new_rate:g}", fmt(engine_splits(no_split_doc)))
+    line = new["nitrogen"]["splits"][0]
+    assert line["rate"]["value"] == new_rate
+    assert line["rate"]["explanation"] == RESCALED_NO_SPLIT
+    assert line["total"]["explanation"].startswith(RESCALED_NO_SPLIT)
+    for key in ("rate", "total"):
+        assert "split share" not in line[key]["explanation"]
+
+
+def thirds_doc(pack: Any) -> dict[str, Any]:
+    data = pack.model_dump(mode="json")
+    nitrogen = data["crops"]["wheat"]["nitrogen"]
+    template = nitrogen["splits"][0]
+    nitrogen["splits"] = [
+        {**copy.deepcopy(template), "stage_label": f"Stage {i} (TEST)"} for i in range(3)
+    ]
+    for spec in nitrogen["splits"]:
+        spec["fraction"]["value"] = 1 / 3
+    inputs = RecommendationInput(
+        crop=Crop.WHEAT, target_yield_t_ha=6, previous_crop="canola", area_ha=10,
+        plan_date=date(2027, 3, 1), soil_test=None,
+    )  # fmt: skip
+    return planning.run_engine(inputs, parse_pack(data))
+
+
+def test_rate_edit_adds_a_rounding_note_when_lines_stop_adding_up(pack: Any) -> None:
+    doc = thirds_doc(pack)
+    new = apply(doc, "100", [repr(v) for v in engine_splits(doc)])  # 33.3 x 3 = 99.9
+    for s in new["nitrogen"]["splits"]:
+        assert s["rate"]["explanation"].endswith(planning.explain.rounded_for_display())
+
+
+def test_typed_lines_that_add_up_lose_a_stale_rounding_note(doc: dict[str, Any]) -> None:
+    stale = copy.deepcopy(doc)
+    suffix = planning.explain.rounded_for_display()
+    for s in stale["nitrogen"]["splits"]:
+        s["rate"]["explanation"] += suffix
+    rates = engine_splits(doc)
+    typed = [f"{round(rates[0] + 1, 1):g}", *fmt(rates[1:])]
+    new = apply(stale, f"{round(rates[0] + 1, 1) + sum(rates[1:]):g}", typed)
+    for s in new["nitrogen"]["splits"]:
+        assert not s["rate"]["explanation"].endswith(suffix)
+
+
+def test_rate_edit_on_an_engine_0_3_0_line_keeps_the_old_text(
+    no_split_doc: dict[str, Any],
+) -> None:
+    # Engine 0.3.0 documents have no `timing_window` key at all.
+    old = copy.deepcopy(no_split_doc)
+    del old["nitrogen"]["splits"][0]["timing_window"]
+    new = apply(old, "100", fmt(engine_splits(old)))
+    assert new["nitrogen"]["splits"][0]["rate"]["explanation"].startswith(RESCALED)
 
 
 def test_partial_split_edit_recomputes_every_fraction(doc: dict[str, Any]) -> None:
@@ -158,8 +237,6 @@ def test_total_uses_area(doc: dict[str, Any]) -> None:
 
 
 def test_engine_document_is_not_mutated(doc: dict[str, Any]) -> None:
-    import copy
-
     before = copy.deepcopy(doc)
     apply(doc, f"{engine_rate(doc) + 30:g}", fmt(engine_splits(doc)))
     assert doc == before

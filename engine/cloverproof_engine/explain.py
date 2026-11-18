@@ -4,6 +4,8 @@ Text only: no calculation happens here. Every pack constant quoted in a
 sentence is tagged PLACEHOLDER (or with its source when validated).
 """
 
+from collections.abc import Callable
+from decimal import Decimal
 from typing import Literal
 
 from cloverproof_engine.pack import Citation, CitationBasis, PackConstant
@@ -14,7 +16,8 @@ def num(x: float) -> str:
 
 
 def pct(x: float) -> str:
-    return f"{x:.0%}"
+    """A percentage with one decimal, dropped when it is zero: 12.5%, 40%."""
+    return f"{x:.1%}".replace(".0%", "%")
 
 
 def cited(citation: Citation) -> str:
@@ -126,6 +129,61 @@ def split_rate(index: int, fraction: float, rate: float, split: float) -> str:
 def split_total(index: int, split: float, area_ha: float, total: float) -> str:
     return (
         f"Application {index} total = {num(split)} kg N/ha x {num(area_ha)} ha = {num(total)} kg N."
+    )
+
+
+def rounded_for_display() -> str:
+    return (
+        " These lines do not add up exactly as shown: rounded for display; stored values are exact."
+    )
+
+
+def rounding_note(values: list[float], shown: Callable[[float], str]) -> str:
+    """The rounding sentence when the lines, as displayed, do not add up to their sum."""
+
+    def displayed(value: float) -> Decimal:
+        return Decimal(shown(value).replace(",", "").removesuffix("%"))
+
+    adds_up = sum(displayed(v) for v in values) == displayed(sum(values))
+    return "" if adds_up else rounded_for_display()
+
+
+def no_split_rate(rate: float) -> str:
+    return f"Full N rate on this line = {num(rate)} kg N/ha."
+
+
+def no_split_total(rate: float, area_ha: float, total: float) -> str:
+    return f"Total on this line = {num(rate)} kg N/ha x {num(area_ha)} ha = {num(total)} kg N."
+
+
+def _timing_tag(citation: Citation | None) -> str:
+    label = "PLACEHOLDER, not agronomist-validated"
+    return f"({label}; {cited(citation)})" if citation is not None else f"({label})"
+
+
+def split_line(index: int, count: int, window: str, citation: Citation | None) -> str:
+    return (
+        f"Application {index} of {count} in the pack's split plan. "
+        f"Pack timing wording: {window} {_timing_tag(citation)}."
+    )
+
+
+def no_split_stage_label() -> str:
+    return "Full N rate, not split (no split plan in the pack; timing not set)"
+
+
+def no_split_fraction(pack_id: str, version: str, crop: str) -> str:
+    return (
+        f"No split is defined in pack '{pack_id}' {version} for {crop}: "
+        "this line carries the full N rate."
+    )
+
+
+def no_split_line(pack_id: str, version: str, crop: str) -> str:
+    return (
+        f"Pack '{pack_id}' {version} defines no split plan for {crop}, so the engine shows the "
+        "N rate as one line. This is not advice to apply it in one pass. The pack gives no "
+        "timing window and the engine does not invent one."
     )
 
 
@@ -260,6 +318,11 @@ def c5_rate_at_bound(bound: Literal["min", "max"]) -> str:
 
 def c6_placeholder_constant_used(pack_id: str, version: str, paths: list[str]) -> str:
     return (
-        f"This recommendation uses PLACEHOLDER constants from pack '{pack_id}' {version}: "
-        f"{', '.join(paths)}. Confidence is low until the agronomist validates them."
+        f"This recommendation uses PLACEHOLDER constants or timing windows from pack "
+        f"'{pack_id}' {version}: {', '.join(paths)}. "
+        "Confidence is low until a human agronomist validates them."
     )
+
+
+def c6_timing_window_missing(pack_id: str, version: str) -> str:
+    return f"Pack '{pack_id}' {version} gives no timing window for this N: confidence is low."

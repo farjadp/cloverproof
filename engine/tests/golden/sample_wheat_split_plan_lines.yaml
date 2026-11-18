@@ -1,0 +1,34 @@
+# SAMPLE golden case — NOT agronomist-approved.
+# Expected values are derived by hand from packs/placeholder/v0.yaml (PLACEHOLDER
+# constants), only to exercise the split plan.
+#
+# Arithmetic: demand 5.3 x 30 = 159; net 159 - 40 - 0 (canola) = 119;
+# rate 119 / 0.8 = 148.75 kg N/ha; total 148.75 x 40 = 5950 kg N;
+# splits 0.4 -> 59.5, 0.6 -> 89.25 (sum 148.75). Rates are not rounded.
+id: sample_wheat_split_plan_lines
+kind: sample  # not agronomist-approved; never counts toward the agreement gate
+description: Pack with a split plan. Each line has its rate and the pack's timing window.
+pack:
+  id: placeholder
+  version: v0
+# TODO(agronomist): set agreement tolerances for real cases.
+tolerance:
+  kg_n_per_ha: 0.01
+  kg_n: 0.1
+input:
+  crop: wheat
+  target_yield_t_ha: 5.3
+  previous_crop: canola
+  area_ha: 40.0
+  plan_date: "2027-02-15"
+  soil_test: null
+expected:
+  n_rate_kg_ha: 148.75
+  n_total_kg: 5950.0
+  split_rates_kg_ha: [59.5, 89.25]
+  split_timing_windows:
+    - "At or before seeding (PLACEHOLDER timing)"
+    - "Tillering to start of stem elongation (PLACEHOLDER timing)"
+  confidence: low
+  pk_note: PK_SOIL_TEST_RECOMMENDED
+  reason: SAMPLE derived from the placeholder pack; not an agronomist decision.

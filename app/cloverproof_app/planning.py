@@ -17,7 +17,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from cloverproof_engine import recommend
+from cloverproof_engine import explain, recommend
 from cloverproof_engine.methods import MissingInputError, OutOfScopeError
 from cloverproof_engine.methods._shared import (
     OutsideTableError,
@@ -448,6 +448,7 @@ class EditParsed:
 
 
 RESCALED = "Rescaled from the agronomist's N rate using the pack split share."
+RESCALED_NO_SPLIT = "Rescaled to the agronomist's N rate; the pack defines no split plan."
 
 
 def _fmt(value: float) -> str:
@@ -564,8 +565,12 @@ def edited_document(doc: Mapping[str, Any], edit: EditParsed, reason: str) -> di
             set_number(fraction, share, f"{note} Share of the final N rate.", False)
         elif key in edit.changed:  # rescaled from the agronomist's N rate
             flag = bool(fraction["uses_placeholder"])
-            set_number(split["rate"], rate, RESCALED, flag)
-            set_number(split["total"], rate * area, total_text(RESCALED, rate), flag)
+            # Key present and None: engine 0.4.0+ with no split plan. Engine 0.3.0 documents
+            # have no key and keep the old text.
+            no_split = "timing_window" in split and split["timing_window"] is None
+            text = RESCALED_NO_SPLIT if no_split else RESCALED
+            set_number(split["rate"], rate, text, flag)
+            set_number(split["total"], rate * area, total_text(text, rate), flag)
             if final_rate > 0:
                 fraction["value"] = share  # the pack share, recomputed from the final rate
             else:
@@ -578,4 +583,11 @@ def edited_document(doc: Mapping[str, Any], edit: EditParsed, reason: str) -> di
                 f"Share of the final N rate: {_fmt(rate)} of {_fmt(final_rate)} kg N/ha.",
                 bool(split["rate"]["uses_placeholder"]),
             )
+    # Rates changed, so the "rounded for display" notes must be worked out again.
+    suffix = explain.rounded_for_display()
+    for name, shown in (("rate", explain.num), ("total", explain.num), ("fraction", explain.pct)):
+        numbers = [split[name] for split in nitrogen["splits"]]
+        note = explain.rounding_note([float(n["value"]) for n in numbers], shown)
+        for number in numbers:
+            number["explanation"] = number["explanation"].removesuffix(suffix) + note
     return new
