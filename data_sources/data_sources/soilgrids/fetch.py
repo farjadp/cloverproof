@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Final
 
 import rasterio
+from rasterio.crs import CRS
 from rasterio.errors import RasterioError
 from rasterio.io import DatasetReader
 from rasterio.warp import transform_bounds
@@ -25,10 +26,13 @@ from rasterio.windows import Window, from_bounds
 
 from data_sources.soilgrids.catalog import (
     ATTRIBUTION,
+    CITATION,
     CONVERSIONS,
     DEFAULT_BASE_URL,
+    HOMOLOSINE_PROJ4,
     LICENSE,
     SOILGRIDS_VERSION,
+    SOURCE_NAME,
     STATISTICS,
     UNCERTAINTY_FACTOR,
     layer_name,
@@ -43,6 +47,8 @@ Opener = Callable[[str], AbstractContextManager[DatasetReader]]
 BBox = tuple[float, float, float, float]
 
 MAX_BBOX_DEG: Final = 1.0  # a farm window, not a region; keeps a fetch to a few MB
+NOMINAL_RESOLUTION_M: Final = 250.0
+INT16_BYTES: Final = 2  # SoilGrids layers are stored as int16
 # Interrupted Goode Homolosine lobe edges (degrees longitude).
 _IGH_NORTH_CUTS: Final = (-40.0,)
 _IGH_SOUTH_CUTS: Final = (-100.0, -20.0, 80.0)
@@ -67,7 +73,8 @@ def default_opener(url: str) -> Iterator[DatasetReader]:  # pragma: no cover - n
         yield ds
 
 
-def validate_bbox(bbox: Sequence[float]) -> BBox:
+def validate_bbox(bbox: Sequence[float], *, max_deg: float | None = MAX_BBOX_DEG) -> BBox:
+    """Check a bbox. `max_deg=None` lifts the size cap, for named regions only."""
     if len(bbox) != 4:
         raise ValueError("bbox must be minlon,minlat,maxlon,maxlat")
     minlon, minlat, maxlon, maxlat = (float(v) for v in bbox)
@@ -75,8 +82,8 @@ def validate_bbox(bbox: Sequence[float]) -> BBox:
         raise ValueError("bbox values must be finite")
     if not (-180 <= minlon < maxlon <= 180 and -90 <= minlat < maxlat <= 90):
         raise ValueError("bbox must satisfy -180<=minlon<maxlon<=180 and -90<=minlat<maxlat<=90")
-    if maxlon - minlon > MAX_BBOX_DEG or maxlat - minlat > MAX_BBOX_DEG:
-        raise ValueError(f"bbox larger than {MAX_BBOX_DEG} degree per side; split it")
+    if max_deg is not None and (maxlon - minlon > max_deg or maxlat - minlat > max_deg):
+        raise ValueError(f"bbox larger than {max_deg} degree per side; split it")
     cuts = (_IGH_NORTH_CUTS if maxlat > 0 else ()) + (_IGH_SOUTH_CUTS if minlat < 0 else ())
     for cut in cuts:
         if minlon < cut < maxlon:
@@ -145,6 +152,16 @@ def planned_layers(
     ]
 
 
+def planned_size(bbox: BBox, layer_count: int) -> tuple[int, int, int]:
+    """Estimated (width_px, height_px, uncompressed bytes) of a fetch. Opens nothing."""
+    west, south, east, north = transform_bounds(
+        "EPSG:4326", CRS.from_proj4(HOMOLOSINE_PROJ4), *bbox, densify_pts=21
+    )
+    width = math.ceil((east - west) / NOMINAL_RESOLUTION_M)
+    height = math.ceil((north - south) / NOMINAL_RESOLUTION_M)
+    return width, height, width * height * INT16_BYTES * layer_count
+
+
 def fetch(
     bbox: Sequence[float],
     properties: Sequence[str] | str,
@@ -154,13 +171,14 @@ def fetch(
     opener: Opener = default_opener,
     today: date | None = None,
     base_url: str = DEFAULT_BASE_URL,
+    max_bbox_deg: float | None = MAX_BBOX_DEG,
 ) -> Path:
     """Clip every (property, depth, statistic) layer to `bbox`; return the bbox cache dir.
 
     Idempotent: the same bbox always maps to the same directory, which is replaced
     atomically only after every layer succeeded (no half-written cache, no stale manifest).
     """
-    box = validate_bbox(bbox)
+    box = validate_bbox(bbox, max_deg=max_bbox_deg)
     props = parse_properties(properties)
     deps = parse_depths(depths)
     retrieved = today or date.today()
@@ -182,6 +200,9 @@ def fetch(
                 raise FetchError(f"{name}: cannot read {url}: {exc}") from exc
             layers.append(
                 {
+                    "source": SOURCE_NAME,
+                    "version": SOILGRIDS_VERSION,
+                    "retrieved_on": retrieved.isoformat(),
                     "property": prop,
                     "depth": depth,
                     "statistic": stat,
@@ -194,11 +215,12 @@ def fetch(
             )
             log.info("soilgrids.layer_clipped", extra={"layer": name, "shape": info["shape"]})
         manifest = {
-            "source": "SoilGrids",
+            "source": SOURCE_NAME,
             "version": SOILGRIDS_VERSION,
             "base_url": base_url,
             "license": LICENSE,
             "attribution": ATTRIBUTION,
+            "citation": CITATION,
             "retrieved_on": retrieved.isoformat(),
             "bbox_wgs84": list(box),
             "crs": layers[0]["crs"] if layers else None,

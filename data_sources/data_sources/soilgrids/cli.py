@@ -11,6 +11,7 @@ from pathlib import Path
 from data_sources.soilgrids.catalog import (
     ALLOWED_PROPERTIES,
     DEFAULT_DEPTHS,
+    REGIONS,
     UnsupportedDepthError,
     UnsupportedPropertyError,
     parse_depths,
@@ -18,16 +19,20 @@ from data_sources.soilgrids.catalog import (
 )
 from data_sources.soilgrids.estimate import default_cache_dir
 from data_sources.soilgrids.fetch import (
+    MAX_BBOX_DEG,
     FetchError,
     Opener,
     bbox_slug,
     default_opener,
     fetch,
     planned_layers,
+    planned_size,
     validate_bbox,
 )
 
 EXAMPLE = (
+    "Ontario cache (operator step, large; see docs/runbook-soilgrids-cache.md):\n"
+    "  uv run python -m data_sources.soilgrids fetch --region ontario --dry-run\n"
     "example (small southern Ontario window, about 3 x 4 km):\n"
     "  uv run python -m data_sources.soilgrids fetch --bbox -80.27,43.53,-80.23,43.57 \\\n"
     "      --props phh2o,soc,nitrogen,clay,sand,silt --depths 0-5cm,5-15cm,15-30cm\n"
@@ -54,7 +59,9 @@ def _parser() -> argparse.ArgumentParser:
         epilog=EXAMPLE,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    f.add_argument("--bbox", required=True, help="minlon,minlat,maxlon,maxlat (WGS84 degrees)")
+    where = f.add_mutually_exclusive_group(required=True)
+    where.add_argument("--bbox", help="minlon,minlat,maxlon,maxlat (WGS84 degrees)")
+    where.add_argument("--region", choices=sorted(REGIONS), help="named bbox, no size cap")
     f.add_argument(
         "--props",
         default=",".join(ALLOWED_PROPERTIES),
@@ -92,7 +99,9 @@ def main(
         handler.setFormatter(_JsonFormatter())
         logging.basicConfig(level=logging.INFO, handlers=[handler])
     try:
-        bbox = validate_bbox([float(v) for v in args.bbox.split(",")])
+        max_deg = None if args.region else MAX_BBOX_DEG
+        raw_bbox = REGIONS[args.region] if args.region else args.bbox.split(",")
+        bbox = validate_bbox([float(v) for v in raw_bbox], max_deg=max_deg)
         props = parse_properties(args.props)
         depths = parse_depths(args.depths)
     except (UnsupportedPropertyError, UnsupportedDepthError) as exc:
@@ -103,12 +112,27 @@ def main(
         return 2
     cache_dir = args.cache_dir or default_cache_dir()
     if args.dry_run:
+        plan = planned_layers(props, depths)
+        width, height, raw_bytes = planned_size(bbox, len(plan))
         print(f"target: {cache_dir / bbox_slug(bbox)}")
-        for *_, url in planned_layers(props, depths):
+        print(f"bbox: {','.join(str(v) for v in bbox)}")
+        print(
+            f"estimate: {len(plan)} layers, about {width} x {height} px each, "
+            f"about {raw_bytes / 1e9:.1f} GB uncompressed (deflate makes the files smaller)"
+        )
+        for *_, url in plan:
             print(url)
         return 0
     try:
-        out = fetch(bbox, props, depths, cache_dir=cache_dir, opener=opener, today=today)
+        out = fetch(
+            bbox,
+            props,
+            depths,
+            cache_dir=cache_dir,
+            opener=opener,
+            today=today,
+            max_bbox_deg=max_deg,
+        )
     except FetchError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
