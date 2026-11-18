@@ -37,6 +37,13 @@ _AGRONOMIST_PHRASES = (
     ("the agronomist sets the timing", "an agronomist must set the timing"),
     ("the agronomist decides P and K", "an agronomist must decide P and K"),
 )
+# Even an agronomist's approval of the plan records no choice per line, so that proof says
+# what is missing instead of repeating the engine's sentence as if it had happened.
+_NOT_RECORDED_PHRASES = (
+    ("the agronomist confirms", "no line-level confirmation is recorded"),
+    ("the agronomist chooses", "no product choice is recorded on this line"),
+    ("The agronomist sets the product", "No product choice is recorded on this line"),
+)
 
 # Stored edited numbers (before the wording became "reviewer") name an agronomist, though a
 # superadmin can edit too. Prefix only: the free-text reason after it stays as written.
@@ -139,7 +146,15 @@ def neutral_edit_text(text: str) -> str:
     return text
 
 
-def without_agronomist_claim(text: str) -> str:
-    for engine_words, neutral in _AGRONOMIST_PHRASES:
-        text = text.replace(engine_words, neutral)
+def _replace_all(text: str, phrases: Iterable[tuple[str, str]]) -> str:
+    for engine_words, replacement in phrases:
+        text = text.replace(engine_words, replacement)
     return text
+
+
+def without_agronomist_claim(text: str) -> str:
+    return _replace_all(text, _AGRONOMIST_PHRASES)
+
+
+def without_line_choice_claim(text: str) -> str:
+    return _replace_all(text, _NOT_RECORDED_PHRASES)

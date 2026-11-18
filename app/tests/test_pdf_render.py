@@ -455,7 +455,7 @@ def test_not_matched_on_the_proof_has_no_quantity() -> None:
     outcome = doc["nitrogen"]["splits"][0]["product_match"]
     text = proof_text(doc)
     assert "Product: No product matched" in text
-    assert squash(outcome["explanation"]) in text
+    assert squash(proof(doc).product_text(outcome["explanation"])) in text
     assert f"{UNCHOSEN}: TEST other A, TEST other B" in text
     assert "kg product/ha" not in text and RULE_WARNING not in text
 
@@ -529,16 +529,29 @@ def test_product_outcomes_keep_the_wording_rules(tmp_path: Any) -> None:
             assert_wording(text)
 
 
-def test_only_an_agronomist_approval_keeps_the_agronomist_wording(tmp_path: Any) -> None:
+def test_agronomist_approval_claims_no_line_level_choice(tmp_path: Any) -> None:
+    for doc in outcome_docs(tmp_path):
+        text = proof_text(doc)
+        for claim in ("agronomist chooses", "agronomist confirms", "agronomist sets the product"):
+            assert claim not in text, claim
+    matched = split_docs.build(products=[split_docs.product()])
+    assert "; no line-level confirmation is recorded." in proof_text(matched)
+    several = split_docs.build(products=OTHERS)
+    assert "; no product choice is recorded on this line." in proof_text(several)
+    withdrawn = split_docs.edited(matched, "120", ["60", "60"])
+    assert "No product choice is recorded on this line." in proof_text(withdrawn)
+
+
+def test_only_an_agronomist_approval_may_name_the_agronomist(tmp_path: Any) -> None:
     for doc in outcome_docs(tmp_path):
         for text in (proof_text(doc, SUPERADMIN), draft_text(doc)):
             assert "the agronomist" not in text.lower()
     matched = split_docs.build(products=[split_docs.product()])
-    assert "the agronomist confirms" in proof_text(matched)
     assert "an agronomist must confirm" in proof_text(matched, SUPERADMIN)
     assert "an agronomist must confirm" in draft_text(matched)
     lab = engine_doc()
     assert "the agronomist decides P and K" in lab["phosphorus_potassium"]["text"]
+    assert "the agronomist decides P and K" in proof_text(lab)
     assert "an agronomist must decide P and K" in proof_text(lab, SUPERADMIN)
     assert "an agronomist must decide P and K" in draft_text(lab)
 

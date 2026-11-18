@@ -146,7 +146,7 @@ class ProofInput:
     def product_text(self, text: str) -> str:
         """Engine wording; it names the agronomist only on an agronomist's approval."""
         if self.approval is not None and self.approval.review_kind == AGRONOMIST_APPROVED:
-            return text
+            return split_display.without_line_choice_claim(text)
         return split_display.without_agronomist_claim(text)
 
     def number_text(self, text: str) -> str:
