@@ -13,6 +13,7 @@ from pydantic import (
     ConfigDict,
     Field,
     SerializerFunctionWrapHandler,
+    StringConstraints,
     field_validator,
     model_serializer,
     model_validator,
@@ -172,6 +173,50 @@ class NPrice(_Frozen):
         return cleaned
 
 
+class ProductForm(StrEnum):
+    GRANULAR = "granular"
+    LIQUID = "liquid"
+
+
+GradePercent = Annotated[float, Field(ge=0, allow_inf_nan=False)]
+ProductText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+
+class ProductInput(_Frozen):
+    """One catalog product, prepared by the caller. Label facts only, nothing commercial.
+
+    Grades are label percentages with the form in the name (rule 7): N and S elemental,
+    P as P2O5, K as K2O. `s_pct` is required, so an unknown sulphur content is never
+    read as zero. Only products the caller considers usable (active) belong here.
+    """
+
+    id: ProductText
+    name: ProductText
+    n_pct: GradePercent
+    p2o5_pct: GradePercent
+    k2o_pct: GradePercent
+    s_pct: GradePercent
+    form: ProductForm
+    # Required for a liquid, absent for a granular product (as in the catalog).
+    density_kg_per_l: PositiveFloat | None = None
+    grade_source: ProductText
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        # Imported here: units.py imports this module.
+        from cloverproof_engine import units
+
+        grades = (self.n_pct, self.p2o5_pct, self.k2o_pct, self.s_pct)
+        if not units.grades_fit_in_product(grades):
+            raise ValueError(f"product grades add up to more than {units.PERCENT} %")
+        is_liquid = self.form is ProductForm.LIQUID
+        if is_liquid and self.density_kg_per_l is None:
+            raise ValueError("a liquid product needs density_kg_per_l")
+        if not is_liquid and self.density_kg_per_l is not None:
+            raise ValueError("a granular product must not have density_kg_per_l")
+        return self
+
+
 class RecommendationInput(_Frozen):
     crop: Crop
     target_yield_t_ha: PositiveFloat
@@ -190,8 +235,16 @@ class RecommendationInput(_Frozen):
     # packs whose `scope.manure` is set. True is refused by every pack: the engine
     # has no manure N credit yet.
     manure_applied: bool | None = None
+    # Catalog products to match the N lines against. None = matching not requested;
+    # an empty list = requested, and the catalog has nothing to offer.
+    products: list[ProductInput] | None = None
 
-    _OMIT_IF_NONE: ClassVar[tuple[str, ...]] = ("n_price", "wheat_class", "manure_applied")
+    _OMIT_IF_NONE: ClassVar[tuple[str, ...]] = (
+        "n_price",
+        "wheat_class",
+        "manure_applied",
+        "products",
+    )
 
     @model_serializer(mode="wrap")
     def _omit_absent_optionals(self, handler: SerializerFunctionWrapHandler) -> Any:
@@ -215,4 +268,9 @@ class RecommendationInput(_Frozen):
     def _check(self) -> Self:
         if self.soil_test is not None and self.soil_test.sample_date > self.plan_date:
             raise ValueError("soil test sample_date is after plan_date")
+        products = self.products or []
+        if len({p.id for p in products}) != len(products):
+            raise ValueError("product id values must be unique")
+        if len({p.name.casefold() for p in products}) != len(products):
+            raise ValueError("product name values must be unique (ignoring case)")
         return self

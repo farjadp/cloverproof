@@ -1,0 +1,175 @@
+# PLACEHOLDER PACK - NOT REAL AGRONOMY. DO NOT USE FOR A FARMER.
+# TEST FIXTURE: packs/placeholder/v0.yaml plus `product_rules`, for the golden cases
+# sample_wheat_product_match_liquid and sample_wheat_product_none_fits. The product
+# rules below choose between TEST FIXTURE products only; they are not advice on any
+# real fertilizer. See docs/agronomist-todo.md item #22.
+#
+# Every number below is a PLACEHOLDER with `source: null`, copied from v0.yaml, picked
+# only so the arithmetic is easy to check by hand.
+#
+# Constant shape: {value, unit, status: PLACEHOLDER | VALIDATED, source}.
+# A VALIDATED constant must carry a source; a PLACEHOLDER must have source: null.
+
+id: placeholder
+version: v0-product-rules
+status: placeholder
+description: >-
+  Test fixture: the placeholder pack plus product_rules, to exercise product matching.
+  Wheat, nitrogen only. Not tied to any country. Not agronomist-approved.
+
+crops:
+  wheat:
+    nitrogen:
+      method: n_mass_balance
+
+      # N taken up by the crop per tonne of grain yield (whole crop, not grain only).
+      n_uptake_per_t_grain:
+        # TODO(agronomist): validate value and give source.
+        value: 30
+        unit: kg N/t
+        status: PLACEHOLDER
+        source: null
+
+      # N the soil supplies over the season when no measured value is used.
+      soil_n_supply:
+        # TODO(agronomist): validate value and give source.
+        value: 40
+        unit: kg N/ha
+        status: PLACEHOLDER
+        source: null
+
+      # Fraction of applied fertilizer N the crop recovers.
+      fertilizer_n_efficiency:
+        # TODO(agronomist): validate value and give source.
+        value: 0.8
+        unit: fraction
+        status: PLACEHOLDER
+        source: null
+
+      # Lower bound for the recommended rate.
+      min_rate:
+        # TODO(agronomist): validate value and give source.
+        value: 0
+        unit: kg N/ha
+        status: PLACEHOLDER
+        source: null
+
+      # Upper bound for the recommended rate.
+      max_rate:
+        # TODO(agronomist): validate value and give source.
+        value: 200
+        unit: kg N/ha
+        status: PLACEHOLDER
+        source: null
+
+      # N credit from the previous crop, subtracted from crop demand.
+      # Keys are what the concierge tool offers in its previous-crop list.
+      previous_crop_credits:
+        wheat:
+          label: Wheat
+          credit:
+            # TODO(agronomist): validate value and give source.
+            value: 0
+            unit: kg N/ha
+            status: PLACEHOLDER
+            source: null
+        canola:
+          label: Canola
+          credit:
+            # TODO(agronomist): validate value and give source.
+            value: 0
+            unit: kg N/ha
+            status: PLACEHOLDER
+            source: null
+        corn:
+          label: Corn (maize)
+          credit:
+            # TODO(agronomist): validate value and give source.
+            value: 0
+            unit: kg N/ha
+            status: PLACEHOLDER
+            source: null
+        soybean:
+          label: Soybean
+          credit:
+            # TODO(agronomist): validate value and give source.
+            value: 20
+            unit: kg N/ha
+            status: PLACEHOLDER
+            source: null
+        field_pea:
+          label: Field pea
+          credit:
+            # TODO(agronomist): validate value and give source.
+            value: 20
+            unit: kg N/ha
+            status: PLACEHOLDER
+            source: null
+
+      # Split plan: fractions of the rate per application. Must sum to 1.
+      splits:
+        - stage_label: "At or before seeding (PLACEHOLDER timing)"
+          # TODO(agronomist): validate stage label and timing window.
+          fraction:
+            # TODO(agronomist): validate value and give source.
+            value: 0.4
+            unit: fraction
+            status: PLACEHOLDER
+            source: null
+        - stage_label: "Tillering to start of stem elongation (PLACEHOLDER timing)"
+          # TODO(agronomist): validate stage label and timing window.
+          fraction:
+            # TODO(agronomist): validate value and give source.
+            value: 0.6
+            unit: fraction
+            status: PLACEHOLDER
+            source: null
+
+    # Thresholds used by the draft confidence rules (engine/cloverproof_engine/confidence.py).
+    confidence:
+      # Target yields outside [min, max] are treated as implausible.
+      target_yield_min:
+        # TODO(agronomist): validate value and give source.
+        value: 2
+        unit: t/ha
+        status: PLACEHOLDER
+        source: null
+      target_yield_max:
+        # TODO(agronomist): validate value and give source.
+        value: 10
+        unit: t/ha
+        status: PLACEHOLDER
+        source: null
+      # A soil test older than this (relative to plan_date) is treated as stale.
+      max_soil_test_age_years:
+        # TODO(agronomist): validate value and give source.
+        value: 3
+        unit: years
+        status: PLACEHOLDER
+        source: null
+
+    # Which catalog product may carry an N-only need. No real product is named here.
+    product_rules:
+      # TODO(agronomist): which product forms suit Ontario wheat, per application timing.
+      allowed_forms:
+        value: [granular, liquid]
+        status: PLACEHOLDER
+        source: null
+      # exclude | allow. TODO(agronomist): may an N line use a sulphur-bearing product?
+      sulphur:
+        value: exclude
+        status: PLACEHOLDER
+        source: null
+      # TODO(agronomist): may the only fitting product be selected without a preference?
+      allow_single_fit:
+        value: false
+        status: PLACEHOLDER
+        source: null
+      # Catalog names, first fitting one wins.
+      # TODO(agronomist): replace with the real order of preference, if there is one.
+      preference:
+        value:
+          - TEST FIXTURE liquid N 25
+          - TEST FIXTURE granular N 40
+        status: PLACEHOLDER
+        source: null

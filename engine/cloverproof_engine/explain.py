@@ -1,14 +1,24 @@
 """Plain-language explanations for every number, note and confidence rule.
 
-Text only: no calculation happens here. Every pack constant quoted in a
-sentence is tagged PLACEHOLDER (or with its source when validated).
+Text only: the one calculation here decides whether a rounding note is needed. Every
+pack constant quoted in a sentence is tagged PLACEHOLDER (or with its source when validated).
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from decimal import Decimal
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal
 
-from cloverproof_engine.pack import Citation, CitationBasis, PackConstant
+from cloverproof_engine.models import ProductForm
+from cloverproof_engine.pack import (
+    Citation,
+    CitationBasis,
+    ConstantStatus,
+    PackConstant,
+    RuleValue,
+)
+
+if TYPE_CHECKING:
+    from cloverproof_engine.results import UsedProductRule
 
 
 def num(x: float) -> str:
@@ -138,13 +148,19 @@ def rounded_for_display() -> str:
     )
 
 
-def rounding_note(values: list[float], shown: Callable[[float], str]) -> str:
-    """The rounding sentence when the lines, as displayed, do not add up to their sum."""
+def rounding_note(
+    values: list[float], shown: Callable[[float], str], whole: float | None = None
+) -> str:
+    """The rounding sentence when the lines, as displayed, do not add up to the whole.
+
+    `whole` is the figure shown for all lines together; by default their exact sum.
+    """
+    target = sum(values) if whole is None else whole
 
     def displayed(value: float) -> Decimal:
         return Decimal(shown(value).replace(",", "").removesuffix("%"))
 
-    adds_up = sum(displayed(v) for v in values) == displayed(sum(values))
+    adds_up = sum(displayed(v) for v in values) == displayed(target)
     return "" if adds_up else rounded_for_display()
 
 
@@ -184,6 +200,174 @@ def no_split_line(pack_id: str, version: str, crop: str) -> str:
         f"Pack '{pack_id}' {version} defines no split plan for {crop}, so the engine shows the "
         "N rate as one line. This is not advice to apply it in one pass. The pack gives no "
         "timing window and the engine does not invent one."
+    )
+
+
+# --- product matching ----------------------------------------------------------
+
+
+def grade_pct(x: float) -> str:
+    return f"{x:g} %"
+
+
+def operand(x: float) -> str:
+    """A number a sum is worked from, precise enough to redo the sum by hand."""
+    return f"{x:g}"
+
+
+def _rule_tag(status: ConstantStatus, source: str | None, citation: Citation | None = None) -> str:
+    where = f"; {cited(citation)}" if citation is not None else ""
+    if status is ConstantStatus.PLACEHOLDER:
+        return f"(PLACEHOLDER, not agronomist-validated{where})"
+    return f"(source: {source}{where})"
+
+
+def _pack_rule(rule: RuleValue[Any]) -> str:
+    return _rule_tag(rule.status, rule.source, rule.citation)
+
+
+def _excluded_sentence(excluded: list[str]) -> str:
+    return f" Not usable: {'; '.join(excluded)}." if excluded else ""
+
+
+def product_has_no_n(name: str) -> str:
+    return f"{name} contains no N"
+
+
+def product_adds_p_or_k(name: str, p2o5_pct: float, k2o_pct: float) -> str:
+    return (
+        f"{name} would add P or K ({grade_pct(p2o5_pct)} P2O5, {grade_pct(k2o_pct)} K2O), and "
+        "the engine gives no P or K rate"
+    )
+
+
+def product_form_excluded(name: str, form: ProductForm, rule: RuleValue[Any]) -> str:
+    return f"{name} is {form.value}, a form the pack does not allow {_pack_rule(rule)}"
+
+
+def product_sulphur_excluded(name: str, s_pct: float, rule: RuleValue[Any]) -> str:
+    return f"{name} contains {grade_pct(s_pct)} sulphur, which the pack excludes {_pack_rule(rule)}"
+
+
+def product_listing(name: str, s_pct: float) -> str:
+    return f"{name} (contains {grade_pct(s_pct)} sulphur)" if s_pct > 0 else name
+
+
+def no_products() -> str:
+    return "No catalog products were given, so this line stays nutrient-only."
+
+
+def no_n_needed(index: int) -> str:
+    return f"Application {index} needs no N, so no product is named."
+
+
+def product_rate_edited(index: int) -> str:
+    return (
+        f"The N rate of application {index} was edited after matching, so any product outcome "
+        "from the engine no longer applies and is withdrawn. The agronomist sets the product."
+    )
+
+
+def product_quantity_out_of_range(index: int, name: str) -> str:
+    return (
+        f"No usable quantity of {name} can be computed for application {index}: its label "
+        "grade or density, or the field area, gives a number too large or too small to "
+        "calculate. Check the catalog entry. This line stays nutrient-only; the agronomist "
+        "chooses."
+    )
+
+
+def no_product_fits(excluded: list[str]) -> str:
+    return (
+        "No catalog product fits this N-only need, so this line stays nutrient-only."
+        f"{_excluded_sentence(excluded)}"
+    )
+
+
+def no_choice_rule(pack_id: str, version: str, listed: list[str], excluded: list[str]) -> str:
+    return (
+        f"Pack '{pack_id}' {version} has no product rule, so the engine selects no product "
+        f"and this line stays nutrient-only. Products without P or K: {', '.join(listed)}; "
+        "the agronomist chooses."
+        f"{_excluded_sentence(excluded)}"
+    )
+
+
+def several_products_fit(listed: list[str], preference: RuleValue[Any]) -> str:
+    return (
+        f"Several products fit: {', '.join(listed)}. The pack preference "
+        f"{_pack_rule(preference)} names none of them, so the engine selects none and this "
+        "line stays nutrient-only; the agronomist chooses."
+    )
+
+
+def single_fit_not_allowed(listed: str, rule: RuleValue[Any]) -> str:
+    return (
+        f"Only {listed} fits, but the pack does not allow selecting a product just because "
+        f"it is the only fit {_pack_rule(rule)}. This line stays nutrient-only; the "
+        "agronomist chooses."
+    )
+
+
+def product_selected_by_preference(rule: RuleValue[Any]) -> str:
+    return f"Selected by the pack preference order {_pack_rule(rule)}."
+
+
+def product_selected_as_single_fit(rule: RuleValue[Any]) -> str:
+    return f"Selected as the only fitting product, which the pack allows {_pack_rule(rule)}."
+
+
+def product_match_line(
+    name: str, selection: str, s_pct: float, rules: "Sequence[UsedProductRule]"
+) -> str:
+    sulphur = (
+        f"It also contains {grade_pct(s_pct)} sulphur, which the pack allows; the engine gives "
+        "no sulphur recommendation, so this sulphur is not checked against any need."
+        if s_pct > 0
+        else "It contains no sulphur."
+    )
+    labels = "; ".join(f"{r.path} {_rule_tag(r.status, r.source, r.citation)}" for r in rules)
+    return (
+        f"{name} carries this line's N. {selection} It adds no P or K. {sulphur} "
+        f"Rules used: {labels}. The engine does not judge whether this product suits the "
+        "application timing or adjust for N losses; the agronomist confirms."
+    )
+
+
+def product_grade(name: str, value: float, unit: str, grade_source: str) -> str:
+    return f"Label grade of {name}: {value:g} {unit} (source: {grade_source})."
+
+
+def product_rate(index: int, need: float, n_pct: float, rate: float) -> str:
+    return (
+        f"Application {index} product rate = {operand(need)} kg N/ha / {grade_pct(n_pct)} N "
+        f"= {num(rate)} kg product/ha."
+    )
+
+
+def product_total(index: int, rate: float, area_ha: float, total: float) -> str:
+    return (
+        f"Application {index} product total = {operand(rate)} kg product/ha x "
+        f"{operand(area_ha)} ha "
+        f"= {num(total)} kg product."
+    )
+
+
+def product_volume_rate(
+    index: int, rate: float, density: float, litres: float, grade_source: str
+) -> str:
+    return (
+        f"Application {index} product volume = {operand(rate)} kg product/ha / "
+        f"{operand(density)} kg/L "
+        f"(source: {grade_source}) = {num(litres)} L product/ha."
+    )
+
+
+def product_sulphur_rate(index: int, rate: float, s_pct: float, sulphur: float) -> str:
+    return (
+        f"Sulphur brought by application {index} = {operand(rate)} kg product/ha x "
+        f"{grade_pct(s_pct)} S = {num(sulphur)} kg S/ha. A side effect of the product, not a "
+        "sulphur recommendation."
     )
 
 
@@ -320,6 +504,14 @@ def c6_placeholder_constant_used(pack_id: str, version: str, paths: list[str]) -
     return (
         f"This recommendation uses PLACEHOLDER constants or timing windows from pack "
         f"'{pack_id}' {version}: {', '.join(paths)}. "
+        "Confidence is low until a human agronomist validates them."
+    )
+
+
+def c7_placeholder_product_rule_used(pack_id: str, version: str, paths: list[str]) -> str:
+    return (
+        f"The engine's product choice relied on PLACEHOLDER rules from pack '{pack_id}' "
+        f"{version}: {', '.join(paths)}. "
         "Confidence is low until a human agronomist validates them."
     )
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import math
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -18,10 +19,23 @@ from cloverproof_app.main import DEFAULT_PACK_PATH
 from cloverproof_engine.loaders import load_pack
 from cloverproof_engine.models import Crop, RecommendationInput
 from cloverproof_engine.pack import parse_pack
+from cloverproof_engine.results import Recommendation
 
 REASON = "Field history: lodging at higher rates"
-RESCALED = "Rescaled from the agronomist's N rate using the pack split share"
+RESCALED = "Rescaled from the agronomist's N rate, keeping this line's current share."
 RESCALED_NO_SPLIT = "Rescaled to the agronomist's N rate; the pack defines no split plan."
+# TEST FIXTURE pack and product: not agronomy.
+PRODUCT_RULES_PACK = Path(__file__).resolve().parents[2] / "packs/placeholder/v0-product-rules.yaml"
+FIXTURE_PRODUCT = {
+    "id": "id-fixture",
+    "name": "TEST FIXTURE granular N 40",
+    "n_pct": 40,
+    "p2o5_pct": 0,
+    "k2o_pct": 0,
+    "s_pct": 0,
+    "form": "granular",
+    "grade_source": "test fixture",
+}
 
 
 @pytest.fixture(scope="module")
@@ -59,6 +73,25 @@ def no_split_doc(pack: Any) -> dict[str, Any]:
     )
     result = planning.run_engine(inputs, parse_pack(data))
     assert result["nitrogen"]["splits"][0]["timing_window"] is None
+    return result
+
+
+@pytest.fixture(scope="module")
+def matched_doc() -> dict[str, Any]:
+    """An engine document whose lines each carry a matched product."""
+    inputs = RecommendationInput.model_validate(
+        {
+            "crop": "wheat",
+            "target_yield_t_ha": 6,
+            "previous_crop": "canola",
+            "area_ha": 10,
+            "plan_date": "2027-03-01",
+            "products": [FIXTURE_PRODUCT],
+        }
+    )
+    result = planning.run_engine(inputs, load_pack(PRODUCT_RULES_PACK))
+    assert len(result["nitrogen"]["splits"]) >= 2, "tests need a pack with two or more splits"
+    assert all(s["product_match"]["matched"] for s in result["nitrogen"]["splits"])
     return result
 
 
@@ -133,6 +166,13 @@ def thirds_doc(pack: Any) -> dict[str, Any]:
 def test_rate_edit_adds_a_rounding_note_when_lines_stop_adding_up(pack: Any) -> None:
     doc = thirds_doc(pack)
     new = apply(doc, "100", [repr(v) for v in engine_splits(doc)])  # 33.3 x 3 = 99.9
+    for s in new["nitrogen"]["splits"]:
+        assert s["rate"]["explanation"].endswith(planning.explain.rounded_for_display())
+
+
+def test_lines_that_miss_the_shown_n_rate_get_a_rounding_note(doc: dict[str, Any]) -> None:
+    lines = ["50.06", "50"] + ["0"] * (len(doc["nitrogen"]["splits"]) - 2)
+    new = apply(doc, "100.04", lines)  # header 100.0; lines show 50.1 + 50.0 = 100.1
     for s in new["nitrogen"]["splits"]:
         assert s["rate"]["explanation"].endswith(planning.explain.rounded_for_display())
 
@@ -240,6 +280,64 @@ def test_engine_document_is_not_mutated(doc: dict[str, Any]) -> None:
     before = copy.deepcopy(doc)
     apply(doc, f"{engine_rate(doc) + 30:g}", fmt(engine_splits(doc)))
     assert doc == before
+
+
+def assert_withdrawn(line: dict[str, Any], index: int) -> None:
+    match = line["product_match"]
+    assert match["matched"] is False
+    assert match["code"] == "rate_edited"
+    assert match["fitting_products"] == []
+    assert match["rules_used"] == []
+    assert f"application {index}" in match["explanation"]
+    assert "withdrawn" in match["explanation"]
+
+
+def test_edited_line_loses_its_product_and_unchanged_line_keeps_it(
+    matched_doc: dict[str, Any],
+) -> None:
+    old = engine_splits(matched_doc)
+    new_rate = engine_rate(matched_doc) + 30
+    new = apply(matched_doc, f"{new_rate:g}", fmt([old[0] + 30, *old[1:]]))
+    splits = new["nitrogen"]["splits"]
+    assert_withdrawn(splits[0], 1)
+    for before, after in zip(matched_doc["nitrogen"]["splits"][1:], splits[1:], strict=True):
+        assert after["product_match"] == before["product_match"]
+    Recommendation.model_validate(new)
+
+
+@pytest.mark.parametrize("delta", [30.0, None])
+def test_total_rate_rescale_withdraws_every_product(
+    matched_doc: dict[str, Any], delta: float | None
+) -> None:
+    new_rate = 0.0 if delta is None else engine_rate(matched_doc) + delta
+    new = apply(matched_doc, f"{new_rate:g}", fmt(engine_splits(matched_doc)))
+    for i, line in enumerate(new["nitrogen"]["splits"], 1):
+        assert_withdrawn(line, i)
+    Recommendation.model_validate(new)
+
+
+def test_a_line_that_needed_no_n_stops_saying_so_once_edited(
+    matched_doc: dict[str, Any],
+) -> None:
+    source = copy.deepcopy(matched_doc)
+    old = engine_splits(source)
+    first = source["nitrogen"]["splits"][0]
+    first["rate"]["value"] = 0.0
+    first["product_match"] = {
+        "matched": False,
+        "code": "no_n_needed",
+        "fitting_products": [],
+        "rules_used": [],
+        "explanation": "Application 1 needs no N, so no product is named.",
+    }
+    source["nitrogen"]["rate"]["value"] = sum(old[1:])
+    new = apply(source, f"{sum(old):g}", fmt(old))
+    assert_withdrawn(new["nitrogen"]["splits"][0], 1)
+
+
+def test_edit_adds_no_product_outcome_to_a_document_without_one(doc: dict[str, Any]) -> None:
+    new = apply(doc, f"{engine_rate(doc) + 30:g}", fmt(engine_splits(doc)))
+    assert all("product_match" not in s for s in new["nitrogen"]["splits"])
 
 
 def test_pack_limits_come_from_the_pack(pack: Any) -> None:

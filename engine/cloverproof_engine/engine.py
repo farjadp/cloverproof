@@ -10,6 +10,7 @@ from cloverproof_engine.models import (
     SoilTestSource,
 )
 from cloverproof_engine.pack import Pack, pack_sha256
+from cloverproof_engine.products import match_products
 from cloverproof_engine.results import Note, Recommendation
 from cloverproof_engine.version import ENGINE_VERSION
 
@@ -22,7 +23,7 @@ def recommend(inputs: RecommendationInput, pack: Pack) -> Recommendation:
     method = get_method(crop_cfg.nitrogen.method)
     if method.nutrient != "N":
         raise ValueError(f"method {method.method_id!r} is not a nitrogen method")
-    nitrogen = method.calculate(inputs, pack)
+    nitrogen = match_products(inputs, pack, method.calculate(inputs, pack))
 
     soil = inputs.soil_test
     pk = _pk_note(soil)

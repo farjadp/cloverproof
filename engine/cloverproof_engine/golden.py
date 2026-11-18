@@ -50,7 +50,7 @@ from cloverproof_engine.models import (
     RecommendationInput,
     nutrient_of,
 )
-from cloverproof_engine.results import Recommendation
+from cloverproof_engine.results import ProductMatch, ProductNotMatched, Recommendation
 
 NonBlankStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -81,6 +81,35 @@ class Tolerance(_Frozen):
 
     kg_n_per_ha: float = Field(ge=0)
     kg_n: float = Field(ge=0)
+    # Needed by cases that set `expected.split_products`.
+    kg_product_per_ha: float | None = Field(default=None, ge=0)
+    kg_product: float | None = Field(default=None, ge=0)
+    l_product_per_ha: float | None = Field(default=None, ge=0)
+
+
+class ExpectedSplitProduct(_Frozen):
+    """Expected product outcome of one N line: a product, or why there is none."""
+
+    product: str | None = None
+    no_match_code: str | None = None
+    kg_product_per_ha: float | None = None
+    kg_product_total: float | None = None
+    l_product_per_ha: float | None = None
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        quantities = (self.kg_product_per_ha, self.kg_product_total)
+        if self.product is None:
+            if self.no_match_code is None:
+                raise ValueError("a line without a product needs no_match_code")
+            if any(q is not None for q in (*quantities, self.l_product_per_ha)):
+                raise ValueError("a line without a product has no quantities")
+        elif self.no_match_code is not None or any(q is None for q in quantities):
+            raise ValueError(
+                "a line with a product needs kg_product_per_ha and kg_product_total "
+                "and no no_match_code"
+            )
+        return self
 
 
 class GoldenExpected(_Frozen):
@@ -89,6 +118,8 @@ class GoldenExpected(_Frozen):
     split_rates_kg_ha: list[float]
     # Optional: the timing window label per line (null = the line has no window).
     split_timing_windows: list[str | None] | None = None
+    # Optional: the product outcome per line.
+    split_products: list[ExpectedSplitProduct] | None = None
     confidence: Confidence
     pk_note: str
     reason: str | None = None
@@ -106,6 +137,22 @@ class ExpectedCase(_Frozen):
     tolerance: Tolerance
     input: RecommendationInput
     expected: GoldenExpected
+
+    @model_validator(mode="after")
+    def _check_product_tolerances(self) -> Self:
+        lines = self.expected.split_products
+        if lines is None:
+            return self
+        needed = {
+            "kg_product_per_ha": self.tolerance.kg_product_per_ha,
+            "kg_product": self.tolerance.kg_product,
+        }
+        if any(line.l_product_per_ha is not None for line in lines):
+            needed["l_product_per_ha"] = self.tolerance.l_product_per_ha
+        missing = [name for name, value in needed.items() if value is None]
+        if missing:
+            raise ValueError(f"split_products needs tolerance: {', '.join(missing)}")
+        return self
 
     @model_validator(mode="after")
     def _check_review(self) -> Self:
@@ -342,8 +389,61 @@ def compare(case: ExpectedCase, rec: Recommendation) -> list[DiffRow]:
             e_w = exp.split_timing_windows[i] if i < len(exp.split_timing_windows) else None
             a_w = actual_windows[i] if i < len(actual_windows) else None
             rows.append(_label(f"split_{i + 1}_timing_window", e_w or "-", a_w or "-"))
+    if exp.split_products is not None:
+        actual_products = [s.product_match for s in n.splits]
+        for i in range(max(len(exp.split_products), len(actual_products))):
+            e_p = exp.split_products[i] if i < len(exp.split_products) else None
+            a_p = actual_products[i] if i < len(actual_products) else None
+            rows.extend(_product_rows(i + 1, e_p, a_p, tol))
     rows.append(_label("confidence", exp.confidence.value, rec.confidence.value))
     rows.append(_label("pk_note", exp.pk_note, rec.phosphorus_potassium.code))
+    return rows
+
+
+def _product_rows(
+    line: int,
+    exp: ExpectedSplitProduct | None,
+    actual: ProductMatch | ProductNotMatched | None,
+    tol: Tolerance,
+) -> list[DiffRow]:
+    """Label rows for the outcome; number rows when either side names a product."""
+    match = actual if isinstance(actual, ProductMatch) else None
+    code = actual.code if isinstance(actual, ProductNotMatched) else None
+    exp_name = exp.product if exp else None
+    prefix = f"split_{line}_product"
+    rows = [
+        _label(prefix, exp_name or "-", match.product_name if match else "-"),
+        _label(f"{prefix}_no_match", (exp.no_match_code if exp else None) or "-", code or "-"),
+    ]
+    if exp_name is None and match is None:
+        return rows
+    rows.append(
+        _number(
+            f"{prefix}_kg_ha",
+            exp.kg_product_per_ha if exp else None,
+            match.rate.value if match else None,
+            tol.kg_product_per_ha or 0,
+        )
+    )
+    rows.append(
+        _number(
+            f"{prefix}_total_kg",
+            exp.kg_product_total if exp else None,
+            match.total.value if match else None,
+            tol.kg_product or 0,
+        )
+    )
+    exp_litres = exp.l_product_per_ha if exp else None
+    volume = match.volume_rate if match else None
+    if exp_litres is not None or volume is not None:
+        rows.append(
+            _number(
+                f"{prefix}_l_ha",
+                exp_litres,
+                volume.value if volume else None,
+                tol.l_product_per_ha or 0,
+            )
+        )
     return rows
 
 

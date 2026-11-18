@@ -1,0 +1,53 @@
+# SAMPLE golden case - NOT agronomist-approved.
+# Pack and products are TEST FIXTURES (packs/placeholder/v0-product-rules.yaml).
+#
+# No soil test, so N only. The first product adds P and K; the second carries sulphur,
+# which this fixture pack excludes. Nothing fits: the N lines stay nutrient-only.
+id: sample_wheat_product_none_fits
+kind: sample  # not agronomist-approved; never counts toward the agreement gate
+description: No catalog product fits an N-only need, so no product is named.
+pack:
+  id: placeholder
+  version: v0-product-rules
+# TODO(agronomist): set agreement tolerances for real cases.
+tolerance:
+  kg_n_per_ha: 0.01
+  kg_n: 0.1
+  kg_product_per_ha: 0.01
+  kg_product: 0.1
+input:
+  crop: wheat
+  target_yield_t_ha: 5.3
+  previous_crop: canola
+  area_ha: 40.0
+  plan_date: "2027-02-15"
+  soil_test: null
+  products:
+    - id: fixture-npk
+      name: TEST FIXTURE NPK 10-10-10
+      n_pct: 10
+      p2o5_pct: 10
+      k2o_pct: 10
+      s_pct: 0
+      form: granular
+      grade_source: test fixture, not a product label
+    - id: fixture-n-s
+      name: TEST FIXTURE N 20 S 20
+      n_pct: 20
+      p2o5_pct: 0
+      k2o_pct: 0
+      s_pct: 20
+      form: granular
+      grade_source: test fixture, not a product label
+expected:
+  n_rate_kg_ha: 148.75
+  n_total_kg: 5950.0
+  split_rates_kg_ha: [59.5, 89.25]
+  split_products:
+    - product: null
+      no_match_code: none_fit
+    - product: null
+      no_match_code: none_fit
+  confidence: low
+  pk_note: PK_SOIL_TEST_RECOMMENDED
+  reason: SAMPLE derived from a fixture pack and fixture products; not an agronomist decision.
