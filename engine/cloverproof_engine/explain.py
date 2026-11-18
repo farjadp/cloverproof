@@ -1,7 +1,7 @@
 """Plain-language explanations for every number, note and confidence rule.
 
-Text only: no calculation happens here. Every pack constant quoted in a
-sentence is tagged PLACEHOLDER (or with its source when validated).
+Text only: the one calculation here decides whether a rounding note is needed. Every
+pack constant quoted in a sentence is tagged PLACEHOLDER (or with its source when validated).
 """
 
 from collections.abc import Callable, Sequence
@@ -148,13 +148,19 @@ def rounded_for_display() -> str:
     )
 
 
-def rounding_note(values: list[float], shown: Callable[[float], str]) -> str:
-    """The rounding sentence when the lines, as displayed, do not add up to their sum."""
+def rounding_note(
+    values: list[float], shown: Callable[[float], str], whole: float | None = None
+) -> str:
+    """The rounding sentence when the lines, as displayed, do not add up to the whole.
+
+    `whole` is the figure shown for all lines together; by default their exact sum.
+    """
+    target = sum(values) if whole is None else whole
 
     def displayed(value: float) -> Decimal:
         return Decimal(shown(value).replace(",", "").removesuffix("%"))
 
-    adds_up = sum(displayed(v) for v in values) == displayed(sum(values))
+    adds_up = sum(displayed(v) for v in values) == displayed(target)
     return "" if adds_up else rounded_for_display()
 
 
@@ -257,8 +263,8 @@ def no_n_needed(index: int) -> str:
 
 def product_rate_edited(index: int) -> str:
     return (
-        f"The N rate of application {index} was edited after matching, so the engine's product "
-        "quantity no longer applies and is withdrawn. The agronomist sets the product."
+        f"The N rate of application {index} was edited after matching, so any product outcome "
+        "from the engine no longer applies and is withdrawn. The agronomist sets the product."
     )
 
 

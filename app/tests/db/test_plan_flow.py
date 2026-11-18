@@ -347,7 +347,9 @@ def test_rate_only_edit_rescales_splits(db: psycopg.Connection, org_a: Org) -> N
     assert r.status_code == 303, r.text
     page = client.get(plan_url).text
     assert "Set by agronomist: Wet spring" in page
-    assert "Rescaled from the agronomist&#39;s N rate using the pack split share" in page
+    assert (
+        "Rescaled from the agronomist&#39;s N rate, keeping this line&#39;s current share" in page
+    )
     assert "outside the pack limits" not in page
 
 

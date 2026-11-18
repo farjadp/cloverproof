@@ -447,7 +447,7 @@ class EditParsed:
     typed: set[str] = field(default_factory=set)  # the subset the agronomist typed
 
 
-RESCALED = "Rescaled from the agronomist's N rate using the pack split share."
+RESCALED = "Rescaled from the agronomist's N rate, keeping this line's current share."
 RESCALED_NO_SPLIT = "Rescaled to the agronomist's N rate; the pack defines no split plan."
 
 
@@ -594,9 +594,14 @@ def edited_document(doc: Mapping[str, Any], edit: EditParsed, reason: str) -> di
             )
     # Rates changed, so the "rounded for display" notes must be worked out again.
     suffix = explain.rounded_for_display()
+    wholes = {
+        "rate": final_rate,
+        "total": final_rate * area,
+        "fraction": 1.0 if final_rate > 0 else 0.0,
+    }
     for name, shown in (("rate", explain.num), ("total", explain.num), ("fraction", explain.pct)):
         numbers = [split[name] for split in nitrogen["splits"]]
-        note = explain.rounding_note([float(n["value"]) for n in numbers], shown)
+        note = explain.rounding_note([float(n["value"]) for n in numbers], shown, wholes[name])
         for number in numbers:
             number["explanation"] = number["explanation"].removesuffix(suffix) + note
     return new
