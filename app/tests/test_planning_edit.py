@@ -20,7 +20,7 @@ from cloverproof_engine.models import Crop, RecommendationInput
 from cloverproof_engine.pack import parse_pack
 
 REASON = "Field history: lodging at higher rates"
-RESCALED = "Rescaled from the agronomist's N rate using the pack split share"
+RESCALED = "Rescaled from the agronomist's N rate, keeping this line's current share."
 RESCALED_NO_SPLIT = "Rescaled to the agronomist's N rate; the pack defines no split plan."
 
 
@@ -133,6 +133,13 @@ def thirds_doc(pack: Any) -> dict[str, Any]:
 def test_rate_edit_adds_a_rounding_note_when_lines_stop_adding_up(pack: Any) -> None:
     doc = thirds_doc(pack)
     new = apply(doc, "100", [repr(v) for v in engine_splits(doc)])  # 33.3 x 3 = 99.9
+    for s in new["nitrogen"]["splits"]:
+        assert s["rate"]["explanation"].endswith(planning.explain.rounded_for_display())
+
+
+def test_lines_that_miss_the_shown_n_rate_get_a_rounding_note(doc: dict[str, Any]) -> None:
+    lines = ["50.06", "50"] + ["0"] * (len(doc["nitrogen"]["splits"]) - 2)
+    new = apply(doc, "100.04", lines)  # header 100.0; lines show 50.1 + 50.0 = 100.1
     for s in new["nitrogen"]["splits"]:
         assert s["rate"]["explanation"].endswith(planning.explain.rounded_for_display())
 
