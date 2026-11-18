@@ -28,10 +28,12 @@ from cloverproof_app.auth import (
     OrgContext,
     PasswordChangeRequired,
     UserDep,
+    page_shell_org,
     require_org_role,
 )
+from cloverproof_app.nav import ROLE_LABELS, role_label
 from cloverproof_app.ratelimit import LoginRateLimiter
-from cloverproof_app.repo import admin_users
+from cloverproof_app.repo import admin_users, users
 from cloverproof_app.repo.admin_users import CLI_ONLY, CLI_ONLY_ROLES, WEB_ROLES, AdminError
 from cloverproof_app.web import client_ip, render
 
@@ -43,12 +45,6 @@ OrgAdminOrg = Annotated[OrgContext, Depends(require_org_role("org_admin"))]
 
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 MAX_PASSWORD = 1024
-ROLE_LABELS = {
-    "org_admin": "Org admin",
-    "agronomist": "Agronomist",
-    "advisor": "Advisor",
-    "farmer": "Farmer",
-}
 
 # No 0/O/1/l/I: the org admin reads it out or copies it. 20 symbols from 55 = ~115 bits.
 TEMP_ALPHABET = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -88,10 +84,6 @@ async def _password_change_required(request: Request, _: Exception) -> Response:
     return PlainTextResponse(
         f"Change your password first: {url}", status_code=403, headers={"Location": url}
     )
-
-
-def role_label(roles: list[str] | tuple[str, ...]) -> str:
-    return ", ".join(ROLE_LABELS.get(r, r) for r in roles) or "No role"
 
 
 # ---------------------------------------------------------------- my account
@@ -137,26 +129,29 @@ def account_name(
 
 def _password_page(
     request: Request, conn: Conn, user: UserDep, *, errors: dict[str, str] | None = None,
-    status: int = 200,
+    saved: str | None = None, status: int = 200,
 ) -> Response:  # fmt: skip
+    required = admin_users.password_change_required(conn, user.id)
     return render(
         request,
         "account_password.html",
         {
-            "required": admin_users.password_change_required(conn, user.id),
+            "required": required,
+            "nav_locked": required,
             "errors": errors or {},
+            "saved": saved,
             "min_length": security.MIN_PASSWORD_LENGTH,
         },
         status,
     )
 
 
-@router.get(PASSWORD_CHANGE_PATH)
+@router.get(PASSWORD_CHANGE_PATH, dependencies=[Depends(page_shell_org)])
 def password_form(request: Request, conn: Conn, user: UserDep) -> Response:
     return _password_page(request, conn, user)
 
 
-@router.post(PASSWORD_CHANGE_PATH)
+@router.post(PASSWORD_CHANGE_PATH, dependencies=[Depends(page_shell_org)])
 def change_password(
     request: Request,
     conn: Conn,
@@ -196,6 +191,8 @@ def change_password(
         keep_session_id=user.session_id,
     )
     log.info("password changed; %d other sessions revoked", revoked)
+    if not users.user_organisations(conn, user.id):  # /account needs an organisation
+        return _password_page(request, conn, user, saved=PASSWORD_SAVED)
     return RedirectResponse("/account?saved=password", status_code=303)
 
 

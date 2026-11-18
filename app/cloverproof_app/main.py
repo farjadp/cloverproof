@@ -22,7 +22,14 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from cloverproof_app import account, security
-from cloverproof_app.auth import SESSION_COOKIE, NotAuthenticated, OrgSelectionRequired, csrf_guard
+from cloverproof_app.auth import (
+    NO_ORGANISATION,
+    SESSION_COOKIE,
+    NotAuthenticated,
+    OrgSelectionRequired,
+    csrf_guard,
+    load_shell_for_error,
+)
 from cloverproof_app.config import DEPLOYED_ENVS, ConfigError, Settings
 from cloverproof_app.db.migrate import REPO_ROOT
 from cloverproof_app.db.pool import Database, PooledDatabase, check_least_privilege
@@ -50,6 +57,21 @@ SERVER_ERROR = (
     "Something went wrong and nothing was saved. Try again."
     " If it keeps happening, note the time: {time}."
 )
+BAD_ADDRESS = "This link is not valid. It may be incomplete or mistyped."
+# Framework defaults, in words a user can act on.
+DEFAULT_ERROR_TEXT = {
+    "Not Found": "We could not find that page. The link may be old or mistyped.",
+    "Method Not Allowed": "This page cannot be opened that way. Go back and try again.",
+}
+NEEDS_ORG_HEADING = "This page needs an organisation"
+GENERIC_HEADING = "Something went wrong"
+ERROR_HEADINGS = {
+    403: "Not allowed",
+    404: "Page not found",
+    409: "This cannot be done now",
+    422: "This link does not work",
+    503: "The server is busy",
+}
 log = logging.getLogger(__name__)
 
 
@@ -88,6 +110,17 @@ def redirect(request: Request, url: str, status: int) -> Response:
     if request.method in {"GET", "HEAD"} and wants_html(request):
         return RedirectResponse(url, status_code=303)
     return PlainTextResponse(f"See {url}", status_code=status, headers={"Location": url})
+
+
+def error_page(request: Request, status: int, detail: str) -> Response:
+    needs_org = detail == NO_ORGANISATION
+    context = {
+        "status": status,
+        "heading": NEEDS_ORG_HEADING if needs_org else ERROR_HEADINGS.get(status, GENERIC_HEADING),
+        "detail": DEFAULT_ERROR_TEXT.get(detail, detail),
+        "needs_org": needs_org,
+    }
+    return render(request, "error.html", context, status)
 
 
 def create_app(settings: Settings | None = None, database: Database | None = None) -> FastAPI:
@@ -193,10 +226,8 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
             settings_ = request.app.state.settings
             return login_page(request, settings_, error=LOGIN_FORM_EXPIRED, status=403)
         if wants_html(request):
-            return render(
-                request, "error.html", {"status": error.status_code, "detail": error.detail},
-                error.status_code,
-            )  # fmt: skip
+            load_shell_for_error(request)
+            return error_page(request, error.status_code, str(error.detail))
         return PlainTextResponse(str(error.detail), status_code=error.status_code)
 
     @app.exception_handler(RequestValidationError)
@@ -204,6 +235,9 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
         # N3: an over-long login field must not come back as JSON echoing the input.
         if request.url.path == "/login":
             return login_page(request, settings, error=LOGIN_FAILED, status=422)
+        if wants_html(request):  # a mistyped link, e.g. /farmers/abc: never raw JSON in a page
+            load_shell_for_error(request)
+            return error_page(request, 422, BAD_ADDRESS)
         return await request_validation_exception_handler(request, error)
 
     @app.exception_handler(security.HashingBusy)
@@ -216,7 +250,7 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
             return response
         detail = "The server is busy. Nothing was saved. Try again in a minute."
         if wants_html(request):
-            response = render(request, "error.html", {"status": 503, "detail": detail}, 503)
+            response = error_page(request, 503, detail)
             response.headers.update(headers)
             return response
         return PlainTextResponse(detail, status_code=503, headers=headers)
@@ -227,7 +261,7 @@ def create_app(settings: Settings | None = None, database: Database | None = Non
         log.exception("unhandled error on %s %s", request.method, request.url.path)
         detail = SERVER_ERROR.format(time=datetime.now().strftime("%H:%M"))
         if wants_html(request):
-            return render(request, "error.html", {"status": 500, "detail": detail}, 500)
+            return error_page(request, 500, detail)
         return PlainTextResponse(detail, status_code=500)
 
     @app.get("/healthz")
