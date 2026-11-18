@@ -2,71 +2,81 @@
 {% from "_macros.html" import error, invalid, breadcrumb %}
 {% block title %}{{ farmer.display_name }}{% endblock %}
 {% block breadcrumb %}{{ breadcrumb([("Farmers", "/farmers"), (farmer.display_name, None)]) }}{% endblock %}
-{% block content %}
-<h1>{{ farmer.display_name }}</h1>
-{% if farmer.notes %}<p class="muted measure">{{ farmer.notes }}</p>{% endif %}
-
-<section aria-labelledby="fields-h">
-  <h2 id="fields-h">Fields</h2>
-  {% if fields %}
-  <table class="stack">
-    <thead><tr><th scope="col">Field</th><th scope="col">Farm</th><th scope="col" class="num">Area</th></tr></thead>
-    <tbody>
-    {% for f in fields %}
-      <tr>
-        <td data-label="Field"><a href="/fields/{{ f.id }}">{{ f.name }}</a></td>
-        <td data-label="Farm">{{ f.farm_name }}</td>
-        <td data-label="Area" class="num">{% if f.area_ha is not none %}{{ f.area_ha | float }} ha{% else %}— ha{% endif %}</td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p class="muted">No fields yet. Add a farm, then a field.</p>
-  {% endif %}
-</section>
-
-<section aria-labelledby="add-field-h">
-  <h2 id="add-field-h">Add field</h2>
-  {% if farms %}
-  <form class="form" method="post" action="/farmers/{{ farmer.id }}/fields" novalidate>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <div class="field">
-      <label for="farm_id">Farm</label>
-      <select id="farm_id" name="farm_id"{{ invalid(errors, "farm_id") }}>
-        {% for farm in farms %}<option value="{{ farm.id }}"{% if values.farm_id == farm.id | string %} selected{% endif %}>{{ farm.name }}</option>{% endfor %}
-      </select>
-      {{ error(errors, "farm_id") }}
-    </div>
-    <div class="field">
-      <label for="field_name">Field name</label>
-      <input id="field_name" name="field_name" type="text" maxlength="200" value="{{ values.field_name }}"{{ invalid(errors, "field_name") }}>
-      {{ error(errors, "field_name") }}
-    </div>
-    <div class="field">
-      <label for="area_ha">Area</label>
-      <div class="suffixed"><input id="area_ha" name="area_ha" type="text" inputmode="decimal" value="{{ values.area_ha }}"{{ invalid(errors, "area_ha") }}><span class="suffix">ha</span></div>
-      <p class="hint">Entered by hand. Map drawing comes later.</p>
-      {{ error(errors, "area_ha") }}
-    </div>
-    <div class="actions"><button class="button" type="submit">Add field</button></div>
-  </form>
-  {% else %}
-  <p class="muted">Add a farm first.</p>
-  {% endif %}
-</section>
-
-<section aria-labelledby="add-farm-h">
+{% macro add_farm(primary) %}
+<section class="panel" aria-labelledby="add-farm-h">
   <h2 id="add-farm-h">Add farm</h2>
-  {% if farms %}<p class="muted">Farms: {{ farms | map(attribute="name") | join(", ") }}</p>{% endif %}
-  <form class="form inline" method="post" action="/farmers/{{ farmer.id }}/farms" novalidate>
+  {% if farms %}<p class="hint">Already added: {{ farms | map(attribute="name") | join(", ") }}</p>{% else %}<p class="hint">Start here. Fields belong to a farm.</p>{% endif %}
+  <form method="post" action="/farmers/{{ farmer.id }}/farms" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <div class="field">
       <label for="farm_name">Farm name</label>
       <input id="farm_name" name="farm_name" type="text" maxlength="200" value="{{ values.farm_name }}"{% if not farms %} autofocus{% endif %}{{ invalid(errors, "farm_name") }}>
       {{ error(errors, "farm_name") }}
     </div>
-    <div class="actions"><button class="button secondary" type="submit">Add farm</button></div>
+    <button class="button{% if not primary %} secondary{% endif %}" type="submit">Add farm</button>
   </form>
 </section>
+{% endmacro %}
+{% block content %}
+<h1>{{ farmer.display_name }}</h1>
+{% if farmer.notes %}<p class="muted measure">{{ farmer.notes }}</p>{% endif %}
+
+<div class="split">
+  <div class="split-main">
+    <section aria-labelledby="fields-h">
+      <h2 id="fields-h">Fields</h2>
+      {% if fields %}
+      <table class="stack">
+        <thead><tr><th scope="col">Field</th><th scope="col">Farm</th><th scope="col" class="num">Area</th></tr></thead>
+        <tbody>
+        {% for f in fields %}
+          <tr>
+            <td data-label="Field"><a href="/fields/{{ f.id }}">{{ f.name }}</a></td>
+            <td data-label="Farm">{{ f.farm_name }}</td>
+            <td data-label="Area" class="num">{% if f.area_ha is not none %}{{ f.area_ha | float }} ha{% else %}— ha{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% elif farms %}
+      <p class="empty">No fields yet. Add the first field to start a plan.</p>
+      {% else %}
+      <p class="empty">No fields yet. Add a farm first, then its fields.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="split-side">
+    {% if farms %}
+    <section class="panel" aria-labelledby="add-field-h">
+      <h2 id="add-field-h">Add field</h2>
+      <form method="post" action="/farmers/{{ farmer.id }}/fields" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field">
+          <label for="farm_id">Farm</label>
+          <select id="farm_id" name="farm_id"{{ invalid(errors, "farm_id") }}>
+            {% for farm in farms %}<option value="{{ farm.id }}"{% if values.farm_id == farm.id | string %} selected{% endif %}>{{ farm.name }}</option>{% endfor %}
+          </select>
+          {{ error(errors, "farm_id") }}
+        </div>
+        <div class="field">
+          <label for="field_name">Field name</label>
+          <input id="field_name" name="field_name" type="text" maxlength="200" value="{{ values.field_name }}"{{ invalid(errors, "field_name") }}>
+          {{ error(errors, "field_name") }}
+        </div>
+        <div class="field">
+          <label for="area_ha">Area</label>
+          <div class="suffixed"><input id="area_ha" name="area_ha" type="text" inputmode="decimal" value="{{ values.area_ha }}"{{ invalid(errors, "area_ha") }}><span class="suffix">ha</span></div>
+          <p class="hint">Entered by hand. Map drawing comes later.</p>
+          {{ error(errors, "area_ha") }}
+        </div>
+        <button class="button" type="submit">Add field</button>
+      </form>
+    </section>
+    {{ add_farm(false) }}
+    {% else %}
+    {{ add_farm(true) }}
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

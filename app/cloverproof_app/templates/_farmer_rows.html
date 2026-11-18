@@ -8,16 +8,19 @@
       <td data-label="Farmer"><a href="/farmers/{{ line.row.farmer_id }}">{{ line.row.farmer_name }}</a></td>
       <td data-label="Farm">{{ line.row.farm_name or "No farm yet" }}</td>
       <td data-label="Fields">
-        {% for f in line.fields %}<a href="/fields/{{ f.id }}">{{ f.name }}</a> · {% if f.area_ha is not none %}<span class="num">{{ f.area_ha | float }}</span> ha{% else %}— ha{% endif %}<br>{% else %}<span class="muted">None</span>{% endfor %}
+        {% for f in line.fields %}<a href="/fields/{{ f.id }}">{{ f.name }}</a> · {% if f.area_ha is not none %}<span class="num">{{ f.area_ha | float }}</span> ha{% else %}— ha{% endif %}<br>{% else %}<span class="muted">No fields yet</span>{% endfor %}
       </td>
-      <td data-label="Last plan">{% if line.last %}<a href="/plans/{{ line.last.id }}">{{ line.last.plan_date }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
-      <td data-label="Status">{% if line.last %}{{ status(line.last.status, status_labels) }}{% endif %}</td>
+      <td data-label="Last plan">{% if line.last %}<a href="/plans/{{ line.last.id }}">{{ line.last.plan_date }}</a>{% else %}<span class="muted">No plan yet</span>{% endif %}</td>
+      <td data-label="Status">{% if line.last %}{{ status(line.last.status, status_labels) }}{% else %}<span class="muted">—</span>{% endif %}</td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
 {% elif q %}
-<p class="empty">Nothing matches “{{ q }}”.</p>
+<p class="empty">Nothing matches “{{ q }}”. <a href="/farmers">Clear the search</a></p>
 {% else %}
-<p class="empty">No farmers yet. <a href="/farmers/new">Add the first farmer</a>.</p>
+<div class="empty">
+  <p class="notice-title">No farmers yet.</p>
+  <p><a href="/farmers/new">Add the first farmer</a>. Then add their farm and fields, and you can start a plan.</p>
+</div>
 {% endif %}

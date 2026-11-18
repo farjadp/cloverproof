@@ -1,8 +1,22 @@
 {% extends "base.html" %}
-{% block title %}Error {{ status }}{% endblock %}
+{% block title %}{{ heading }}{% endblock %}
 {% block main_class %}narrow{% endblock %}
 {% block content %}
-<h1>{% if status == 403 %}Not allowed{% elif status == 404 %}Not found{% else %}Something went wrong{% endif %}</h1>
+<h1>{{ heading }}</h1>
+{% if needs_org %}
+<p class="notice warn" role="status">{{ detail }}</p>
+<p>Farmers, plans and the review queue belong to an organisation. The product catalog and your password do not need one.</p>
+<p class="muted">To work with farmers, ask an administrator to add your account to an organisation.</p>
+<div class="actions">
+  <a class="button" href="/products">Open Products</a>
+  <a class="button secondary" href="/account/password">Change password</a>
+</div>
+{% else %}
 <p class="alert" role="alert">{{ detail }}</p>
-<p><a href="/">Back to Farmers</a></p>
+<div class="actions">
+  {% if not nav %}<a class="button" href="/login">Go to sign in</a>
+  {% elif nav.home == "/" %}<a class="button" href="/farmers">Go to Farmers</a>
+  {% else %}<a class="button" href="{{ nav.home }}">Go to Products</a>{% endif %}
+</div>
+{% endif %}
 {% endblock %}

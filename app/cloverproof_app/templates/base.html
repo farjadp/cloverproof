@@ -11,46 +11,62 @@
   <link rel="stylesheet" href="/static/app.css">
   <script src="/static/vendor/htmx-2.0.11.min.js" defer></script>
 </head>
-<body{% if csrf_token %} hx-headers='{{ {"X-CSRF-Token": csrf_token} | tojson }}'{% endif %}>
+<body class="{{ 'with-nav' if nav else 'no-nav' }}"{% if csrf_token %} hx-headers='{{ {"X-CSRF-Token": csrf_token} | tojson }}'{% endif %}>
   <a class="skip-link" href="#main">Skip to content</a>
-  <header class="site-header">
-    <div class="brand-line">
-      <a class="brand" href="/">
-        <svg viewBox="0 0 40 44" aria-hidden="true" class="mark">
-          <g class="mark-leaf"><circle cx="20" cy="10" r="9"/><circle cx="30" cy="20" r="9"/><circle cx="20" cy="30" r="9"/><circle cx="10" cy="20" r="9"/></g>
-          <circle cx="20" cy="20" r="3.5" class="mark-eye"/>
-          <path d="M20 33c1 7 6 9 10 10" class="mark-stem"/>
-        </svg>
-        <span>CloverProof</span>
-      </a>
-      {% if user and org_context %}<span class="org-name">{{ org_context.org.name }}</span>{% endif %}
-    </div>
-    {% if user %}
-    {# Display only; /review re-checks the same rule server-side (plan_web.is_agronomist). #}
-    {% set may_review = org_context and user.is_human and ("agronomist" in org_context.roles or user.is_superadmin) %}
-    <div class="header-side">
-    {% if may_review %}<a class="nav-link" href="/review"{% if request.url.path == "/review" %} aria-current="page"{% endif %}>Review queue</a>{% endif %}
-    <a class="nav-link" href="/products"{% if request.url.path == "/products" %} aria-current="page"{% endif %}>Products</a>
-    <details class="user-menu">
-      <summary>{{ user.display_name }}{% if org_context and org_context.roles %} · {{ org_context.roles | map("capitalize") | join(", ") }}{% endif %}</summary>
-      <div class="menu">
-        {% if may_review %}<a href="/review">Review queue</a>{% endif %}
-        <a href="/farmers">Farmers</a>
-        <a href="/account">My account</a>
-        {% if org_context and "org_admin" in org_context.roles %}<a href="/admin/users">Users</a>{% endif %}
-        {% if org_context and org_context.organisations | length > 1 %}<a href="/orgs/choose">Switch organisation</a>{% endif %}
+  {% macro brand(href) %}
+  <a class="brand" href="{{ href }}">
+    <svg viewBox="0 0 40 44" aria-hidden="true" class="mark">
+      <g class="mark-leaf"><circle cx="20" cy="10" r="9"/><circle cx="30" cy="20" r="9"/><circle cx="20" cy="30" r="9"/><circle cx="10" cy="20" r="9"/></g>
+      <circle cx="20" cy="20" r="3.5" class="mark-eye"/>
+      <path d="M20 33c1 7 6 9 10 10" class="mark-stem"/>
+    </svg>
+    <span>CloverProof</span>
+  </a>
+  {% endmacro %}
+  <div class="shell">
+    {% if nav %}
+    {# Links show only what the routes allow (nav.py). Each route still checks access itself. #}
+    <header class="sidebar">
+      <div class="sidebar-inner">
+      {{ brand(nav.home) }}
+      <div class="shell-org">
+        {% if nav.org_name %}
+        <span class="org-name">{{ nav.org_name }}</span>
+        {% if nav.can_switch_org %}<a href="/orgs/choose">Switch organisation</a>{% endif %}
+        {% elif nav.must_choose_org %}
+        <a href="/orgs/choose">Choose organisation</a>
+        {% else %}
+        <span class="org-name">No organisation</span>
+        {% endif %}
+      </div>
+      {% if nav.links %}
+      <nav class="primary-nav" aria-label="Main">
+        <ul>
+          {% for link in nav.links %}
+          <li><a class="nav-link" href="{{ link.href }}"{% if link.current %} aria-current="page"{% endif %}>{{ link.label }}</a></li>
+          {% endfor %}
+        </ul>
+      </nav>
+      {% endif %}
+      <p class="shell-user"><span class="shell-name">{{ nav.user_name }}</span>{% if nav.role_text %}<span class="shell-role">{{ nav.role_text }}</span>{% endif %}</p>
+      <div class="shell-links">
+        {% if nav.account %}<a href="{{ nav.account.href }}"{% if nav.account.current %} aria-current="page"{% endif %}>{{ nav.account.label }}</a>{% endif %}
         <form method="post" action="/logout">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <button class="button text" type="submit">Sign out</button>
+          <button class="link-button" type="submit">Sign out</button>
         </form>
       </div>
-    </details>
-    </div>
+      </div>
+    </header>
+    {% else %}
+    <header class="site-header">{{ brand("/") }}</header>
     {% endif %}
-  </header>
-  {% block breadcrumb %}{% endblock %}
-  <main id="main" class="{% block main_class %}{% endblock %}">
-    {% block content %}{% endblock %}
-  </main>
+    <div class="workspace">
+      {% block breadcrumb %}{% endblock %}
+      <main id="main" class="{% block main_class %}{% endblock %}">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
 </body>
 </html>

@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
-from cloverproof_app import security, split_display
+from cloverproof_app import nav, security, split_display
 from cloverproof_app.auth import (
     LOGIN_CSRF_COOKIE,
     ORG_COOKIE,
@@ -23,6 +23,7 @@ from cloverproof_app.auth import (
     UserDep,
     optional_user,
     org_cookie_value,
+    page_shell_org,
     session_token_hash,
 )
 from cloverproof_app.config import Settings
@@ -46,10 +47,19 @@ SIGNED_OUT = "You were signed out. Sign in again to continue."
 
 
 def render(request: Request, name: str, context: dict[str, Any], status: int = 200) -> Response:
+    user = getattr(request.state, "user", None)
+    org = getattr(request.state, "org", None)
     base = {
         "csrf_token": getattr(request.state, "csrf_token", ""),
-        "user": getattr(request.state, "user", None),
-        "org_context": getattr(request.state, "org", None),
+        "user": user,
+        "org_context": org,
+        "nav": nav.build_nav(
+            request.url.path,
+            user,
+            org,
+            must_choose_org=getattr(request.state, "must_choose_org", False),
+            locked=bool(context.get("nav_locked")),
+        ),
     }
     return templates.TemplateResponse(request, name, {**base, **context}, status_code=status)
 
@@ -173,7 +183,10 @@ def login(
     sessions.create_session(
         conn, user_id=creds.id, token_sha256=security.token_sha256(token), absolute=absolute
     )
-    response = RedirectResponse(safe_next(next), status_code=303)
+    target = safe_next(next)
+    if target == "/" and not users.user_organisations(conn, creds.id):
+        target = "/products"  # the home page needs an organisation; this one does not
+    response = RedirectResponse(target, status_code=303)
     set_cookie(response, settings, SESSION_COOKIE, token, int(absolute.total_seconds()))
     clear_cookie(response, settings, LOGIN_CSRF_COOKIE)
     clear_cookie(response, settings, ORG_COOKIE)
@@ -193,13 +206,13 @@ def logout(request: Request, conn: Conn, settings: SettingsDep) -> Response:
     return response
 
 
-@router.get("/orgs/choose")
+@router.get("/orgs/choose", dependencies=[Depends(page_shell_org)])
 def choose_org_form(request: Request, conn: Conn, user: UserDep) -> Response:
     organisations = users.user_organisations(conn, user.id)
     return render(request, "choose_org.html", {"organisations": organisations})
 
 
-@router.post("/orgs/choose")
+@router.post("/orgs/choose", dependencies=[Depends(page_shell_org)])
 def choose_org(
     request: Request,
     conn: Conn,

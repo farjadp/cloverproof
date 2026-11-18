@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -29,6 +30,8 @@ from cloverproof_app.db.pool import set_rls_context
 from cloverproof_app.repo import admin_users, sessions, users
 from cloverproof_app.repo.users import Organisation
 
+log = logging.getLogger(__name__)
+
 SESSION_COOKIE = "cp_session"
 ORG_COOKIE = "cp_org"
 LOGIN_CSRF_COOKIE = "cp_login_csrf"
@@ -41,6 +44,7 @@ PASSWORD_CHANGE_EXEMPT = frozenset({PASSWORD_CHANGE_PATH, "/logout"})
 
 # Roles that may use the internal tool at all. `farmer` is for the Phase 4 portal.
 INTERNAL_ROLES = ("org_admin", "agronomist", "advisor")
+NO_ORGANISATION = "Your account is not a member of any organisation."
 
 
 class NotAuthenticated(Exception):
@@ -164,13 +168,14 @@ def chosen_org_id(request: Request, settings: Settings, user: CurrentUser) -> UU
 def current_org(request: Request, user: UserDep, conn: Conn, settings: SettingsDep) -> OrgContext:
     organisations = tuple(users.user_organisations(conn, user.id))
     if not organisations:
-        raise HTTPException(403, "Your account is not a member of any organisation.")
+        raise HTTPException(403, NO_ORGANISATION)
     if len(organisations) == 1:
         org = organisations[0]
     else:
         wanted = chosen_org_id(request, settings, user)
         org = next((o for o in organisations if o.id == wanted), None)
         if org is None:
+            request.state.must_choose_org = True  # the shell offers the chooser
             raise OrgSelectionRequired()
     # Only an organisation the session user belongs to (checked above, and again by
     # app_ctx_org() in the database) becomes the RLS org for this transaction (ADR 0008).
@@ -182,6 +187,35 @@ def current_org(request: Request, user: UserDep, conn: Conn, settings: SettingsD
 
 
 OrgDep = Annotated[OrgContext, Depends(current_org)]
+
+
+def page_shell_org(request: Request, user: UserDep, conn: Conn, settings: SettingsDep) -> None:
+    """For pages open to any signed-in user: resolve the organisation when there is one, so
+    the navigation is complete. Never required, and never an error here."""
+    try:
+        current_org(request, user, conn, settings)
+    except OrgSelectionRequired:
+        return
+    except HTTPException as error:
+        if error.status_code != 403:
+            raise
+
+
+def load_shell_for_error(request: Request) -> None:
+    """Best effort, for error pages raised before the route's dependencies ran (unknown URL,
+    failed CSRF check): find who is signed in so the page keeps its navigation. Uses its own
+    transaction. A failure here must never replace the original error."""
+    if SESSION_COOKIE not in request.cookies:
+        return
+    settings = request.app.state.settings
+    try:
+        with request.app.state.database.connection() as conn:
+            user = getattr(request.state, "user", None) or optional_user(request, conn, settings)
+            if user is not None and getattr(request.state, "org", None) is None:
+                set_rls_context(conn, user_id=user.id, platform_role=user.platform_role)
+                page_shell_org(request, user, conn, settings)
+    except Exception:  # the error page matters more than its navigation
+        log.warning("could not load navigation for an error page", exc_info=True)
 
 
 def require_org_role(*roles: str) -> Callable[..., OrgContext]:

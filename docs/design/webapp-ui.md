@@ -75,9 +75,10 @@ Preload the two normal files in `<head>` (`<link rel="preload" as="font" type="f
 
 ## 2. Layout
 - `body`: ivory background, ink text, sans, `--fs-base`, `--lh-body`. No shadows, no gradients, no animation (except the HTMX spinner opacity).
-- **Header** (64px, `border-bottom: 1px solid var(--rule)`, not sticky): left is the clover mark plus "CloverProof" (serif 600 `--fs-lg`; reuse the SVG from `website/src/components/Logo.tsx` inline, fills `--olive`/`--ivory`), then a thin rule, then the organisation name in ink-soft. Right is a `<details>` menu labelled with the user's name and role (e.g. "Farjad Iranmehr · Agronomist"). It contains "Farmers" and a "Sign out" form button (POST + CSRF). There is no nav bar; the breadcrumb does the navigating.
-- **Breadcrumb** under the header: `Farmers / {farmer} / {field} / Plan v{n}`, `--fs-sm` ink-soft, with olive links.
-- **Main**: one column, `max-width: var(--content)`, padding `--s6` (`--s4` under 720px), centred. Forms and prose are capped at `--measure`.
+- **App shell** (`base.html`, links from `nav.py`): always visible, no JS, no hidden menu. From 960px a sticky left column (`--sidebar`, sand) holds the clover mark plus "CloverProof", the organisation (with "Switch organisation" or "Choose organisation" when relevant), the primary navigation, then the user's name and role, "My account" and "Sign out" (POST + CSRF). Below 960px the same content is a compact header with the navigation wrapping under it. The current page is an olive fill with `aria-current="page"`.
+- **Navigation by role**: Farmers and My account for internal roles, Review queue for those who may review, Products for everyone signed in, Users for org admins. Without an organisation: Products and Change password. While a temporary password must be replaced: Sign out only. Links mirror the route rules; the routes still enforce them.
+- **Breadcrumb** above the page title on every page below the top level: `Farmers / {farmer} / {field} / Plan v{n}`, `--fs-sm` ink-soft, with olive links.
+- **Main**: left-aligned beside the shell, `max-width: var(--content)`, padding `--s6` (`--s4` under 720px). Forms and prose are capped at `--measure`. Pages with a list plus short forms use `.split`: the list on the left and form panels in a 22rem column from 1120px, stacked below that.
 - **Sections** are separated by `border-top: 1px solid var(--rule)` and `--s6` of space, not by boxes. The only boxed surface is a **panel** (white, 1px `--rule`, `--radius`). Never put a panel inside a panel.
 - Tablet (≥ 768px): no changes. Under 720px, tables become stacked rows (label above value) and side-by-side columns stack.
 
