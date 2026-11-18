@@ -3,8 +3,6 @@
 No agronomy here: every number comes from the pack or the inputs.
 """
 
-from collections.abc import Callable
-from decimal import Decimal
 from typing import Literal
 
 from cloverproof_engine import explain
@@ -127,16 +125,6 @@ def any_placeholder(constants: list[UsedConstant]) -> bool:
     return any(c.is_placeholder for c in constants)
 
 
-def _rounding_note(values: list[float], whole: float, shown: Callable[[float], str]) -> str:
-    """The rounding sentence when the lines, as displayed, do not add up to the whole."""
-
-    def displayed(value: float) -> Decimal:
-        return Decimal(shown(value).replace(",", "").removesuffix("%"))
-
-    adds_up = sum(displayed(v) for v in values) == displayed(whole)
-    return "" if adds_up else explain.rounded_for_display()
-
-
 def build_splits(
     inputs: RecommendationInput,
     pack: Pack,
@@ -168,9 +156,9 @@ def build_splits(
     area = inputs.area_ha
     count = len(specs)
     rates = [rate * c.value for c in fractions]
-    share_note = _rounding_note([c.value for c in fractions], 1.0, explain.pct)
-    rate_note = _rounding_note(rates, rate, explain.num)
-    total_note = _rounding_note([r * area for r in rates], rate * area, explain.num)
+    share_note = explain.rounding_note([c.value for c in fractions], explain.pct)
+    rate_note = explain.rounding_note(rates, explain.num)
+    total_note = explain.rounding_note([r * area for r in rates], explain.num)
     splits: list[SplitApplication] = []
     for index, (spec, fraction_c) in enumerate(zip(specs, fractions, strict=True), 1):
         fraction = fraction_c.value
@@ -238,14 +226,14 @@ def _single_line(
             name="split_1_rate",
             value=rate,
             unit=KG_N_PER_HA,
-            explanation=explain.split_rate(1, 1.0, rate, rate),
+            explanation=explain.no_split_rate(rate),
             uses_placeholder=placeholder,
         ),
         total=ExplainedNumber(
             name="split_1_total",
             value=total,
             unit=KG_N,
-            explanation=explain.split_total(1, rate, inputs.area_ha, total),
+            explanation=explain.no_split_total(rate, inputs.area_ha, total),
             uses_placeholder=placeholder,
         ),
     )

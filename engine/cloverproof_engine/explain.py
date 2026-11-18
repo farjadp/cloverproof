@@ -4,7 +4,8 @@ Text only: no calculation happens here. Every pack constant quoted in a
 sentence is tagged PLACEHOLDER (or with its source when validated).
 """
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Literal
 
 from cloverproof_engine.models import ProductForm
@@ -145,6 +146,24 @@ def rounded_for_display() -> str:
     return (
         " These lines do not add up exactly as shown: rounded for display; stored values are exact."
     )
+
+
+def rounding_note(values: list[float], shown: Callable[[float], str]) -> str:
+    """The rounding sentence when the lines, as displayed, do not add up to their sum."""
+
+    def displayed(value: float) -> Decimal:
+        return Decimal(shown(value).replace(",", "").removesuffix("%"))
+
+    adds_up = sum(displayed(v) for v in values) == displayed(sum(values))
+    return "" if adds_up else rounded_for_display()
+
+
+def no_split_rate(rate: float) -> str:
+    return f"Full N rate on this line = {num(rate)} kg N/ha."
+
+
+def no_split_total(rate: float, area_ha: float, total: float) -> str:
+    return f"Total on this line = {num(rate)} kg N/ha x {num(area_ha)} ha = {num(total)} kg N."
 
 
 def _timing_tag(citation: Citation | None) -> str:
@@ -479,7 +498,7 @@ def c6_placeholder_constant_used(pack_id: str, version: str, paths: list[str]) -
     return (
         f"This recommendation uses PLACEHOLDER constants or timing windows from pack "
         f"'{pack_id}' {version}: {', '.join(paths)}. "
-        "Confidence is low until the agronomist validates them."
+        "Confidence is low until a human agronomist validates them."
     )
 
 
@@ -487,12 +506,9 @@ def c7_placeholder_product_rule_used(pack_id: str, version: str, paths: list[str
     return (
         f"The engine's product choice relied on PLACEHOLDER rules from pack '{pack_id}' "
         f"{version}: {', '.join(paths)}. "
-        "Confidence is low until the agronomist validates them."
+        "Confidence is low until a human agronomist validates them."
     )
 
 
 def c6_timing_window_missing(pack_id: str, version: str) -> str:
-    return (
-        f"Pack '{pack_id}' {version} gives no timing window for this N: "
-        "confidence is at most medium."
-    )
+    return f"Pack '{pack_id}' {version} gives no timing window for this N: confidence is low."

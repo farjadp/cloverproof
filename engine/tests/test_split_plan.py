@@ -301,3 +301,11 @@ def test_split_golden_cases_agree(case_id: str) -> None:
     rows = compare(case, recommend(case.input, pack))
     assert any(r.field == "split_1_timing_window" for r in rows)
     assert [r.field for r in rows if not r.ok] == []
+
+
+def test_no_split_numbers_do_not_read_as_an_application(make_input) -> None:
+    line = recommend(make_input(), _without_splits()).nitrogen.splits[0]
+    assert "Application" not in line.rate.explanation
+    assert "Application" not in line.total.explanation
+    assert line.rate.explanation.startswith("Full N rate on this line = ")
+    assert line.total.explanation.startswith("Total on this line = ")

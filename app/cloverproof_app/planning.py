@@ -592,4 +592,11 @@ def edited_document(doc: Mapping[str, Any], edit: EditParsed, reason: str) -> di
                 f"Share of the final N rate: {_fmt(rate)} of {_fmt(final_rate)} kg N/ha.",
                 bool(split["rate"]["uses_placeholder"]),
             )
+    # Rates changed, so the "rounded for display" notes must be worked out again.
+    suffix = explain.rounded_for_display()
+    for name, shown in (("rate", explain.num), ("total", explain.num), ("fraction", explain.pct)):
+        numbers = [split[name] for split in nitrogen["splits"]]
+        note = explain.rounding_note([float(n["value"]) for n in numbers], shown)
+        for number in numbers:
+            number["explanation"] = number["explanation"].removesuffix(suffix) + note
     return new

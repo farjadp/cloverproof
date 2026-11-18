@@ -22,15 +22,15 @@ Rules (each TODO(agronomist): review):
   thresholds themselves do not trigger C6). A PLACEHOLDER timing window counts
   too, under the path `crops.<crop>.nitrogen.splits[i].timing`.
 - C6_TIMING_WINDOW_MISSING  a line has no timing window (the pack
-                            defines no split plan)              -> cap medium
+                            defines no split plan)              -> cap low
 - C7_PLACEHOLDER_PRODUCT_RULE_USED a line's matched product relied
                             on a PLACEHOLDER pack product rule (its
                             `rules_used`)                       -> cap low
   (a line with no matched product does not trigger C7, even if rules were read)
 
 Timing windows have no status of their own yet, so every window is PLACEHOLDER: a
-plan with a split plan is `low`, one without is at most `medium`, and no plan can
-reach `high` until windows can be validated.
+plan is `low` with or without a split plan, so removing timing can never raise confidence,
+and no plan can reach `high` until windows can be validated.
 """
 
 from __future__ import annotations
@@ -149,7 +149,7 @@ def assess(
         )
 
     # C6 — TODO(agronomist): review, including the draft caps for timing windows
-    # (PLACEHOLDER window -> low, missing window -> medium).
+    # (PLACEHOLDER window -> low, missing window -> low).
     placeholders = [c.path for c in nitrogen.constants_used if c.is_placeholder]
     windows = [line.timing_window for line in nitrogen.splits]
     placeholders += [
@@ -170,7 +170,7 @@ def assess(
         hits.append(
             ConfidenceRuleHit(
                 rule_id="C6_TIMING_WINDOW_MISSING",
-                cap=Confidence.MEDIUM,
+                cap=Confidence.LOW,
                 reason=explain.c6_timing_window_missing(pack.id, pack.version),
             )
         )

@@ -167,14 +167,14 @@ def test_placeholder_constants_and_windows_share_one_c6_hit(
     assert path in hits[0].reason and f"{N}.splits[0].timing" in hits[0].reason
 
 
-def test_missing_window_caps_at_medium(lab_soil_test, make_input, validated_pack) -> None:
+def test_missing_window_caps_at_low(lab_soil_test, make_input, validated_pack) -> None:
     data = validated_pack.model_dump(mode="json")
     del data["crops"]["wheat"]["nitrogen"]["splits"]
     pack = parse_pack(data)
     level, hits = _assess_as_built(make_input(soil_test=lab_soil_test()), pack)
-    assert level is Confidence.MEDIUM
+    assert level is Confidence.LOW  # removing timing must not raise confidence
     assert _ids(hits) == ["C6_TIMING_WINDOW_MISSING"]
-    assert hits[0].cap is Confidence.MEDIUM
+    assert hits[0].cap is Confidence.LOW
     assert "no timing window" in hits[0].reason
 
 

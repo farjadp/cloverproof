@@ -135,6 +135,9 @@ class ProofInput:
         nitrogen = self.doc["nitrogen"]
         if any(c.get("status") == "PLACEHOLDER" for c in nitrogen.get("constants_used", [])):
             return True
+        windows = [s.get("timing_window") or {} for s in nitrogen.get("splits", [])]
+        if any(w.get("status") == "PLACEHOLDER" for w in windows):
+            return True  # a timing window has no validated status yet (engine rule C6)
         return any(n.get("uses_placeholder") for n in explained_numbers(self.doc))
 
     @property

@@ -246,8 +246,21 @@ def test_placeholder_pack_banner_and_markers() -> None:
     assert "PLACEHOLDER — not yet validated" in text
 
 
+def test_placeholder_timing_window_keeps_the_banner_on_a_validated_pack() -> None:
+    doc = validated(engine_doc())
+    doc["nitrogen"]["splits"][0]["timing_window"] = {
+        "label": "Stage (TEST)",
+        "status": "PLACEHOLDER",
+        "citation": None,
+    }
+    assert PLACEHOLDER_BANNER in render_html(proof(doc))
+
+
 def test_validated_pack_has_no_placeholder_banner_or_markers() -> None:
-    markup = render_html(proof(validated(engine_doc())))
+    doc = validated(engine_doc())
+    for split in doc["nitrogen"]["splits"]:  # as if windows could be validated one day
+        split["timing_window"] = None
+    markup = render_html(proof(doc))
     assert PLACEHOLDER_BANNER not in markup
     assert "not yet validated" not in visible_text(markup)
 
