@@ -30,6 +30,7 @@
     {% set may_review = org_context and user.is_human and ("agronomist" in org_context.roles or user.is_superadmin) %}
     <div class="header-side">
     {% if may_review %}<a class="nav-link" href="/review"{% if request.url.path == "/review" %} aria-current="page"{% endif %}>Review queue</a>{% endif %}
+    <a class="nav-link" href="/products"{% if request.url.path == "/products" %} aria-current="page"{% endif %}>Products</a>
     <details class="user-menu">
       <summary>{{ user.display_name }}{% if org_context and org_context.roles %} · {{ org_context.roles | map("capitalize") | join(", ") }}{% endif %}</summary>
       <div class="menu">
