@@ -6,6 +6,7 @@ and placeholder flags are whatever the pack says; tests read them from the docum
 
 from __future__ import annotations
 
+import copy
 import math
 from datetime import date
 from typing import Any
@@ -16,9 +17,11 @@ from cloverproof_app import planning
 from cloverproof_app.main import DEFAULT_PACK_PATH
 from cloverproof_engine.loaders import load_pack
 from cloverproof_engine.models import Crop, RecommendationInput
+from cloverproof_engine.pack import parse_pack
 
 REASON = "Field history: lodging at higher rates"
 RESCALED = "Rescaled from the agronomist's N rate using the pack split share"
+RESCALED_NO_SPLIT = "Rescaled to the agronomist's N rate; the pack defines no split plan."
 
 
 @pytest.fixture(scope="module")
@@ -38,6 +41,24 @@ def doc(pack: Any) -> dict[str, Any]:
     )
     result = planning.run_engine(inputs, pack)
     assert len(result["nitrogen"]["splits"]) >= 2, "tests need a pack with two or more splits"
+    return result
+
+
+@pytest.fixture(scope="module")
+def no_split_doc(pack: Any) -> dict[str, Any]:
+    """An engine document from the same pack with its split plan removed."""
+    data = pack.model_dump(mode="json")
+    del data["crops"]["wheat"]["nitrogen"]["splits"]
+    inputs = RecommendationInput(
+        crop=Crop.WHEAT,
+        target_yield_t_ha=6,
+        previous_crop="canola",
+        area_ha=10,
+        plan_date=date(2027, 3, 1),
+        soil_test=None,
+    )
+    result = planning.run_engine(inputs, parse_pack(data))
+    assert result["nitrogen"]["splits"][0]["timing_window"] is None
     return result
 
 
@@ -78,6 +99,29 @@ def test_rate_only_rescales_splits_with_pack_share(doc: dict[str, Any]) -> None:
             assert "Set by agronomist" not in s[key]["explanation"]
             assert s[key]["uses_placeholder"] is old["fraction"]["uses_placeholder"]
         assert s["fraction"]["uses_placeholder"] is old["fraction"]["uses_placeholder"]
+
+
+@pytest.mark.parametrize("new_rate", [100.0, 0.0])
+def test_rate_edit_on_a_no_split_line_claims_no_pack_share(
+    no_split_doc: dict[str, Any], new_rate: float
+) -> None:
+    new = apply(no_split_doc, f"{new_rate:g}", fmt(engine_splits(no_split_doc)))
+    line = new["nitrogen"]["splits"][0]
+    assert line["rate"]["value"] == new_rate
+    assert line["rate"]["explanation"] == RESCALED_NO_SPLIT
+    assert line["total"]["explanation"].startswith(RESCALED_NO_SPLIT)
+    for key in ("rate", "total"):
+        assert "split share" not in line[key]["explanation"]
+
+
+def test_rate_edit_on_an_engine_0_3_0_line_keeps_the_old_text(
+    no_split_doc: dict[str, Any],
+) -> None:
+    # Engine 0.3.0 documents have no `timing_window` key at all.
+    old = copy.deepcopy(no_split_doc)
+    del old["nitrogen"]["splits"][0]["timing_window"]
+    new = apply(old, "100", fmt(engine_splits(old)))
+    assert new["nitrogen"]["splits"][0]["rate"]["explanation"].startswith(RESCALED)
 
 
 def test_partial_split_edit_recomputes_every_fraction(doc: dict[str, Any]) -> None:
@@ -158,8 +202,6 @@ def test_total_uses_area(doc: dict[str, Any]) -> None:
 
 
 def test_engine_document_is_not_mutated(doc: dict[str, Any]) -> None:
-    import copy
-
     before = copy.deepcopy(doc)
     apply(doc, f"{engine_rate(doc) + 30:g}", fmt(engine_splits(doc)))
     assert doc == before

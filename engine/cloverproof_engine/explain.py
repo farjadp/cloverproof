@@ -25,7 +25,8 @@ def num(x: float) -> str:
 
 
 def pct(x: float) -> str:
-    return f"{x:.0%}"
+    """A percentage with one decimal, dropped when it is zero: 12.5%, 40%."""
+    return f"{x:.1%}".replace(".0%", "%")
 
 
 def cited(citation: Citation) -> str:
@@ -140,40 +141,40 @@ def split_total(index: int, split: float, area_ha: float, total: float) -> str:
     )
 
 
-def _timing_tag(status: ConstantStatus, citation: Citation | None) -> str:
-    label = (
-        "PLACEHOLDER, not agronomist-validated"
-        if status is ConstantStatus.PLACEHOLDER
-        else "validated pack"
+def rounded_for_display() -> str:
+    return (
+        " These lines do not add up exactly as shown: rounded for display; stored values are exact."
     )
+
+
+def _timing_tag(citation: Citation | None) -> str:
+    label = "PLACEHOLDER, not agronomist-validated"
     return f"({label}; {cited(citation)})" if citation is not None else f"({label})"
 
 
-def split_line(
-    index: int, count: int, window: str, status: ConstantStatus, citation: Citation | None
-) -> str:
+def split_line(index: int, count: int, window: str, citation: Citation | None) -> str:
     return (
         f"Application {index} of {count} in the pack's split plan. "
-        f"Timing window: {window} {_timing_tag(status, citation)}."
+        f"Pack timing wording: {window} {_timing_tag(citation)}."
     )
 
 
 def no_split_stage_label() -> str:
-    return "Single application (no split defined in the pack; timing not set)"
+    return "Full N rate, not split (no split plan in the pack; timing not set)"
 
 
 def no_split_fraction(pack_id: str, version: str, crop: str) -> str:
     return (
         f"No split is defined in pack '{pack_id}' {version} for {crop}: "
-        "this one application gets the full N rate."
+        "this line carries the full N rate."
     )
 
 
 def no_split_line(pack_id: str, version: str, crop: str) -> str:
     return (
-        f"No split is defined in pack '{pack_id}' {version} for {crop}, so the N is one "
-        "application. The pack gives no timing window and the engine does not invent one; "
-        "the agronomist sets the timing."
+        f"Pack '{pack_id}' {version} defines no split plan for {crop}, so the engine shows the "
+        "N rate as one line. This is not advice to apply it in one pass. The pack gives no "
+        "timing window and the engine does not invent one."
     )
 
 
@@ -454,6 +455,14 @@ def c5_rate_at_bound(bound: Literal["min", "max"]) -> str:
 
 def c6_placeholder_constant_used(pack_id: str, version: str, paths: list[str]) -> str:
     return (
-        f"This recommendation uses PLACEHOLDER constants from pack '{pack_id}' {version}: "
-        f"{', '.join(paths)}. Confidence is low until the agronomist validates them."
+        f"This recommendation uses PLACEHOLDER constants or timing windows from pack "
+        f"'{pack_id}' {version}: {', '.join(paths)}. "
+        "Confidence is low until the agronomist validates them."
+    )
+
+
+def c6_timing_window_missing(pack_id: str, version: str) -> str:
+    return (
+        f"Pack '{pack_id}' {version} gives no timing window for this N: "
+        "confidence is at most medium."
     )

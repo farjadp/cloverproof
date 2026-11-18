@@ -57,7 +57,7 @@ class TimingWindow(_Frozen):
     """When a split is applied, as the pack words it. No dates: the pack gives none."""
 
     label: str
-    # PLACEHOLDER unless the whole pack is validated (a window has no label of its own).
+    # Always PLACEHOLDER until the pack gives a window its own status and source.
     status: ConstantStatus
     # Where the wording comes from, with its `basis`. Not a validation (rule 9).
     citation: Citation | None = None

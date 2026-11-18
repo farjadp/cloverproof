@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 
-from cloverproof_engine import recommend
+from cloverproof_engine import explain, recommend
 from cloverproof_engine.golden import ExpectedCase, compare
 from cloverproof_engine.loaders import load_golden_case, load_pack, pack_path, read_yaml
 from cloverproof_engine.models import RecommendationInput
@@ -122,11 +122,39 @@ def test_cited_window_keeps_its_citation_and_basis() -> None:
     assert "PLACEHOLDER, not agronomist-validated" in line.explanation
 
 
-def test_window_of_a_validated_pack_is_not_called_placeholder(make_input, validated_pack) -> None:
-    line = recommend(make_input(), validated_pack).nitrogen.splits[0]
-    assert line.timing_window is not None
-    assert line.timing_window.status is ConstantStatus.VALIDATED
-    assert "PLACEHOLDER" not in line.explanation.replace(line.timing_window.label, "")
+def test_window_stays_placeholder_even_in_a_validated_pack(make_input, validated_pack) -> None:
+    # Nobody validated the window: a window has no status of its own, so it cannot
+    # inherit one from the pack.
+    for line in recommend(make_input(), validated_pack).nitrogen.splits:
+        assert line.timing_window is not None
+        assert line.timing_window.status is ConstantStatus.PLACEHOLDER
+        assert "PLACEHOLDER, not agronomist-validated" in line.explanation
+        assert "validated pack" not in line.explanation
+
+
+def test_line_calls_the_stage_label_pack_wording_not_a_timing_window(make_input) -> None:
+    line = recommend(make_input(), load_pack(V0_PATH)).nitrogen.splits[0]
+    assert f"Pack timing wording: {line.stage_label} (" in line.explanation
+    assert "Timing window:" not in line.explanation
+
+
+@pytest.mark.parametrize("basis", ["derived", "inferred"])
+def test_unstated_window_citation_never_says_read_from(make_input, basis: str) -> None:
+    data = _raw()
+    data["crops"]["wheat"]["nitrogen"]["splits"][0]["timing_citation"] = {
+        "title": "TEST FIXTURE",
+        "publisher": "TEST FIXTURE",
+        "year": 2026,
+        "locator": "p. 1",
+        "url": "https://example.invalid/",
+        "accessed_on": "2026-11-17",
+        "basis": basis,
+        "note": "TEST FIXTURE: how the wording was reached.",
+    }
+    line = recommend(make_input(), parse_pack(data)).nitrogen.splits[0]
+    for text in (line.explanation, line.fraction.explanation):
+        assert f"{basis} by the engine" in text
+        assert "read from" not in text
 
 
 # --- rounding: no pack rule, so rates stay exact ----------------------------------
@@ -149,6 +177,38 @@ def test_awkward_shares_sum_to_the_rate_without_rounding(
         assert line.rate.value == n.rate.value * fraction  # exact: nothing rounded or moved
 
 
+ROUNDED = "rounded for display; stored values are exact"
+
+
+@pytest.mark.parametrize(
+    ("share", "shown"),
+    [(0.125, "12.5%"), (0.4, "40%"), (0.07, "7%"), (1.0, "100%"), (0.3333333333, "33.3%")],
+)
+def test_percentages_show_one_decimal_only_when_not_whole(share: float, shown: str) -> None:
+    assert explain.pct(share) == shown
+
+
+def test_lines_that_do_not_add_up_as_shown_say_they_are_rounded(make_input) -> None:
+    pack = _with_fractions(0.3333333333, 0.3333333333, 0.3333333334)
+    # Shown: 58.3 x 3 = 174.9 of 175.0; 2,333.3 x 3 = 6,999.9 of 7,000.0; 33.3% x 3 = 99.9%.
+    for line in recommend(make_input(), pack).nitrogen.splits:
+        assert ROUNDED in line.rate.explanation
+        assert ROUNDED in line.total.explanation
+        assert ROUNDED in line.fraction.explanation
+        assert ROUNDED not in line.explanation  # this text must survive an edit
+
+
+def test_lines_that_add_up_as_shown_carry_no_rounding_note(make_input) -> None:
+    lines = recommend(make_input(), _with_fractions(0.125, 0.875)).nitrogen.splits
+    assert lines[0].fraction.explanation.startswith(
+        "Application 1 of 2 (Stage 1 (TEST)) gets 12.5%"
+    )
+    assert "= 12.5% x 175.0 kg N/ha = 21.9 kg N/ha." in lines[0].rate.explanation
+    for line in lines:
+        for number in (line.rate, line.total, line.fraction):
+            assert ROUNDED not in number.explanation
+
+
 # --- pack without splits ----------------------------------------------------------
 
 
@@ -167,6 +227,19 @@ def test_no_splits_gives_one_full_rate_line_without_timing(
         assert "no split" in text.lower() and "pack" in text.lower()
     assert "no split" in line.stage_label.lower()
     assert "timing not set" in line.stage_label.lower()
+
+
+def test_no_split_wording_is_not_advice_to_apply_in_one_pass(make_input) -> None:
+    pack = _without_splits()
+    line = recommend(make_input(), pack).nitrogen.splits[0]
+    who = f"Pack '{pack.id}' {pack.version} defines no split plan for wheat"
+    assert line.stage_label == "Full N rate, not split (no split plan in the pack; timing not set)"
+    assert line.explanation == (
+        f"{who}, so the engine shows the N rate as one line. This is not advice to apply it "
+        "in one pass. The pack gives no timing window and the engine does not invent one."
+    )
+    assert line.fraction.explanation.endswith(": this line carries the full N rate.")
+    assert "agronomist sets the timing" not in line.explanation
 
 
 def test_no_split_line_flags_follow_the_rate(make_input) -> None:

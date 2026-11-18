@@ -1,6 +1,6 @@
 [project]
 name = "cloverproof-engine"
-version = "0.4.0"
+version = "0.5.0"
 description = "CloverProof calculation engine: pure Python, no I/O."
 requires-python = ">=3.12,<3.13"
 dependencies = [
