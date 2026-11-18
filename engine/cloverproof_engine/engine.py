@@ -106,6 +106,9 @@ def _soil_estimate_line(estimate: SoilEstimate, item: SoilEstimateValue) -> Soil
 
     prop, depth, unit = item.property, item.depth, item.unit
     q05, q95, ratio = item.q05, item.q95, item.uncertainty_ratio
+    provenance = explain.soil_estimate_provenance(
+        estimate.provider, estimate.version, item.retrieved_on, estimate.attribution
+    )
     return SoilEstimateLine(
         property=prop,
         depth=depth,
@@ -114,14 +117,7 @@ def _soil_estimate_line(estimate: SoilEstimate, item: SoilEstimateValue) -> Soil
             item.value,
             unit,
             explain.soil_estimate_value(
-                prop,
-                depth,
-                item.value,
-                unit,
-                estimate.provider,
-                estimate.version,
-                item.resolution_m,
-                item.retrieved_on,
+                prop, depth, item.value, unit, item.resolution_m, provenance
             ),
         ),
         q05=None
@@ -130,7 +126,7 @@ def _soil_estimate_line(estimate: SoilEstimate, item: SoilEstimateValue) -> Soil
             explain.soil_estimate_lower_name(prop),
             q05,
             unit,
-            explain.soil_estimate_range(prop, depth, "Lower end (Q0.05)"),
+            explain.soil_estimate_range(prop, depth, "Lower end (Q0.05)", provenance),
         ),
         q95=None
         if q95 is None
@@ -138,7 +134,7 @@ def _soil_estimate_line(estimate: SoilEstimate, item: SoilEstimateValue) -> Soil
             explain.soil_estimate_upper_name(prop),
             q95,
             unit,
-            explain.soil_estimate_range(prop, depth, "Upper end (Q0.95)"),
+            explain.soil_estimate_range(prop, depth, "Upper end (Q0.95)", provenance),
         ),
         uncertainty_ratio=None
         if ratio is None
@@ -146,7 +142,7 @@ def _soil_estimate_line(estimate: SoilEstimate, item: SoilEstimateValue) -> Soil
             explain.soil_estimate_uncertainty_name(prop),
             ratio,
             "ratio",
-            explain.soil_estimate_uncertainty(prop, depth),
+            explain.soil_estimate_uncertainty(prop, depth, provenance),
         ),
         source=estimate.provider,
         version=estimate.version,

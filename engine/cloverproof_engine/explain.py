@@ -471,39 +471,48 @@ def soil_estimate_uncertainty_name(prop: str) -> str:
     return f"{_SOIL_ESTIMATE_LABEL[prop]}, uncertainty ratio"
 
 
+def _soil_estimate_in_sentence(prop: str) -> str:
+    """The label inside a sentence: lower-case first letter, so "pH" stays "pH"."""
+    label = _SOIL_ESTIMATE_LABEL[prop]
+    return label[0].lower() + label[1:]
+
+
+def soil_estimate_provenance(
+    source: str, version: str, retrieved_on: date, attribution: str
+) -> str:
+    """Closes every estimate explanation, so a number copied alone keeps its source."""
+    return (
+        f"Source: {source} {version}, retrieved {retrieved_on.isoformat()}. "
+        f"Attribution: {attribution}"
+    )
+
+
 def soil_estimate_value(
-    prop: str,
-    depth: str,
-    value: float,
-    unit: str,
-    source: str,
-    version: str,
-    resolution_m: float,
-    retrieved_on: date,
+    prop: str, depth: str, value: float, unit: str, resolution_m: float, provenance: str
 ) -> str:
     text = (
         f"{_SOIL_ESTIMATE_LABEL[prop]} at {depth}: {value:g} {unit}. This is a modelled "
-        f"estimate from {source} {version} ({resolution_m:g} m grid, retrieved "
-        f"{retrieved_on.isoformat()}), not a lab measurement. Confidence: low. It did not "
-        "change the N rate."
+        f"estimate ({resolution_m:g} m grid), not a lab measurement. Confidence: low. It did "
+        "not change the N rate."
     )
     if prop == "nitrogen":
         text += " This is total nitrogen, not nitrate (NO3-N), and is not used as soil nitrate."
-    return text
+    return f"{text} {provenance}"
 
 
-def soil_estimate_range(prop: str, depth: str, quantile: str) -> str:
+def soil_estimate_range(prop: str, depth: str, quantile: str, provenance: str) -> str:
     return (
-        f"{quantile} of the modelled {_SOIL_ESTIMATE_LABEL[prop].lower()} at {depth}. Part of "
-        "the estimate's stated range, not a lab measurement. It did not change the N rate."
+        f"{quantile} of the modelled {_soil_estimate_in_sentence(prop)} at {depth}. Part of "
+        "the estimate's stated range, not a lab measurement. It did not change the N rate. "
+        f"{provenance}"
     )
 
 
-def soil_estimate_uncertainty(prop: str, depth: str) -> str:
+def soil_estimate_uncertainty(prop: str, depth: str, provenance: str) -> str:
     return (
-        f"Width of the modelled range for {_SOIL_ESTIMATE_LABEL[prop].lower()} at {depth}: "
+        f"Width of the modelled range for {_soil_estimate_in_sentence(prop)} at {depth}: "
         "(Q0.95 - Q0.05) / Q0.50, as published by the source. Higher means less certain. It "
-        "did not change the N rate."
+        f"did not change the N rate. {provenance}"
     )
 
 

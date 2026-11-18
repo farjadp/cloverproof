@@ -330,6 +330,27 @@ def test_every_number_is_explained(make_input, soil_estimate_data, placeholder_p
     assert line.uncertainty_ratio.unit == "ratio"
 
 
+def test_every_number_carries_its_provenance(
+    make_input, soil_estimate_data, placeholder_pack
+) -> None:
+    wording = "Exact  wording, CC BY 4.0 "
+    block = _block(make_input, soil_estimate_data, placeholder_pack, attribution=wording)
+    line = block.values[0]
+    for number in (line.value, line.q05, line.q95, line.uncertainty_ratio):
+        assert number is not None
+        assert "SoilGrids 2.0" in number.explanation
+        assert "retrieved 2026-11-18" in number.explanation
+        assert wording in number.explanation
+
+
+def test_ph_keeps_its_casing_in_sentences(make_input, soil_estimate_data, placeholder_pack) -> None:
+    line = _block(make_input, soil_estimate_data, placeholder_pack).values[0]
+    for number in (line.q05, line.q95, line.uncertainty_ratio):
+        assert number is not None
+        assert "soil pH in water" in number.explanation
+        assert "soil ph" not in number.explanation
+
+
 def test_missing_quantiles_stay_absent(make_input, soil_estimate_data, placeholder_pack) -> None:
     line = _block(make_input, soil_estimate_data, placeholder_pack).values[1]
     assert line.q05 is None and line.q95 is None and line.uncertainty_ratio is None
