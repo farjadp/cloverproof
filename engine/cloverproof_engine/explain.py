@@ -291,6 +291,14 @@ def c5_rate_at_bound(bound: Literal["min", "max"]) -> str:
 
 def c6_placeholder_constant_used(pack_id: str, version: str, paths: list[str]) -> str:
     return (
-        f"This recommendation uses PLACEHOLDER constants from pack '{pack_id}' {version}: "
-        f"{', '.join(paths)}. Confidence is low until the agronomist validates them."
+        f"This recommendation uses PLACEHOLDER constants or timing windows from pack "
+        f"'{pack_id}' {version}: {', '.join(paths)}. "
+        "Confidence is low until the agronomist validates them."
+    )
+
+
+def c6_timing_window_missing(pack_id: str, version: str) -> str:
+    return (
+        f"Pack '{pack_id}' {version} gives no timing window for this N: "
+        "confidence is at most medium."
     )

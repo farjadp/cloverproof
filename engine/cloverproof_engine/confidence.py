@@ -19,7 +19,14 @@ Rules (each TODO(agronomist): review):
                             `constants_used`) is PLACEHOLDER    -> cap low
   (numbers built on unvalidated constants are never more than low; unused
   pack entries, e.g. credits for other previous crops, and the confidence
-  thresholds themselves do not trigger C6)
+  thresholds themselves do not trigger C6). A PLACEHOLDER timing window counts
+  too, under the path `crops.<crop>.nitrogen.splits[i].timing`.
+- C6_TIMING_WINDOW_MISSING  a line has no timing window (the pack
+                            defines no split plan)              -> cap medium
+
+Timing windows have no status of their own yet, so every window is PLACEHOLDER: a
+plan with a split plan is `low`, one without is at most `medium`, and no plan can
+reach `high` until windows can be validated.
 """
 
 from __future__ import annotations
@@ -31,7 +38,7 @@ from pydantic import BaseModel, ConfigDict
 
 from cloverproof_engine import explain
 from cloverproof_engine.models import RecommendationInput, SoilTestSource
-from cloverproof_engine.pack import Pack
+from cloverproof_engine.pack import ConstantStatus, Pack
 from cloverproof_engine.units import years_between
 
 if TYPE_CHECKING:
@@ -137,14 +144,30 @@ def assess(
             )
         )
 
-    # C6 — TODO(agronomist): review.
+    # C6 — TODO(agronomist): review, including the draft caps for timing windows
+    # (PLACEHOLDER window -> low, missing window -> medium).
     placeholders = [c.path for c in nitrogen.constants_used if c.is_placeholder]
+    windows = [line.timing_window for line in nitrogen.splits]
+    placeholders += [
+        f"crops.{inputs.crop.value}.nitrogen.splits[{i}].timing"
+        for i, window in enumerate(windows)
+        if window is not None and window.status is ConstantStatus.PLACEHOLDER
+    ]
     if placeholders:
         hits.append(
             ConfidenceRuleHit(
                 rule_id="C6_PLACEHOLDER_CONSTANT_USED",
                 cap=Confidence.LOW,
                 reason=explain.c6_placeholder_constant_used(pack.id, pack.version, placeholders),
+            )
+        )
+
+    if any(window is None for window in windows):
+        hits.append(
+            ConfidenceRuleHit(
+                rule_id="C6_TIMING_WINDOW_MISSING",
+                cap=Confidence.MEDIUM,
+                reason=explain.c6_timing_window_missing(pack.id, pack.version),
             )
         )
 
