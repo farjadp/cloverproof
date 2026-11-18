@@ -16,7 +16,7 @@ from cloverproof_app import display_units as du
 from cloverproof_app.pdf import render_html
 
 from .conftest import Org, as_owner
-from .test_plan_flow import create_plan, latest_rec, new_field, signed_in
+from .test_plan_flow import create_plan, edit_values, latest_rec, new_field, signed_in
 from .test_proof_flow import FakeRender, client_for, fake, generate, review  # noqa: F401
 
 pytestmark = pytest.mark.db
@@ -125,6 +125,29 @@ def test_no_review_or_timer_side_effect_from_switching(db: psycopg.Connection, o
     before = stored_state(db, org_a)
     set_units(client, csrf, plan_url, "imperial", headers=HTMX, decision="approve")
     assert stored_state(db, org_a) == before
+
+
+def test_pack_limit_warning_follows_the_view_but_the_edit_page_stays_in_kg(
+    db: psycopg.Connection, org_a: Org
+) -> None:
+    client, csrf, plan_url = new_plan(db, org_a)
+    _, splits = edit_values(client, plan_url)
+    r = client.post(
+        f"{plan_url}/edit",
+        data={"csrf_token": csrf, "recommendation_id": latest_rec(client, plan_url),
+              "n_rate": "10000",
+              "split_rate": splits, "reason": "Test only"},
+    )  # fmt: skip
+    assert r.status_code == 303, r.text
+    set_units(client, csrf, plan_url, "imperial")
+    shown = du.convert(10_000, "kg N/ha", du.IMPERIAL)
+    assert shown is not None
+    page = text_of(client.get(plan_url).text)
+    assert f"N rate {shown.value:,.1f} lb N/ac (stored as 10,000.0 kg N/ha) is outside" in page
+    span = rf"[\d,.]+{chr(0x2013)}[\d,.]+"
+    assert re.search(rf"limits \({span} lb N/ac, stored as {span} kg N/ha\)", page)
+    edit_page = text_of(client.get(f"{plan_url}/edit").text)
+    assert re.search(rf"outside the pack limits \({span} kg N/ha\)", edit_page)
 
 
 def test_viewing_in_imperial_leaves_every_stored_row_identical(
