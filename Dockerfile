@@ -21,7 +21,7 @@ COPY pyproject.toml uv.lock ./
 COPY app/pyproject.toml app/pyproject.toml
 COPY engine/pyproject.toml engine/pyproject.toml
 COPY data_sources/pyproject.toml data_sources/pyproject.toml
-RUN --mount=type=cache,target=/root/.cache/uv \
+RUN \
     uv sync --frozen --no-dev --package cloverproof-app --no-install-workspace
 
 # Our code. Workspace members stay editable, so the repo layout (packs/, db/migrations/)
@@ -30,7 +30,7 @@ COPY engine/cloverproof_engine engine/cloverproof_engine
 COPY app/cloverproof_app app/cloverproof_app
 COPY packs packs
 COPY db/migrations db/migrations
-RUN --mount=type=cache,target=/root/.cache/uv \
+RUN \
     uv sync --frozen --no-dev --package cloverproof-app
 
 # ---- runtime ----
