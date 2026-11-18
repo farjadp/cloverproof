@@ -40,6 +40,7 @@ from cloverproof_app.product_presets import (
     GRADE_PLACES,
     NAME_MAX,
     SOURCE_MAX,
+    UNCONFIRMED_SOURCE,
     Preset,
     decimal_places,
     plain_number,
@@ -60,8 +61,6 @@ DUPLICATE_ON_ACTIVATE = (
 )
 ALREADY_ACTIVE = "This product is already active."
 UNKNOWN_PRESET = "That fertilizer type is not in the list. Choose another or enter it manually."
-# Ends every preset citation: an active product must name the label actually checked.
-UNCONFIRMED_SOURCE = "unconfirmed, check the product label"
 CHECKED_SOURCE_MISSING = (
     "Enter the product label or data sheet you checked, with its edition or date."
 )

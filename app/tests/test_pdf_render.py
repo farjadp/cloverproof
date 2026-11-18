@@ -397,9 +397,9 @@ def test_old_document_timing_column_has_no_mark() -> None:
 
 
 def test_new_proofs_use_template_v1() -> None:
-    assert TEMPLATE_VERSION == "proof-v1"
+    assert TEMPLATE_VERSION == "proof-v2"
     text = visible_text(render_html(proof()))
-    assert "Template proof-v1" in text and "proof-v0" not in text
+    assert "Template proof-v2" in text and "proof-v1" not in text
 
 
 def test_no_split_line_has_no_growth_stage_claim() -> None:
@@ -562,7 +562,8 @@ def test_only_an_agronomist_approval_may_name_the_agronomist(tmp_path: Any) -> N
     assert "an agronomist must confirm" in draft_text(matched)
     lab = engine_doc()
     assert "the agronomist decides P and K" in lab["phosphorus_potassium"]["text"]
-    assert "the agronomist decides P and K" in proof_text(lab)
+    assert "no P or K decision is recorded in this plan" in proof_text(lab)
+    assert "the agronomist decides P and K" not in proof_text(lab)
     assert "an agronomist must decide P and K" in proof_text(lab, SUPERADMIN)
     assert "an agronomist must decide P and K" in draft_text(lab)
 

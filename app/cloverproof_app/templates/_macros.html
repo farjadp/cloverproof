@@ -10,7 +10,7 @@
 <div class="explained {{ size }}">
   {%- if n.explanation %}
   <span class="value">{{ num(n.value, digits) }} {{ n.unit }}</span>{% if n.uses_placeholder %} {{ placeholder() }}{% endif %}
-  <p class="why">{{ n.explanation }}</p>
+  <p class="why">{{ split_text.neutral_edit_text(n.explanation) }}</p>
   {%- else %}
   <span class="value">—</span>
   <p class="why">No explanation recorded</p>
@@ -28,7 +28,7 @@
 <div class="explained">
   {%- if n.explanation %}
   <span class="value">{{ share_value(n, whole) }}</span>{% if n.uses_placeholder %} {{ placeholder() }}{% endif %}
-  <p class="why">{{ n.explanation }}</p>
+  <p class="why">{{ split_text.neutral_edit_text(n.explanation) }}</p>
   {%- else %}
   <span class="value">—</span>
   <p class="why">No explanation recorded</p>
