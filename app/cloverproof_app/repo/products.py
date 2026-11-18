@@ -50,6 +50,13 @@ class Activation(Enum):
     NOT_FOUND = "not_found"
 
 
+class DraftChange(Enum):
+    DONE = "done"
+    NOT_A_DRAFT = "not_a_draft"
+    NOT_FOUND = "not_found"
+    REFUSED = "refused"  # still a visible draft, yet the statement touched nothing
+
+
 def list_products(conn: psycopg.Connection, *, include_drafts: bool) -> list[Product]:
     """Active products, plus drafts (first) when asked. RLS still hides drafts from
     anyone who may not write them."""
@@ -123,3 +130,44 @@ def activate(
         "select 1 from fertilizer_product where id = %s and status = 'active'", (product_id,)
     ).fetchone()
     return Activation.ALREADY_ACTIVE if row is not None else Activation.NOT_FOUND
+
+
+def _why_unchanged(conn: psycopg.Connection, product_id: UUID) -> DraftChange:
+    row = conn.execute(
+        "select status from fertilizer_product where id = %s", (product_id,)
+    ).fetchone()
+    if row is None:
+        return DraftChange.NOT_FOUND
+    return DraftChange.REFUSED if row[0] == "draft" else DraftChange.NOT_A_DRAFT
+
+
+def update_draft(conn: psycopg.Connection, product_id: UUID, product: NewProduct) -> DraftChange:
+    """Replace a draft's label facts. Status and author are never touched here."""
+    with conn.transaction():
+        updated = conn.execute(
+            "update fertilizer_product set country_code = %s, name = %s, n = %s, p2o5 = %s,"
+            " k2o = %s, s = %s, form = %s, density_kg_per_l = %s, grade_source = %s"
+            " where id = %s and status = 'draft' returning id",
+            (
+                product.country_code,
+                product.name,
+                product.n,
+                product.p2o5,
+                product.k2o,
+                product.s,
+                product.form,
+                product.density_kg_per_l,
+                product.grade_source,
+                product_id,
+            ),
+        ).fetchone()
+    return DraftChange.DONE if updated is not None else _why_unchanged(conn, product_id)
+
+
+def delete_draft(conn: psycopg.Connection, product_id: UUID) -> DraftChange:
+    with conn.transaction():
+        deleted = conn.execute(
+            "delete from fertilizer_product where id = %s and status = 'draft' returning id",
+            (product_id,),
+        ).fetchone()
+    return DraftChange.DONE if deleted is not None else _why_unchanged(conn, product_id)

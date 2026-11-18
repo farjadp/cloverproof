@@ -1,0 +1,8 @@
+{# A product's label facts, on the activate and discard pages. #}
+<dl class="product-facts">
+  <div><dt>Country</dt><dd>{{ country }}</dd></div>
+  <div><dt>Grade N-P₂O₅-K₂O-S (label %)</dt><dd class="grade-cell">{{ number(product.n) }}-{{ number(product.p2o5) }}-{{ number(product.k2o) }}-{{ number(product.s) }}</dd></div>
+  <div><dt>Form</dt><dd>{{ form_labels.get(product.form, product.form) }}</dd></div>
+  <div><dt>Density</dt><dd>{% if product.density_kg_per_l is not none %}{{ number(product.density_kg_per_l) }} kg/L{% else %}Not applicable{% endif %}</dd></div>
+  <div><dt>Source of the grade</dt><dd>{{ product.grade_source }}</dd></div>
+</dl>

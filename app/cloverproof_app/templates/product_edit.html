@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_macros.html" import breadcrumb, error_summary %}
+{% block title %}Edit {{ product.name }}{% endblock %}
+{% block breadcrumb %}{{ breadcrumb([("Products", "/products"), ("Edit draft", none)]) }}{% endblock %}
+{% block main_class %}products-page activate-page{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Edit {{ product.name }}</h1>
+</div>
+{% if problem %}<div class="notice error" role="alert"><p>{{ problem }}</p></div>{% endif %}
+{{ error_summary(errors, "saving this draft") }}
+{% if source_unconfirmed %}
+<div class="notice warn">
+  <p class="notice-title">Source not confirmed yet</p>
+  <p>This draft started from a published reference. Keep "{{ unconfirmed_note }}" in the source. You name the label you checked when you activate it.</p>
+</div>
+{% endif %}
+<div class="panel product-panel" id="product-form">
+  {% with form_action="/products/" ~ product.id ~ "/edit", submit_label="Save changes", form_note="Your changes replace this draft's values. It stays a draft until you check it against the label and activate it." %}{% include "_product_form.html" %}{% endwith %}
+</div>
+<script src="/static/product_form.js" defer></script>
+{% endblock %}

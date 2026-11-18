@@ -1,4 +1,4 @@
-{% from "_macros.html" import error, error_summary, invalid, placeholder %}
+{% from "_macros.html" import error_summary, placeholder %}
 {# Add a product: pick a published type or type everything. Both end in the same form. #}
 <section id="add-product" aria-labelledby="add-product-title">
   <div class="add-head">
@@ -41,77 +41,7 @@
         </details>
       </div>
       {% endif %}
-      <form class="product-form" method="post" action="/products" novalidate data-product-form>
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        {% if preset %}<input type="hidden" name="preset" value="{{ preset.key }}">{% endif %}
-        <div class="field-row">
-          <div class="field">
-            <label for="name">Product name</label>
-            <input id="name" name="name" type="text" required maxlength="200" value="{{ values.name }}"{{ invalid(errors, "name") }}>
-            {{ error(errors, "name") }}
-          </div>
-          <div class="field">
-            <label for="country_code">Country</label>
-            <select id="country_code" name="country_code"{{ invalid(errors, "country_code") }}>
-              {% set selected_country = (values.country_code or "") | upper %}
-              {% for code, country in countries.items() %}<option value="{{ code }}"{% if selected_country == code %} selected{% endif %}>{{ country }}</option>{% endfor %}
-            </select>
-            {{ error(errors, "country_code") }}
-          </div>
-        </div>
-        <fieldset id="grade" tabindex="-1">
-          <legend>Grade on the label</legend>
-          <div class="grade-row">
-            {% for key, label in grades.items() %}
-            {% set s_hint = key == "s" and preset and preset.s is none %}
-            <div class="field">
-              <label for="{{ key }}">{{ label }}</label>
-              <div class="suffixed">
-                <input id="{{ key }}" name="{{ key }}" type="text" inputmode="decimal" required value="{{ values[key] }}" data-grade{% if errors[key] %} aria-invalid="true"{% endif %}{% if s_hint or errors[key] %} aria-describedby="{% if s_hint %}s-hint{% endif %}{% if s_hint and errors[key] %} {% endif %}{% if errors[key] %}{{ key }}-error{% endif %}"{% endif %}>
-                <span class="suffix">%</span>
-              </div>
-              {{ error(errors, key) }}
-            </div>
-            {% endfor %}
-          </div>
-          {% if preset and preset.s is none %}<p class="hint" id="s-hint">Sulphur is not stated in the source. Enter it from the label (0 if the label shows none).</p>{% endif %}
-          {{ error(errors, "grade") }}
-          <p class="grade-summary" id="grade-summary" role="status" hidden>
-            <span class="grade-summary-label">N-P₂O₅-K₂O-S</span>
-            <strong data-grade-text></strong>
-            <span data-grade-total></span>
-          </p>
-        </fieldset>
-        <div class="field-row">
-          <div class="field">
-            <label for="product_form">Form</label>
-            <select id="product_form" name="product_form"{{ invalid(errors, "product_form") }}>
-              {% for value, label in form_labels.items() %}<option value="{{ value }}"{% if values.product_form == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
-            </select>
-            {{ error(errors, "product_form") }}
-          </div>
-          <div class="field" id="density-field">
-            <label for="density_kg_per_l">Density (liquids only)</label>
-            <div class="suffixed">
-              <input id="density_kg_per_l" name="density_kg_per_l" type="text" inputmode="decimal" value="{{ values.density_kg_per_l }}"{% if errors.density_kg_per_l %} aria-invalid="true" aria-describedby="density-hint density_kg_per_l-error"{% else %} aria-describedby="density-hint"{% endif %}>
-              <span class="suffix">kg/L</span>
-            </div>
-            <p class="hint" id="density-hint">{% if preset and preset.needs_density %}The source gives no usable density for this type. Enter it from the label.{% else %}Liquids only. Leave empty for a granular product.{% endif %}</p>
-            {{ error(errors, "density_kg_per_l") }}
-          </div>
-        </div>
-        <div class="field">
-          <label for="grade_source">Source of the grade</label>
-          <textarea id="grade_source" name="grade_source" rows="{{ 4 if preset else 2 }}" required maxlength="500" aria-describedby="grade-source-hint{% if errors.grade_source %} grade_source-error{% endif %}"{% if errors.grade_source %} aria-invalid="true"{% endif %}>{{ values.grade_source }}</textarea>
-          <p class="hint" id="grade-source-hint">{% if preset %}The published reference. Replace it with the product label or data sheet you checked, with its edition or date.{% else %}The label or data sheet, with its edition or date.{% endif %}</p>
-          {{ error(errors, "grade_source") }}
-        </div>
-        <div class="actions">
-          <button class="button" type="submit">Save as draft</button>
-          <a class="button text" href="/products">Cancel</a>
-        </div>
-        <p class="hint">Nothing is saved until you press Save as draft. A draft is not active: you check it against the label and activate it in a separate step.</p>
-      </form>
+      {% with form_action="/products", submit_label="Save as draft", form_note="Nothing is saved until you press Save as draft. A draft is not active: you check it against the label and activate it in a separate step." %}{% include "_product_form.html" %}{% endwith %}
     </div>
   </div>
 </section>
