@@ -176,3 +176,7 @@ def test_product_conversions_refuse_a_result_that_is_not_finite(
 ) -> None:
     with pytest.raises(ValueError, match="finite"):
         convert(*args)
+
+
+def test_converting_a_form_to_itself_keeps_the_exact_value() -> None:
+    assert units.convert_form(20.0, NutrientForm.K2O, NutrientForm.K2O) == 20.0

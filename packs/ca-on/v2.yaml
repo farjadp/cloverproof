@@ -28,7 +28,7 @@
 # Not applied by this pack (Pub 811 Table 4-14 notes): +30 kg N/ha spring N with a T2 or
 # T3 fungicide and no lodging concern. TODO(agronomist): decide whether to model it.
 #
-# See docs/agronomist-todo.md items #12-#20 and #35-#42.
+# See docs/agronomist-todo.md items #12-#20 and #35-#50.
 
 id: ca-on
 version: v2

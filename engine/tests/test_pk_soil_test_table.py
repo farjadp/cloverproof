@@ -297,8 +297,9 @@ def test_placeholder_tables_are_listed_and_force_low(pack: Pack) -> None:
     reason = next(h for h in rec.confidence_reasons if h.rule_id == PK_RULE)
     assert reason.cap is Confidence.LOW
     assert "not part of this plan" in reason.reason
-    assert "phosphorus_potassium.nutrients.P.tables.olsen.bands[2].rate" in reason.reason
-    assert "phosphorus_potassium.nutrients.K.tables.ammonium-acetate.bands[2].rate" in reason.reason
+    assert "phosphorus_potassium.nutrients.P.tables.olsen" in reason.reason
+    assert "phosphorus_potassium.nutrients.K.tables.ammonium-acetate" in reason.reason
+    assert ".bands[" not in reason.reason  # the row would reveal a rate the plan does not show
     assert "phosphorus_potassium.sample_depth_cm" in reason.reason
 
 
