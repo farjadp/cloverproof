@@ -1,4 +1,4 @@
-"""Soil tests, crop plans, recommendations (insert-only) and reviews (insert-only).
+"""Soil tests, crop plans, recommendations with their lines and reviews (all insert-only).
 
 Every function takes `org_id` and filters by it. Recommendations and reviews are never
 updated: an edit is a new recommendation row with parent_id + reason.
@@ -17,6 +17,7 @@ from psycopg.rows import class_row
 from psycopg.types.json import Jsonb
 
 from cloverproof_engine.models import SoilTest
+from cloverproof_engine.pack import ConstantStatus
 
 
 @dataclass(frozen=True)
@@ -178,19 +179,71 @@ def lock_plan(conn: psycopg.Connection, org_id: UUID, plan_id: UUID) -> bool:
 def insert_recommendation(conn: psycopg.Connection, org_id: UUID, *, crop_plan_id: UUID,
                           result: dict[str, Any], user_id: UUID, parent_id: UUID | None = None,
                           reason: str | None = None) -> UUID:  # fmt: skip
-    """INSERT only. Typed columns are copied from the document (CHECKs keep them equal)."""
+    """INSERT only: the version and its N lines, both saved or neither.
+
+    Typed columns are copied from the document (CHECKs keep them equal).
+    """
     kind = "engine" if parent_id is None else "agronomist"
-    row = conn.execute(
-        "insert into recommendation (organisation_id, crop_plan_id, parent_id, kind, reason,"
-        " inputs_snapshot, result, engine_version, pack_id, pack_version, pack_status,"
-        " pack_sha256, confidence, created_by)"
-        " values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id",
-        (org_id, crop_plan_id, parent_id, kind, reason, Jsonb(result["input_snapshot"]),
-         Jsonb(result), result["engine_version"], result["pack_id"], result["pack_version"],
-         result["pack_status"], result["pack_sha256"], result["confidence"], user_id),
-    ).fetchone()  # fmt: skip
-    assert row is not None
-    return row[0]
+    with conn.transaction():
+        row = conn.execute(
+            "insert into recommendation (organisation_id, crop_plan_id, parent_id, kind, reason,"
+            " inputs_snapshot, result, engine_version, pack_id, pack_version, pack_status,"
+            " pack_sha256, confidence, created_by)"
+            " values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id",
+            (org_id, crop_plan_id, parent_id, kind, reason, Jsonb(result["input_snapshot"]),
+             Jsonb(result), result["engine_version"], result["pack_id"], result["pack_version"],
+             result["pack_status"], result["pack_sha256"], result["confidence"], user_id),
+        ).fetchone()  # fmt: skip
+        assert row is not None
+        recommendation_id: UUID = row[0]
+        insert_recommendation_lines(conn, org_id, recommendation_id=recommendation_id,
+                                    result=result, user_id=user_id)  # fmt: skip
+    return recommendation_id
+
+
+def insert_recommendation_lines(conn: psycopg.Connection, org_id: UUID, *,
+                                recommendation_id: UUID, result: dict[str, Any],
+                                user_id: UUID) -> None:  # fmt: skip
+    """One N line per split of the document. Only `insert_recommendation` calls this: the
+    database accepts lines only in the transaction that created the recommendation.
+
+    N only: P and K lines wait for a database evidence guard (rule 3). The pack words the
+    timing but gives no dates or timing method, so window dates and basis stay NULL.
+    """
+    splits = result["nitrogen"]["splits"]
+    if not splits:
+        raise ValueError("The document has no N split, so it has no line to store.")
+    for number, split in enumerate(splits, 1):
+        # Engine 0.4.0+ always has the key; None means the pack has no split plan. Older
+        # documents have no key, and their stage_label is the pack's timing wording.
+        has_window_key = "timing_window" in split
+        window = split.get("timing_window")
+        no_split_plan = has_window_key and window is None
+        if window is not None:
+            stage_label = window["label"]
+        else:
+            stage_label = None if has_window_key else split["stage_label"]
+        rate = split["rate"]
+        # Timing wording counts as PLACEHOLDER until it has a validated status (rule 9), also
+        # when the agronomist typed this line's rate.
+        wording_unvalidated = stage_label is not None and (
+            window is None or window["status"] != ConstantStatus.VALIDATED.value
+        )
+        conn.execute(
+            "insert into recommendation_line (organisation_id, recommendation_id, nutrient,"
+            " nutrient_form, rate_kg_ha, split_no, stage_label, explanation, uses_placeholder,"
+            " confidence, created_by) values (%s, %s, 'N', 'N', %s, %s, %s, %s, %s, %s, %s)",
+            (org_id, recommendation_id,
+             # Via str: a float parameter would lose digits in the float8 -> numeric cast.
+             Decimal(str(rate["value"])),
+             # 0026: split_no 0 is the season total, 1..n are splits.
+             0 if no_split_plan and len(splits) == 1 else number,
+             stage_label,
+             # Older documents have no line explanation; the rate's own text explains it.
+             (split.get("explanation") or "").strip() or rate["explanation"],
+             bool(rate["uses_placeholder"]) or wording_unvalidated,
+             result["confidence"], user_id),
+        )  # fmt: skip
 
 
 def recommendations(conn: psycopg.Connection, org_id: UUID, plan_id: UUID) -> list[RecRow]:
