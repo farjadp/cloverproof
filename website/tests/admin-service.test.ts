@@ -324,3 +324,26 @@ test("flag on, no MFA: step-up can't succeed and no failure is counted", { skip 
     assert.equal(after.session.step_up_at, null);
     assert.equal(after.user.failed_logins, 0);
   }));
+
+test("flag on, MFA enrolled: a valid code grants no step-up and counts no failure (R1)", { skip }, () =>
+  withDb(async (db) => {
+    const { token, secret } = await enrolled(db);
+    const current = await session(db, token, at(60));
+    assert.equal(await stepUp(db, optional, current, totpAt(secret, at(60).getTime() / 1000), meta, at(60)), false);
+    const after = await session(db, token, at(61));
+    assert.equal(after.session.step_up_at, null, "nothing carries over to when the flag is removed");
+    assert.equal(after.user.failed_logins, 0);
+    assert.equal(await stepUp(db, config, current, totpAt(secret, at(60).getTime() / 1000), meta, at(60)), true, "flag off: the same code works");
+  }));
+
+test("flag on: wrong enrolment codes lock the account and end its sessions (ADR 0012 risk, F6)", { skip }, () =>
+  withDb(async (db) => {
+    const { link } = await createFirstAdmin(db, optional, { email: "a@example.com", name: "A" }, T0);
+    await redeemLink(db, link.split("#")[1], PASSWORD, meta, T0);
+    const { token } = (await login(db, optional, { email: "a@example.com", password: PASSWORD }, meta, at(1))) as SignedIn;
+    const current = await session(db, token, at(2));
+    await pendingMfaSecret(db, optional, current);
+    for (let i = 0; i < 5; i++) await completeMfa(db, optional, current, "000000", meta, at(3 + i));
+    assert.equal(await loadSession(db, token, at(10)), null);
+    assert.equal((await login(db, optional, { email: "a@example.com", password: PASSWORD }, meta, at(11))).ok, false);
+  }));

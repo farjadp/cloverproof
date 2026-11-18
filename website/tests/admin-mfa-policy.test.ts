@@ -8,6 +8,7 @@ import {
   landingAfterPassword,
   mfaOptionalFromEnv,
   stepUpFresh,
+  stepUpGate,
 } from "../src/lib/admin/mfa-policy.ts";
 import { ACTIONS, STEP_UP_ACTIONS, STEP_UP_SECONDS, type Action } from "../src/lib/admin/permissions.ts";
 import type { Current } from "../src/lib/admin/service.ts";
@@ -88,25 +89,51 @@ test("step-up gates cover users, keys and log export", () => {
   assert.deepEqual([...STEP_UP_ACTIONS].sort(), ["keys.manage", "log.export", "users.manage"]);
 });
 
-for (const action of STEP_UP_ACTIONS as readonly Action[]) {
-  test(`step-up gate ${action}: refused without enrolled MFA, even with the flag on`, () => {
-    assert.deepEqual(authorize(noMfa, action, { ...allow, mfaOptional: true }), { ok: false, error: "STEP_UP" });
-    // A leftover timestamp is not enough: there must be an enrolled factor behind it.
-    const stale = make({ enrolled: false, verified: false, stepUpAt: AGO(1) });
-    assert.equal(stepUpFresh(stale, NOW), false);
-    assert.deepEqual(authorize(stale, action, { ...allow, mfaOptional: true }), { ok: false, error: "STEP_UP" });
-  });
+const FRESH = AGO(STEP_UP_SECONDS - 1);
 
-  test(`step-up gate ${action}: enrolled user needs a fresh code, with the flag on or off`, () => {
-    for (const mfaOptional of [true, false]) {
-      assert.deepEqual(authorize(enrolledVerified, action, { ...allow, mfaOptional }), { ok: false, error: "STEP_UP" });
-      const old = make({ enrolled: true, verified: true, stepUpAt: AGO(STEP_UP_SECONDS) });
-      assert.deepEqual(authorize(old, action, { ...allow, mfaOptional }), { ok: false, error: "STEP_UP" });
-      const fresh = make({ enrolled: true, verified: true, stepUpAt: AGO(STEP_UP_SECONDS - 1) });
-      assert.deepEqual(authorize(fresh, action, { ...allow, mfaOptional }), { ok: true });
+for (const action of STEP_UP_ACTIONS as readonly Action[]) {
+  test(`gate ${action}: closed for everyone while the flag is on (R1)`, () => {
+    const closed = { ok: false, error: "CLOSED" };
+    const accounts = {
+      "no MFA": noMfa,
+      "no MFA, leftover step-up": make({ enrolled: false, verified: false, stepUpAt: FRESH }),
+      "enrolled, code passed": enrolledVerified,
+      // What a password holder reaches by enrolling their own authenticator and stepping up.
+      "enrolled, fresh step-up": make({ enrolled: true, verified: true, stepUpAt: FRESH }),
+    };
+    for (const [name, current] of Object.entries(accounts)) {
+      assert.deepEqual(authorize(current, action, { ...allow, mfaOptional: true }), closed, name);
     }
   });
+
+  test(`gate ${action}: flag off, a fresh code from an enrolled user is still required`, () => {
+    assert.deepEqual(authorize(enrolledVerified, action, { ...allow, mfaOptional: false }), { ok: false, error: "STEP_UP" });
+    const old = make({ enrolled: true, verified: true, stepUpAt: AGO(STEP_UP_SECONDS) });
+    assert.deepEqual(authorize(old, action, { ...allow, mfaOptional: false }), { ok: false, error: "STEP_UP" });
+    const fresh = make({ enrolled: true, verified: true, stepUpAt: FRESH });
+    assert.deepEqual(authorize(fresh, action, { ...allow, mfaOptional: false }), { ok: true });
+  });
 }
+
+test("stepUpFresh: needs an enrolled factor behind the timestamp", () => {
+  assert.equal(stepUpFresh(make({ enrolled: false, verified: true, stepUpAt: FRESH }), NOW), false);
+  assert.equal(stepUpFresh(make({ enrolled: true, verified: true, stepUpAt: FRESH }), NOW), true);
+});
+
+test("stepUpGate: what the users, keys and export screens show", () => {
+  const fresh = make({ enrolled: true, verified: true, stepUpAt: FRESH });
+  assert.equal(stepUpGate(noMfa, true, NOW), "closed");
+  assert.equal(stepUpGate(enrolledVerified, true, NOW), "closed");
+  assert.equal(stepUpGate(fresh, true, NOW), "closed");
+  assert.equal(stepUpGate(enrolledVerified, false, NOW), "code");
+  assert.equal(stepUpGate(fresh, false, NOW), "open");
+});
+
+test("flag on: actions outside the gates keep working", () => {
+  for (const action of ACTIONS.filter((a) => !STEP_UP_ACTIONS.includes(a))) {
+    assert.deepEqual(authorize(enrolledVerified, action, { ...allow, mfaOptional: true }), { ok: true }, action);
+  }
+});
 
 test("authorize: no session, bad CSRF and wrong role are refused, in that order", () => {
   assert.deepEqual(authorize(null, "dashboard.view", { ...allow, mfaOptional: true }), { ok: false, error: "SESSION" });

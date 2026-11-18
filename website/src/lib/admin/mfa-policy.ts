@@ -3,7 +3,11 @@
 // ADMIN_MFA_OPTIONAL lets an account with NO enrolled two-step sign-in in on its password alone.
 // It is decided on every request from the live user row and never stored on the session, and
 // mfa_verified_at keeps meaning "a second factor was really checked". So removing the flag, or
-// the user enrolling, takes effect at once for every open session.
+// the user enrolling, takes effect for every open session (a variable change redeploys the site).
+//
+// While the flag is on, the step-up actions (users, API keys, log export) are closed for everyone,
+// enrolled accounts included. Otherwise someone holding only the password could enrol their own
+// authenticator and pass step-up (ciso review of PR #78, R1).
 import { can, STEP_UP_ACTIONS, STEP_UP_SECONDS, type Action } from "./permissions.ts";
 import type { Current } from "./service.ts";
 
@@ -33,7 +37,13 @@ export function stepUpFresh(current: Current, now: Date = new Date()): boolean {
   return now.getTime() - at < STEP_UP_SECONDS * 1000;
 }
 
-export type Verdict = { ok: true } | { ok: false; error: "SESSION" | "CSRF" | "ROLE" | "STEP_UP" };
+/** What a screen behind step-up shows: its content, the code form, or the "closed" message. */
+export function stepUpGate(current: Current, mfaOptional: boolean, now: Date = new Date()): "open" | "code" | "closed" {
+  if (mfaOptional === true) return "closed";
+  return stepUpFresh(current, now) ? "open" : "code";
+}
+
+export type Verdict = { ok: true } | { ok: false; error: "SESSION" | "CSRF" | "ROLE" | "CLOSED" | "STEP_UP" };
 
 /** Every server action and route handler: session + MFA state, CSRF, role, step-up. */
 export function authorize(
@@ -45,6 +55,10 @@ export function authorize(
   if (!opts.csrfOk) return { ok: false, error: "CSRF" };
   if (!can(current.user.role, action)) return { ok: false, error: "ROLE" };
   const needsStepUp = opts.stepUp === true || STEP_UP_ACTIONS.includes(action);
-  if (needsStepUp && !stepUpFresh(current, opts.now)) return { ok: false, error: "STEP_UP" };
+  if (needsStepUp) {
+    const gate = stepUpGate(current, opts.mfaOptional, opts.now);
+    if (gate === "closed") return { ok: false, error: "CLOSED" };
+    if (gate === "code") return { ok: false, error: "STEP_UP" };
+  }
   return { ok: true };
 }

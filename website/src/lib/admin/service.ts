@@ -537,6 +537,8 @@ export async function stepUp(
   meta: RequestMeta,
   now: Date,
 ): Promise<boolean> {
+  // Closed while two-step sign-in is optional, so no step-up outlives the flag (mfa-policy.ts).
+  if (config.mfaOptional === true) return false;
   const user = await userWithSecrets(db, current.user.id);
   if (!user.mfa_enabled_at || (await refuseIfLocked(db, user, meta, now))) return false;
   const ok = await checkCode(db, config, user, code, now);

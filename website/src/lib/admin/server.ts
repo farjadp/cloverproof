@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { Pool } from "pg";
 import { keyFromBase64 } from "./crypto.ts";
 import { kekRingFromEnv } from "./kek-env.ts";
-import { authorize, hasFullAccess, mfaOptionalFromEnv, stepUpFresh } from "./mfa-policy.ts";
+import { authorize, hasFullAccess, mfaOptionalFromEnv } from "./mfa-policy.ts";
 import { can, type Action } from "./permissions.ts";
 import { clientIp, ipPrefix, uaFamily } from "./request-meta.ts";
 import { csrfToken, csrfValid, loadSession, type AdminConfig, type Current, type RequestMeta } from "./service.ts";
@@ -12,8 +12,6 @@ import { siteUrl } from "../site.ts";
 
 // Website admin server glue (ADR 0012): its own pool (cp_website_admin_login via
 // ADMIN_DATABASE_URL), never the public site's pool, and the session cookie.
-
-export { stepUpFresh };
 
 export const SESSION_COOKIE = "__Host-cp_admin";
 export const PRE_COOKIE = "__Host-cp_admin_pre";
@@ -100,6 +98,7 @@ const GUARD_ERRORS = {
   SESSION: "Your session has ended. Sign in again.",
   CSRF: "This form has expired. Reload the page.",
   ROLE: "You don't have permission for this.",
+  CLOSED: "This is closed while two-step sign-in is optional.",
   STEP_UP: "STEP_UP",
 } as const;
 

@@ -29,7 +29,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
             Two-step sign-in is off
           </h2>
           <p className="mt-2 text-sm text-ink-soft">
-            Your account is protected by your password alone. Managing users and API keys and exporting the log stay locked until you set it up.
+            Your account is protected by your password alone. Setting it up is recommended. Managing users and API keys and exporting the log are closed for every account while it is optional.
           </p>
           <Link href="/admin/mfa" className="mt-3 inline-flex min-h-11 items-center font-semibold text-olive underline underline-offset-4">
             Set up two-step sign-in

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { listKeys, PROVIDERS, type Provider } from "@/lib/admin/keys";
-import { adminDb, adminReady, csrfField, requirePage, stepUpFresh } from "@/lib/admin/server";
+import { stepUpGate } from "@/lib/admin/mfa-policy";
+import { adminDb, adminReady, csrfField, mfaOptional, requirePage } from "@/lib/admin/server";
 import { AdminShell } from "../shell";
 import { StepUpForm } from "../StepUpForm";
 import { NotConfigured } from "../ui";
@@ -14,8 +15,8 @@ export default async function KeysPage() {
   if (!adminReady()) return <NotConfigured />;
   const current = await requirePage("keys.manage");
   const csrf = await csrfField();
-  const fresh = stepUpFresh(current);
-  const keys = fresh ? await listKeys(adminDb()!) : {};
+  const gate = stepUpGate(current, mfaOptional());
+  const keys = gate === "open" ? await listKeys(adminDb()!) : {};
   return (
     <AdminShell current={current} csrf={csrf} active="/admin/keys">
       <h1 className="font-serif text-3xl text-ink">API keys</h1>
@@ -23,8 +24,8 @@ export default async function KeysPage() {
         Keys for the AI providers the future content agents will use. They are encrypted before they are stored, used only on the
         server, and never shown again after saving. No farmer or pilot data is ever sent to these providers. Every change is logged.
       </p>
-      {!fresh ? (
-        <StepUpForm enrolled={Boolean(current.user.mfa_enabled_at)} csrf={csrf} path="/admin/keys" what="manage API keys" />
+      {gate !== "open" ? (
+        <StepUpForm closed={gate === "closed"} csrf={csrf} path="/admin/keys" what="manage API keys" />
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2" aria-label="Providers">
           {(Object.keys(PROVIDERS) as Provider[]).map((p) => {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { adminDb, adminReady, csrfField, requirePage, stepUpFresh } from "@/lib/admin/server";
+import { stepUpGate } from "@/lib/admin/mfa-policy";
+import { adminDb, adminReady, csrfField, mfaOptional, requirePage } from "@/lib/admin/server";
 import { listUsers } from "@/lib/admin/users";
 import { AdminShell } from "../shell";
 import { StepUpForm } from "../StepUpForm";
@@ -23,14 +24,14 @@ export default async function UsersPage() {
   if (!adminReady()) return <NotConfigured />;
   const current = await requirePage("users.manage");
   const csrf = await csrfField();
-  const fresh = stepUpFresh(current);
+  const gate = stepUpGate(current, mfaOptional());
   const users = await listUsers(adminDb()!, new Date());
   return (
     <AdminShell current={current} csrf={csrf} active="/admin/users">
       <h1 className="font-serif text-3xl text-ink">Users</h1>
       <p className="mt-1 mb-6 text-ink-soft">Website staff accounts. Every change is recorded in the system log.</p>
-      {!fresh ? (
-        <StepUpForm enrolled={Boolean(current.user.mfa_enabled_at)} csrf={csrf} path="/admin/users" what="manage users" />
+      {gate !== "open" ? (
+        <StepUpForm closed={gate === "closed"} csrf={csrf} path="/admin/users" what="manage users" />
       ) : (
         <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
           <ul className="space-y-4" aria-label="Users">

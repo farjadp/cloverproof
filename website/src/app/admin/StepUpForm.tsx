@@ -1,25 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 import { stepUpAction, type StepUpState } from "./step-up";
 import { Field, FormError, Submit } from "./ui";
 
-export function StepUpForm({ csrf, path, what, enrolled }: { csrf: string; path: string; what: string; enrolled: boolean }) {
+export function StepUpForm({ csrf, path, what, closed }: { csrf: string; path: string; what: string; closed: boolean }) {
   const [state, action, pending] = useActionState<StepUpState, FormData>(stepUpAction, { error: null });
-  if (!enrolled) {
+  if (closed) {
     return (
       <section aria-labelledby="step-up-title" className="max-w-md rounded-lg border border-rule bg-ivory p-6">
         <h2 id="step-up-title" className="font-serif text-xl text-ink">
-          Two-step sign-in needed
+          Closed for now
         </h2>
-        <p className="mt-1 mb-4 text-sm text-ink-soft">You need two-step sign-in on your account to {what}. It takes about a minute.</p>
-        <Link
-          href="/admin/mfa"
-          className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-olive px-4 py-2.5 font-semibold text-ivory hover:bg-olive-deep"
-        >
-          Set up two-step sign-in
-        </Link>
+        <p className="mt-1 text-sm text-ink-soft">
+          No account can {what} while two-step sign-in is optional. This opens again once two-step sign-in is required.
+        </p>
       </section>
     );
   }

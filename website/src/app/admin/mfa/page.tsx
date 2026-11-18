@@ -55,7 +55,7 @@ export default async function MfaPage() {
         current.session.mfa_verified_at
           ? undefined
           : optional
-          ? "Optional, and recommended. You need it to manage users and API keys and to export the log. Scan the code with an authenticator app (1Password, Google Authenticator, Microsoft Authenticator…), then enter the 6-digit code it shows."
+          ? "Optional, and recommended. Scan the code with an authenticator app (1Password, Google Authenticator, Microsoft Authenticator…), then enter the 6-digit code it shows."
           : enrolling
           ? "Required for every admin account. Scan the code with an authenticator app (1Password, Google Authenticator, Microsoft Authenticator…), then enter the 6-digit code it shows."
           : "Enter the current code from your authenticator app."
