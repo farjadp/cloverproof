@@ -40,7 +40,7 @@
   <p><strong>Timing:</strong> {% if w %}{{ w.label }}{{ placeholder_mark(w.status == "PLACEHOLDER") }}{% else %}{{ split_text.NO_TIMING_SET }}{% endif %}</p>
 {% endif %}
 {% if s.get("explanation") %}
-  <p class="why">{{ s.explanation }}</p>
+  <p class="why">{{ p.product_text(s.explanation) }}</p>
 {% endif %}
 {% if m and m.matched %}
   <p><strong>Product:</strong> {{ m.product_name }} ({{ m.form }})</p>
@@ -222,7 +222,7 @@
   {% if doc.confidence_reasons %}
   <p>Why {{ doc.confidence }}:</p>
   <ul>
-    {% for r in doc.confidence_reasons %}<li>{{ r.reason }} <span class="rule-id">({{ r.rule_id }})</span></li>{% endfor %}
+    {% for r in doc.confidence_reasons %}<li>{{ p.product_text(r.reason) }} <span class="rule-id">({{ r.rule_id }})</span></li>{% endfor %}
   </ul>
   {% else %}
   <p class="muted">No rule lowered confidence.</p>
@@ -237,13 +237,13 @@
     <p>This plan covers nitrogen only. Send a sample to a lab to get phosphorus and potassium advice.</p>
   </div>
   {% endif %}
-  <p>{{ doc.phosphorus_potassium.text }}</p>
+  <p>{{ p.product_text(doc.phosphorus_potassium.text) }}</p>
 </section>
 
 {% if doc.notes %}
 <section>
   <h2>Notes</h2>
-  <ul>{% for note in doc.notes %}<li>{{ note.text }}</li>{% endfor %}</ul>
+  <ul>{% for note in doc.notes %}<li>{{ p.product_text(note.text) }}</li>{% endfor %}</ul>
 </section>
 {% endif %}
 

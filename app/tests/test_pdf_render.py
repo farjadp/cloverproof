@@ -490,6 +490,8 @@ def outcome_docs(tmp_path: Any) -> list[dict[str, Any]]:
         split_docs.build(products=OTHERS),
         split_docs.build(split_docs.NO_SPLITS, OTHERS),
         split_docs.edited(matched, "120", ["60", "60"]),
+        split_docs.rate_only_edit(matched, "120"),
+        engine_doc(),  # lab soil test: the P and K text names who decides
     ]
 
 
@@ -507,6 +509,23 @@ def test_only_an_agronomist_approval_keeps_the_agronomist_wording(tmp_path: Any)
     assert "the agronomist confirms" in proof_text(matched)
     assert "an agronomist must confirm" in proof_text(matched, SUPERADMIN)
     assert "an agronomist must confirm" in draft_text(matched)
+    lab = engine_doc()
+    assert "the agronomist decides P and K" in lab["phosphorus_potassium"]["text"]
+    assert "an agronomist must decide P and K" in proof_text(lab, SUPERADMIN)
+    assert "an agronomist must decide P and K" in draft_text(lab)
+
+
+def test_engine_text_outside_the_product_line_is_neutral_too() -> None:
+    doc = split_docs.build(split_docs.SPLITS)
+    claim = "the agronomist sets the timing"
+    doc["nitrogen"]["splits"][0]["explanation"] = f"Line text; {claim}."
+    doc["confidence_reasons"][0]["reason"] = f"Reason text; {claim}."
+    doc["notes"] = [{**doc["notes"][0], "text": f"Note text; {claim}."}]
+    doc["phosphorus_potassium"]["text"] = f"P and K text; {claim}."
+    for text in (proof_text(doc, SUPERADMIN), draft_text(doc)):
+        assert claim not in text
+        for start in ("Line text", "Reason text", "Note text", "P and K text"):
+            assert f"{start}; an agronomist must set the timing." in text
 
 
 def test_placeholder_product_rule_keeps_the_banner_on_a_validated_pack() -> None:

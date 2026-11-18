@@ -5,6 +5,7 @@ Documents come from the engine with the placeholder test packs (synthetic TEST p
 
 from __future__ import annotations
 
+import ast
 import copy
 import html
 import re
@@ -197,6 +198,38 @@ def test_neutral_edit_text_leaves_the_free_text_reason_alone() -> None:
     stored = "Set by agronomist: Set by agronomist: the agronomist's N rate was high"
     assert neutral(stored) == "Set by reviewer: Set by agronomist: the agronomist's N rate was high"
     assert neutral("Reason: Set by agronomist: x") == "Reason: Set by agronomist: x"
+
+
+# --- engine sentences that assume an agronomist reviewed the line ---------------------
+
+# Only ever reaches an OutOfScopeError, never a stored document or a proof.
+NEVER_ON_A_PROOF = ("the agronomist decides N",)
+
+
+def engine_literals() -> list[str]:
+    """Every string in explain.py, adjacent literals joined, f-string fields as {}."""
+    tree = ast.parse(Path(explain.__file__).read_text(encoding="utf-8"))
+    found = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            found.append(node.value)
+        elif isinstance(node, ast.JoinedStr):
+            parts = (v.value if isinstance(v, ast.Constant) else "{}" for v in node.values)
+            found.append("".join(str(part) for part in parts))
+    return found
+
+
+def test_every_engine_agronomist_sentence_has_a_neutral_form() -> None:
+    claim = re.compile(r"[Tt]he agronomist [^.;,]*")
+    literals = engine_literals()
+    seen = {m.group() for text in literals for m in claim.finditer(text)}
+    assert "the agronomist chooses" in seen and "The agronomist sets the product" in seen
+    left = {
+        m.group()
+        for text in literals
+        for m in claim.finditer(split_display.without_agronomist_claim(text))
+    }
+    assert {x for x in left if not x.startswith(NEVER_ON_A_PROOF)} == set()
 
 
 # --- engine vs final diff -----------------------------------------------------------

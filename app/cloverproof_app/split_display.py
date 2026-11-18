@@ -34,6 +34,8 @@ _AGRONOMIST_PHRASES = (
     ("the agronomist confirms", "an agronomist must confirm"),
     ("the agronomist chooses", "an agronomist must choose"),
     ("The agronomist sets the product", "An agronomist must set the product"),
+    ("the agronomist sets the timing", "an agronomist must set the timing"),
+    ("the agronomist decides P and K", "an agronomist must decide P and K"),
 )
 
 # Stored edited numbers (before the wording became "reviewer") name an agronomist, though a

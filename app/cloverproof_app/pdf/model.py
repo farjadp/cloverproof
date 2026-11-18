@@ -144,7 +144,7 @@ class ProofInput:
         return any(n.get("uses_placeholder") for n in explained_numbers(self.doc))
 
     def product_text(self, text: str) -> str:
-        """Engine product wording; it names the agronomist only on an agronomist's approval."""
+        """Engine wording; it names the agronomist only on an agronomist's approval."""
         if self.approval is not None and self.approval.review_kind == AGRONOMIST_APPROVED:
             return text
         return split_display.without_agronomist_claim(text)
