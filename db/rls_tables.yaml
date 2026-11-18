@@ -27,6 +27,7 @@ tenant:
   soil_test_value: organisation_id
   crop_plan: organisation_id
   recommendation: organisation_id
+  recommendation_line: organisation_id
   review: organisation_id
   application_log: organisation_id
   proof_document: organisation_id

@@ -1,4 +1,4 @@
-"""recommendation, review, proof_document: triggers raise for everyone, cp_app lacks grants."""
+"""Immutable tables: triggers raise for everyone, cp_app lacks UPDATE/DELETE grants."""
 
 from typing import Any
 
@@ -10,7 +10,7 @@ from .conftest import Org, as_owner, insert
 
 pytestmark = pytest.mark.db
 
-IMMUTABLE = ["recommendation", "review", "proof_document"]
+IMMUTABLE = ["recommendation", "recommendation_line", "review", "proof_document"]
 
 
 @pytest.fixture
@@ -34,7 +34,25 @@ def approved(db: psycopg.Connection, org_a: Org) -> dict[str, Any]:
         storage_key=f"proof/{org_a.id}/{org_a.engine_rec}/{sha}.pdf",
         created_by=org_a.agronomist,
     )
-    return {"recommendation": org_a.engine_rec, "review": review, "proof_document": proof}
+    line = insert(
+        db,
+        "recommendation_line",
+        organisation_id=org_a.id,
+        recommendation_id=org_a.engine_rec,
+        nutrient="N",
+        nutrient_form="N",
+        rate_kg_ha=100,
+        explanation="Synthetic line",
+        uses_placeholder=True,
+        confidence="low",
+        created_by=org_a.staff,
+    )
+    return {
+        "recommendation": org_a.engine_rec,
+        "recommendation_line": line,
+        "review": review,
+        "proof_document": proof,
+    }
 
 
 @pytest.mark.parametrize("table", IMMUTABLE)
