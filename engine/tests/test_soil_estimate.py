@@ -1,6 +1,7 @@
 """SoilGrids estimate as context: N only, never a P or K rate, changes no number."""
 
 import ast
+import json
 from pathlib import Path
 from typing import Any
 
@@ -244,6 +245,19 @@ def _lab_test() -> dict[str, Any]:
 def _ca_on(make_input, **extra: Any) -> dict[str, Any]:
     inputs = make_input(**{**_pk_pack_input(), **extra})
     return recommend(inputs, load_pack(CA_ON_V2)).model_dump(mode="json")
+
+
+def test_retrieval_after_the_plan_date_changes_nothing_else(make_input, soil_estimate_data) -> None:
+    def document(retrieved_on: str) -> str:
+        values = [
+            {**value, "retrieved_on": retrieved_on} for value in soil_estimate_data()["values"]
+        ]
+        doc = _ca_on(make_input, soil_estimate=soil_estimate_data(values=values))
+        return json.dumps(doc, sort_keys=True)
+
+    before_plan, after_plan = document("2026-11-18"), document("2027-06-01")
+    assert "2027-06-01" in after_plan
+    assert after_plan.replace("2027-06-01", "2026-11-18") == before_plan
 
 
 def test_pack_with_pk_tables_gives_no_rate_from_an_estimate(make_input, soil_estimate_data) -> None:
