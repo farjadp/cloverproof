@@ -134,7 +134,7 @@ PERCENT = 100
 
 # Top of the pH scale as used for soil reporting. A scale definition, not agronomy.
 PH_SCALE_MAX = 14
-# Highest value each bounded unit can take, by definition of the unit.
+# Highest value each bounded unit can take on its reporting scale.
 UNIT_SCALE_MAX: dict[str, float] = {"pH": PH_SCALE_MAX, "%": PERCENT}
 
 

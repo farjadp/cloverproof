@@ -6,7 +6,14 @@ import pytest
 
 from cloverproof_engine.confidence import Confidence, assess
 from cloverproof_engine.methods.n_mass_balance import NitrogenMassBalance
-from cloverproof_engine.models import SoilTestSource
+from cloverproof_engine.models import (
+    ConcentrationUnit,
+    ExtractionMethod,
+    NutrientForm,
+    SoilTest,
+    SoilTestSource,
+    SoilTestValue,
+)
 from cloverproof_engine.pack import ConstantStatus, Pack, parse_pack
 from cloverproof_engine.results import NutrientResult
 
@@ -65,7 +72,7 @@ def test_lab_test_without_values_caps_like_no_test(
     level, hits = _assess(make_input(soil_test=lab_soil_test(values=[])), validated_pack)
     assert level is Confidence.MEDIUM
     assert _ids(hits) == ["C1_NO_SOIL_TEST"]
-    assert "no values" in hits[0].reason
+    assert "no values for P or K" in hits[0].reason
 
 
 def test_estimate_input_does_not_lift_the_no_test_cap(
@@ -216,3 +223,19 @@ def test_every_hit_has_reason_and_cap(make_input, placeholder_pack) -> None:
     for h in hits:
         assert h.reason.strip()
         assert isinstance(h.cap, Confidence)
+
+
+def test_nitrate_only_lab_test_caps_like_no_test(make_input, validated_pack) -> None:
+    soil = SoilTest(
+        sample_date=date(2027, 3, 1), depth_top_cm=0, depth_bottom_cm=30,
+        source=SoilTestSource.LAB,
+        values=[
+            SoilTestValue(
+                form=NutrientForm.NO3_N, value=8.0, unit=ConcentrationUnit.MG_PER_KG,
+                extraction_method=ExtractionMethod.OTHER, extraction_method_detail="TEST KCl",
+            )
+        ],
+    )  # fmt: skip
+    level, hits = _assess(make_input(soil_test=soil, plan_date=date(2027, 3, 15)), validated_pack)
+    assert level <= Confidence.MEDIUM
+    assert "C1_NO_SOIL_TEST" in _ids(hits)

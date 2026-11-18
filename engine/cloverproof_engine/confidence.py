@@ -106,8 +106,9 @@ def assess(
     soil = inputs.soil_test
 
     # C1 — TODO(agronomist): review. Hard rule from CLAUDE.md #3.
-    # A soil test with no values gives the plan nothing, so it counts as no test.
-    if soil is None or not soil.values:
+    # A test with neither a P nor a K value gives the plan no soil-test basis (matching the
+    # P/K note), so it counts as no test. TODO(agronomist): see docs/agronomist-todo.md #5.
+    if soil is None or (soil.value_for("P") is None and soil.value_for("K") is None):
         hits.append(
             ConfidenceRuleHit(
                 rule_id="C1_NO_SOIL_TEST",

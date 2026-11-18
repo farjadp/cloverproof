@@ -7,7 +7,6 @@ import math
 from datetime import date
 from enum import StrEnum
 from typing import Annotated, Any, ClassVar, Literal, Self
-from urllib.parse import urlsplit
 
 from pydantic import (
     BaseModel,
@@ -235,6 +234,7 @@ SOIL_ESTIMATE_UNITS: dict[str, str] = {
 
 # The licence SoilGrids 2.0 is published under; its attribution must name it.
 SOIL_ESTIMATE_LICENCE = "CC BY 4.0"
+SOIL_ESTIMATE_LAYER_BASE = "https://files.isric.org/soilgrids/latest/data"
 
 # Kept exactly as supplied (licence wording), so it is checked but never stripped.
 VerbatimText = Annotated[str, Field(pattern=r"\S")]
@@ -255,20 +255,11 @@ class SoilEstimateValue(_Frozen):
     q05: NonNegativeFloat | None = None
     q95: NonNegativeFloat | None = None
     uncertainty_ratio: NonNegativeFloat | None = None
-    # The source layer, not the field: no query or fragment, so no coordinates (rule 12).
+    # Exactly the published address of this value's layer, so it can carry no field
+    # location (rule 12).
     url: str
     resolution_m: PositiveFloat
     retrieved_on: date
-
-    @field_validator("url")
-    @classmethod
-    def _check_url(cls, value: str) -> str:
-        parts = urlsplit(value)
-        if parts.scheme not in {"http", "https"} or not parts.netloc or " " in value:
-            raise ValueError("url must be the web address of the source layer")
-        if parts.query or parts.fragment:
-            raise ValueError("url must not have a query or fragment")
-        return value
 
     @model_validator(mode="after")
     def _check(self) -> Self:
@@ -278,6 +269,9 @@ class SoilEstimateValue(_Frozen):
         expected = SOIL_ESTIMATE_UNITS[self.property]
         if self.unit != expected:
             raise ValueError(f"{self.property} must be in {expected}, got {self.unit}")
+        layer = f"{self.property}/{self.property}_{self.depth}_{self.statistic}.vrt"
+        if self.url != f"{SOIL_ESTIMATE_LAYER_BASE}/{layer}":
+            raise ValueError("url must be the published address of this value's own layer")
         if (self.q05 is None) != (self.q95 is None):
             raise ValueError("q05 and q95 must be given together")
         if self.q05 is not None and self.q95 is not None and self.q05 > self.q95:

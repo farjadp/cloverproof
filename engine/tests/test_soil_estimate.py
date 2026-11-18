@@ -102,6 +102,12 @@ def test_only_the_mean_layer_is_accepted(soil_estimate_data, statistic: str) -> 
         "ftp://files.isric.org/soilgrids/x.vrt",
         "https://files.isric.org/soilgrids/x.vrt?lon=-80.1&lat=43.5",
         "https://files.isric.org/soilgrids/x.vrt#lat=43.5",
+        "https://files.isric.org/lon/-80.1234/lat/43.5678/x.vrt",
+        "https://files.isric.org/x.vrt;lon=-80.1;lat=43.5",
+        "https://files.isric.org/x.vrt%3Flon=-80.1%26lat=43.5",
+        "https://-80.1:43.5@files.isric.org/x.vrt",
+        "https://farm-of-john-smith.example.com/x.vrt",
+        "https://files.isric.org/soilgrids/latest/data/clay/clay_0-5cm_mean.vrt?",
     ],
 )
 def test_layer_url_must_be_a_plain_web_address(soil_estimate_data, url: str) -> None:

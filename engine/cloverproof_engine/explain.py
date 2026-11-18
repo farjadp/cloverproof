@@ -709,8 +709,8 @@ def c1_no_soil_test() -> str:
 
 def c1_soil_test_without_values() -> str:
     return (
-        "The soil test has no values, so it counts as no soil test: confidence is at most "
-        "medium (N only; P and K need a soil test)."
+        "The soil test has no values for P or K, so it counts as no soil test: confidence "
+        "is at most medium (N only; P and K need a soil test)."
     )
 
 
