@@ -108,3 +108,13 @@ Conditions before the first real farm plan (not S1 exit blockers):
 - Fix D2 (one-line label).
 - Close Gap 4 and Gap 5 (proof storage and deploy).
 - Make the PDF tests run in CI or under `make` (D3), so a WeasyPrint break is not silently skipped.
+
+## Status of the conditions (2026-11-18)
+
+| Condition | Status | Where |
+|---|---|---|
+| D1 + Gap 1: Ontario inputs in the plan form | Closed | PR #61 |
+| D2: PDF method label | Closed | PR #61 |
+| Gap 4: proof storage | Closed in code (S3-compatible store); no bucket connected yet | PR #59 |
+| D3: PDF tests under `make` and in CI | Closed: `make` sets the library path on macOS; a PDF skip now fails both CI test jobs | this change |
+| Gap 5: deploy | **Open.** Image is built and smoke-tested in CI (PR #58); no hosted app, no Railway change made | needs Farjad Iranmehr's go |
