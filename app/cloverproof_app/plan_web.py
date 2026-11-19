@@ -20,7 +20,7 @@ import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 
-from cloverproof_app import display_units, line_diff, planning, timer
+from cloverproof_app import display_units, field_location, line_diff, planning, timer
 from cloverproof_app.auth import (
     INTERNAL_ROLES,
     Conn,
@@ -150,6 +150,25 @@ async def farmer_create(request: Request, conn: Conn, context: InternalOrg) -> R
     return RedirectResponse(f"/farmers/{farmer_id}", status_code=303)
 
 
+def location_values(form: Any) -> dict[str, str]:
+    """The location inputs as typed, to validate and to show again on an error."""
+    values = {k: text(form, k, 60).strip()
+              for k in (field_location.LAT_KEY, field_location.LON_KEY)}  # fmt: skip
+    if text(form, field_location.CONFIRM_KEY, 1) == "1":
+        values[field_location.CONFIRM_KEY] = "1"
+    return values
+
+
+def parse_location_values(
+    values: dict[str, str],
+) -> tuple[field_location.Location | None, dict[str, str]]:
+    return field_location.parse_location(
+        values[field_location.LAT_KEY],
+        values[field_location.LON_KEY],
+        positive_lon_confirmed=field_location.CONFIRM_KEY in values,
+    )
+
+
 def farmer_page(request: Request, conn: Conn, context: OrgContext, farmer_id: UUID,
                 errors: dict[str, str] | None = None, values: dict[str, str] | None = None,
                 status: int = 200) -> Response:  # fmt: skip
@@ -194,7 +213,9 @@ async def field_create(request: Request, conn: Conn, context: InternalOrg,
         raise not_found("Farmer")
     form = await form_data(request)
     values = {k: text(form, k, 300).strip() for k in ("farm_id", "field_name", "area_ha")}
-    errors: dict[str, str] = {}
+    values |= location_values(form)
+    location, location_errors = parse_location_values(values)
+    errors: dict[str, str] = dict(location_errors)
     own_farms = {str(f.id) for f in farms.list_farms(conn, org, farmer_id)}
     if values["farm_id"] not in own_farms:
         errors["farm_id"] = "Choose the farm this field belongs to."
@@ -211,7 +232,7 @@ async def field_create(request: Request, conn: Conn, context: InternalOrg,
         return farmer_page(request, conn, context, farmer_id, errors, values, 422)
     assert area is not None
     field_id = farms.create_field(conn, org, farm_id=UUID(values["farm_id"]),
-                                  name=values["field_name"])  # fmt: skip
+                                  name=values["field_name"], location=location)  # fmt: skip
     season = farms.season_for(conn, org, date.today())
     farms.set_manual_area(conn, org, field_id=field_id, season_id=season, area_ha=area,
                           user_id=context.user.id)  # fmt: skip
@@ -234,6 +255,7 @@ def field_detail(request: Request, conn: Conn, context: InternalOrg, field_id: U
     soil = plans.latest_soil_test(conn, context.org.id, field_id)
     ctx = {
         "field": row,
+        "location": farms.get_field_location(conn, context.org.id, field_id),
         "soil": soil,
         "soil_values": plans.soil_test_values(conn, context.org.id, soil.id) if soil else [],
         "plans": plans.plans_for_field(conn, context.org.id, field_id),
@@ -241,6 +263,37 @@ def field_detail(request: Request, conn: Conn, context: InternalOrg, field_id: U
         "planning": planning,
     }
     return render(request, "field.html", ctx)
+
+
+@router.get("/fields/{field_id}/location")
+def field_location_form(request: Request, conn: Conn, context: InternalOrg,
+                        field_id: UUID) -> Response:  # fmt: skip
+    row = load_field(conn, context, field_id)
+    current = farms.get_field_location(conn, context.org.id, field_id)
+    values: dict[str, str] = {}
+    if current is not None:
+        values = {
+            field_location.LAT_KEY: current.lat_text,
+            field_location.LON_KEY: current.lon_text,
+        }
+        if current.lon > 0:  # already confirmed when it was saved
+            values[field_location.CONFIRM_KEY] = "1"
+    ctx = {"field": row, "values": values, "errors": {}}
+    return render(request, "field_location.html", ctx)
+
+
+@router.post("/fields/{field_id}/location")
+async def field_location_save(request: Request, conn: Conn, context: InternalOrg,
+                              field_id: UUID) -> Response:  # fmt: skip
+    row = load_field(conn, context, field_id)
+    values = location_values(await form_data(request))
+    location, errors = parse_location_values(values)
+    if errors:
+        ctx = {"field": row, "values": values, "errors": errors}
+        return render(request, "field_location.html", ctx, 422)
+    if not farms.set_field_location(conn, context.org.id, field_id, location):
+        raise not_found("Field")
+    return RedirectResponse(f"/fields/{field_id}", status_code=303)
 
 
 # --- new plan -------------------------------------------------------------------------

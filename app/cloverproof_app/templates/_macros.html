@@ -155,6 +155,32 @@
 {% if errors[name] %} aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}
 {%- endmacro %}
 
+{# Optional field location: one point. Plain text inputs on purpose: the decimal keypad on
+   iPhones has no minus key, and longitudes in Canada are negative. #}
+{% macro location_fields(values, errors) -%}
+<fieldset class="location-fields">
+  <legend>Field location (optional)</legend>
+  <p class="hint">One point near the middle of the field, not its boundary. In a phone or map app, press and hold the middle of the field, then copy the two numbers it shows: latitude first, then longitude.</p>
+  <div class="field">
+    <label for="location_lat">Latitude</label>
+    <div class="suffixed"><input id="location_lat" name="location_lat" type="text" autocomplete="off" spellcheck="false" maxlength="60" value="{{ values.location_lat }}"{{ invalid(errors, "location_lat") }}><span class="suffix">°</span></div>
+    {{ error(errors, "location_lat") }}
+  </div>
+  <div class="field">
+    <label for="location_lon">Longitude</label>
+    <div class="suffixed"><input id="location_lon" name="location_lon" type="text" autocomplete="off" spellcheck="false" maxlength="60" value="{{ values.location_lon }}"{% if errors.location_lon %}{{ invalid(errors, "location_lon") }}{% else %}{{ invalid(errors, "location_lon_confirm") }}{% endif %}><span class="suffix">°</span></div>
+    <p class="hint">Negative in Canada, for example -80.5.</p>
+    {{ error(errors, "location_lon") }}
+    {{ error(errors, "location_lon_confirm") }}
+  </div>
+  {% if errors.location_lon_confirm or values.confirm_positive_lon %}
+  <div class="field">
+    <label class="choice" for="confirm_positive_lon"><input id="confirm_positive_lon" name="confirm_positive_lon" type="checkbox" value="1"{% if values.confirm_positive_lon %} checked{% endif %}> This positive longitude is right</label>
+  </div>
+  {% endif %}
+</fieldset>
+{%- endmacro %}
+
 {% macro error_summary(errors, action) -%}
 {% if errors %}
 <div class="notice error" role="alert" id="error-summary" tabindex="-1">

@@ -14,6 +14,8 @@ from uuid import UUID
 import psycopg
 from psycopg.rows import class_row
 
+from cloverproof_app.field_location import Location
+
 
 @dataclass(frozen=True)
 class Farmer:
@@ -150,13 +152,37 @@ def fields_of_org(conn: psycopg.Connection, org_id: UUID) -> list[FieldRow]:
         ).fetchall()
 
 
-def create_field(conn: psycopg.Connection, org_id: UUID, *, farm_id: UUID, name: str) -> UUID:
+def create_field(conn: psycopg.Connection, org_id: UUID, *, farm_id: UUID, name: str,
+                 location: Location | None = None) -> UUID:  # fmt: skip
     row = conn.execute(
-        "insert into field (organisation_id, farm_id, name) values (%s, %s, %s) returning id",
-        (org_id, farm_id, name.strip()),
-    ).fetchone()
+        "insert into field (organisation_id, farm_id, name, location_lat, location_lon)"
+        " values (%s, %s, %s, %s, %s) returning id",
+        (org_id, farm_id, name.strip(), location.lat if location else None,
+         location.lon if location else None),
+    ).fetchone()  # fmt: skip
     assert row is not None
     return row[0]
+
+
+# The location is read on its own, not through FieldRow: FieldRow reaches the plan pages and the
+# proof, and a field's coordinates can identify a farm (migration 0032).
+def get_field_location(conn: psycopg.Connection, org_id: UUID, field_id: UUID) -> Location | None:
+    row = conn.execute(
+        "select location_lat, location_lon from field where organisation_id = %s and id = %s",
+        (org_id, field_id),
+    ).fetchone()
+    return Location(row[0], row[1]) if row and row[0] is not None else None
+
+
+def set_field_location(conn: psycopg.Connection, org_id: UUID, field_id: UUID,
+                       location: Location | None) -> bool:  # fmt: skip
+    """Set or clear the location; False if the field is not in this organisation."""
+    cur = conn.execute(
+        "update field set location_lat = %s, location_lon = %s"
+        " where organisation_id = %s and id = %s",
+        (location.lat if location else None, location.lon if location else None, org_id, field_id),
+    )
+    return cur.rowcount == 1
 
 
 def season_for(conn: psycopg.Connection, org_id: UUID, day: date) -> UUID:
