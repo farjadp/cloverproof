@@ -431,6 +431,11 @@ label.choice input[type="checkbox"] { width: 1.25rem; height: 1.25rem; flex-shri
 /* Soil estimate */
 .estimate-statement, .estimate-state, .estimate-key { margin-bottom: var(--s5); }
 .estimate-group th { padding-top: var(--s4); font-size: var(--fs-base); color: var(--ink); }
-.estimate-table .badge { white-space: nowrap; }
+.estimate-table .badge, .estimate-table td[data-label="Depth"], .estimate-table td[data-label="Source"] { white-space: nowrap; }
 .estimate-none { color: var(--ink-soft); }
 .estimate-credit { margin: 0 0 var(--s1); max-width: var(--measure); overflow-wrap: anywhere; }
+@media (max-width: 720px) {
+  /* Up to 36 rows: two columns keep the phone page scannable. */
+  .estimate-table tbody tr:not(.estimate-group) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--s3); }
+  .estimate-table td[data-label="Range or uncertainty"] { grid-column: 1 / -1; }
+}
