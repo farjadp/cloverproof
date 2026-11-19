@@ -245,6 +245,9 @@
   },
   "footer": {
     "tagline": "Tarlaya özel gübreleme kararları, kanıtıyla.",
+    "more": "Daha fazla",
+    "roadmap": "Yol haritası",
+    "whatsNew": "Yenilikler",
     "privacy": "Gizlilik",
     "languages": "Diller",
     "comingSoon": "yakında",
@@ -403,5 +406,185 @@
     "noGaps": "Eksik bir şey yok. Bu tarla bir plan için hazır.",
     "cta": "Bu tarla için pilot planı isteyin",
     "disclaimer": "Bu kontrol yalnızca bir planın kapsamını gösterir. Doz vermez — dozlar, bir ziraat mühendisi verilerinizi inceledikten sonra gelir."
+  },
+  "roadmap": {
+    "title": "Yol haritası",
+    "description": "CloverProof'un şu anda üzerinde çalıştıkları, sırada olanlar ve daha sonra gelecekler, sade bir dille.",
+    "intro": "Üzerinde çalıştıklarımız, sırada olanlar ve daha sonra gelecekler. Bu bir plan, söz değil: çiftçilerden ve danışmanlardan öğrendiklerimize göre değişecek.",
+    "status": {
+      "title": "Bugün neredeyiz",
+      "text": "CloverProof erken aşamada. Planlama aracımız şirket içi kullanım içindir ve kurgusal çiftlik verileriyle test ediliyor. Agronomik değerleri henüz bir insan ziraat mühendisi tarafından doğrulanmadı ve hiçbir plan, bir insan ziraat mühendisi onaylamadan çiftçiye ulaşmaz."
+    },
+    "cta": {
+      "title": "Çiftliğinizde neyin önemli olduğunu bize anlatın",
+      "text": "Daha fazlasını geliştirmeden önce çiftçileri ve danışmanları dinlemek istiyoruz. Söyledikleriniz bu listeyi değiştirebilir.",
+      "button": "Pilot formuna git",
+      "changelog": "Yenilikleri gör"
+    },
+    "kinds": {
+      "internal": "Şirket içi · testte",
+      "todo": "Yapılacak",
+      "planned": "Planlandı",
+      "later": "Pilota bağlı"
+    },
+    "now": {
+      "title": "Şimdi",
+      "intro": "Ekibimiz geliştiriyor ve test ediyor",
+      "items": [
+        {
+          "kind": "internal",
+          "title": "Tarla tarla buğday planları",
+          "text": "Ekibimiz için bir tarlanın gübreleme planı taslağını hazırlayan araç: ne, ne kadar, ne zaman ve neden. Ontario'da kışlık buğdayla başlıyoruz."
+        },
+        {
+          "kind": "internal",
+          "title": "Her planı bir insan inceler",
+          "text": "Ziraat mühendisi taslağı onaylayabilir, değiştirebilir veya reddedebilir. Bir sayı değişirse nedeni saklanır ve plan yeni bir sürüm olur."
+        },
+        {
+          "kind": "internal",
+          "title": "Toprak analizinden fosfor ve potasyum",
+          "text": "Laboratuvar toprak analizi varsa taslak, başvuru tablolarımız olan yöntemler için bunları da kapsayabilir. Analiz yoksa yalnızca azotu, en fazla orta güven düzeyiyle kapsar."
+        },
+        {
+          "kind": "todo",
+          "title": "Sayıların kontrolü",
+          "text": "Kullanılan değerler yayımlanmış kılavuzlardan gelir. Gerçek bir çiftlikte kullanılmadan önce bir insan ziraat mühendisinin bunları kontrol etmesi gerekir."
+        }
+      ]
+    },
+    "next": {
+      "title": "Sırada",
+      "intro": "2027 pilotu çevresinde planlandı",
+      "items": [
+        {
+          "kind": "planned",
+          "title": "İlk pilot planlar",
+          "text": "Başvurular açık. Şubat–Nisan 2027'de az sayıda buğday çiftliği için plan hazırlamayı planlıyoruz. Her plan, çiftlik görmeden önce bir insan ziraat mühendisi tarafından onaylanacak."
+        },
+        {
+          "kind": "planned",
+          "title": "Sezonu izleyen zamanlama",
+          "text": "Sezonun hava koşullarını dikkate alan ve son güncelleme tarihini gösteren önerilen uygulama dönemleri."
+        },
+        {
+          "kind": "planned",
+          "title": "Toprak raporunuzu göndermek",
+          "text": "Laboratuvar raporunuzu dosya olarak paylaşın. Değerleri bir insan girer ve doğrular."
+        },
+        {
+          "kind": "planned",
+          "title": "Çiftçiler ve danışmanlar için hesaplar",
+          "text": "Onaylanan planlarınızı tek yerde görün. Danışman bir çiftliği yalnızca çiftçi erişim verirse görür ve çiftçi bu erişimi geri alabilir."
+        },
+        {
+          "kind": "planned",
+          "title": "Uyguladıklarınızı kaydetmek",
+          "text": "Planlananı ve gerçekte yapılanı gösteren, telefona uygun basit bir kayıt."
+        },
+        {
+          "kind": "planned",
+          "title": "Kanıt belgesini paylaşmak",
+          "text": "Kanıt belgenizin bağlantısını gönderin, paylaşmak istemediğinizde kapatın."
+        }
+      ]
+    },
+    "later": {
+      "title": "Daha sonra",
+      "intro": "Pilottan öğreneceklerimize bağlı",
+      "items": [
+        {
+          "kind": "later",
+          "title": "Haritada tarlalar",
+          "text": "Alanı yazmak yerine tarla sınırlarını çizin veya yükleyin."
+        },
+        {
+          "kind": "later",
+          "title": "Toprak raporlarını sizin için okumak",
+          "text": "Raporunuzdan alınan değerleri siz onaylarsınız. Bunu yalnızca yeterince güvenilir olduğu görülürse sunacağız."
+        },
+        {
+          "kind": "later",
+          "title": "Sezon sonuçları",
+          "text": "Hasadı ve planın izlenip izlenmediğini kaydetmek; böylece planların nerede değişmesi gerektiğini görebiliriz."
+        },
+        {
+          "kind": "later",
+          "title": "Telefon uygulaması",
+          "text": "Çekimin zayıf olduğu yerler dahil, tarlada kullanılacak bir uygulama."
+        },
+        {
+          "kind": "later",
+          "title": "Daha fazla ürün ve bölge",
+          "text": "Her biri kendi kuralları ve kendi incelemesiyle başka ürünler ve yerler."
+        }
+      ]
+    }
+  },
+  "changelog": {
+    "title": "Yenilikler",
+    "description": "CloverProof'taki son değişiklikler, sade bir dille.",
+    "intro": "CloverProof'taki son değişiklikler. Bazıları bu web sitesinde. Bazıları ise çiftçilerin henüz kullanamadığı şirket içi aracımızda.",
+    "roadmapLink": "Yol haritasını gör",
+    "kinds": {
+      "site": "Bu web sitesinde",
+      "internal": "Şirket içi araç · testte"
+    },
+    "entries": [
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Hektar veya akre",
+        "text": "Şirket içi araçtaki dozlar artık kg/ha veya lb/ac olarak gösterilebiliyor."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Laboratuvar analizi yokken toprak tahmini",
+        "text": "Analizi olmayan bir tarla artık arka plan bilgisi olarak yayımlanmış bir toprak tahmini gösterebiliyor. Plan yine yalnızca azotu, en fazla orta güven düzeyiyle kapsar ve yine analiz öneririz."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Laboratuvar analizlerinden fosfor ve potasyum",
+        "text": "Laboratuvar, başvuru tablomuz olan bir yöntem kullandıysa taslaklar artık bu besinleri de içerebiliyor."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Azotu birkaç uygulamaya bölmek",
+        "text": "Taslaklar azotu birkaç uygulamaya bölebiliyor ve her biri için bir zaman önerebiliyor. Zamanlama değerlerini bir insan ziraat mühendisinin yine kontrol etmesi gerekiyor."
+      },
+      {
+        "date": "2026-11-17",
+        "kind": "site",
+        "title": "CloverProof İbranice",
+        "text": "Web sitesi artık İbranice de var. Çeviri makine çevirisidir ve anadili konuşan birinin incelemesini bekliyor."
+      },
+      {
+        "date": "2026-11-17",
+        "kind": "internal",
+        "title": "İncelenen her planın kaydı",
+        "text": "İncelenmiş bir test planı artık girdileri, gerekçeyi ve inceleyeni gösteren bir PDF oluşturabiliyor."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "Sekiz dilde web sitesi",
+        "text": "CloverProof'u İngilizce, Fransızca, İtalyanca, İspanyolca, Bulgarca, Fince, Türkçe ve Arapça okuyabilirsiniz. Çeviriler makine çevirisidir ve anadili konuşanların incelemesini bekliyor."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "Daha kısa pilot formu",
+        "text": "Serbest not alanını kaldırdık, böylece sizinle ilgili daha az bilgi topluyoruz."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "İki dakikalık tarla kontrolü",
+        "text": "Dört kısa soruyu yanıtlayın ve hiçbir şey paylaşmadan önce bir tarla için nasıl bir plan hazırlayabileceğimizi görün."
+      }
+    ]
   }
 }

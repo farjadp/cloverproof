@@ -245,6 +245,9 @@
   },
   "footer": {
     "tagline": "Field-specific fertilizer decisions, with proof.",
+    "more": "More",
+    "roadmap": "Roadmap",
+    "whatsNew": "What's new",
     "privacy": "Privacy",
     "languages": "Languages",
     "comingSoon": "coming soon",
@@ -403,5 +406,185 @@
     "noGaps": "Nothing missing. This field is ready for a plan.",
     "cta": "Request a pilot plan for this field",
     "disclaimer": "This check only shows the scope of a plan. It gives no rates — those come after an agronomist reviews your data."
+  },
+  "roadmap": {
+    "title": "Roadmap",
+    "description": "What CloverProof is working on now, what comes next and what comes later, in plain language.",
+    "intro": "What we are working on, what comes next and what comes later. This is a plan, not a promise: it will change as we learn from farmers and advisors.",
+    "status": {
+      "title": "Where we are today",
+      "text": "CloverProof is at an early stage. Our planning tool is internal and is being tested with made-up farm data. Its agronomic values are not yet validated by a human agronomist, and no plan reaches a farmer until a human agronomist has approved it."
+    },
+    "cta": {
+      "title": "Tell us what matters on your farm",
+      "text": "We want to hear from farmers and advisors before we build more. What you tell us can change this list.",
+      "button": "Go to the pilot form",
+      "changelog": "See what's new"
+    },
+    "kinds": {
+      "internal": "Internal · in testing",
+      "todo": "Still to do",
+      "planned": "Planned",
+      "later": "Depends on the pilot"
+    },
+    "now": {
+      "title": "Now",
+      "intro": "Being built and tested by our team",
+      "items": [
+        {
+          "kind": "internal",
+          "title": "Field-by-field wheat plans",
+          "text": "A tool for our team that drafts a fertilizer plan for one field: what to apply, how much, when and why. We are starting with winter wheat in Ontario."
+        },
+        {
+          "kind": "internal",
+          "title": "A person reviews every plan",
+          "text": "An agronomist can approve, change or reject a draft. If a number changes, the reason is kept and the plan gets a new version."
+        },
+        {
+          "kind": "internal",
+          "title": "Phosphorus and potassium from a lab test",
+          "text": "With a lab soil test, a draft can cover these too, for the lab methods we have reference tables for. Without a test it covers nitrogen only, at medium confidence at most."
+        },
+        {
+          "kind": "todo",
+          "title": "Checking the numbers",
+          "text": "The values behind the drafts come from published guidance. A human agronomist still has to check them before they are used for a real farm."
+        }
+      ]
+    },
+    "next": {
+      "title": "Next",
+      "intro": "Planned around the 2027 pilot",
+      "items": [
+        {
+          "kind": "planned",
+          "title": "First pilot plans",
+          "text": "Requests are open. We plan to prepare plans for a small number of wheat farms in February–April 2027, each approved by a human agronomist before the farm sees it."
+        },
+        {
+          "kind": "planned",
+          "title": "Timing that follows the season",
+          "text": "Suggested application windows that take the season's weather into account and show when they were last updated."
+        },
+        {
+          "kind": "planned",
+          "title": "Sending us your soil report",
+          "text": "Share your lab report as a file. A person enters the values and confirms them."
+        },
+        {
+          "kind": "planned",
+          "title": "Accounts for farmers and advisors",
+          "text": "See your approved plans in one place. An advisor sees a farm only if the farmer gives access, and the farmer can take it back."
+        },
+        {
+          "kind": "planned",
+          "title": "Recording what you applied",
+          "text": "A simple, phone-friendly log of what was planned and what you actually did."
+        },
+        {
+          "kind": "planned",
+          "title": "Sharing a proof document",
+          "text": "Send a link to your proof document and turn it off when you no longer want it shared."
+        }
+      ]
+    },
+    "later": {
+      "title": "Later",
+      "intro": "Depends on what we learn in the pilot",
+      "items": [
+        {
+          "kind": "later",
+          "title": "Fields on a map",
+          "text": "Draw or upload field boundaries instead of typing the area."
+        },
+        {
+          "kind": "later",
+          "title": "Reading soil reports for you",
+          "text": "Values filled in from your report for you to confirm. We will offer this only if it proves reliable enough."
+        },
+        {
+          "kind": "later",
+          "title": "Season results",
+          "text": "Record the harvest and whether the plan was followed, so we can see where plans need to change."
+        },
+        {
+          "kind": "later",
+          "title": "A phone app",
+          "text": "An app for use in the field, including where the signal is poor."
+        },
+        {
+          "kind": "later",
+          "title": "More crops and regions",
+          "text": "Other crops and places, each with its own rules and its own review."
+        }
+      ]
+    }
+  },
+  "changelog": {
+    "title": "What's new",
+    "description": "Recent changes to CloverProof, in plain language.",
+    "intro": "Recent changes to CloverProof. Some are on this website. Others are in our internal tool, which farmers cannot use yet.",
+    "roadmapLink": "See the roadmap",
+    "kinds": {
+      "site": "On this website",
+      "internal": "Internal tool · in testing"
+    },
+    "entries": [
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Hectares or acres",
+        "text": "Rates in the internal tool can now be shown in kg/ha or lb/ac."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "A soil estimate when there is no lab test",
+        "text": "A field with no lab test can now show a published soil estimate as background. The plan stays nitrogen only, at medium confidence at most, and we still recommend a test."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Phosphorus and potassium from lab tests",
+        "text": "Drafts can now include these nutrients when the lab used a method we have a reference table for."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Nitrogen in several applications",
+        "text": "Drafts can divide nitrogen into several applications, with a suggested time for each. The timing values still need a human agronomist's check."
+      },
+      {
+        "date": "2026-11-17",
+        "kind": "site",
+        "title": "CloverProof in Hebrew",
+        "text": "The website is now available in Hebrew. The translation is machine-made and is waiting for a native speaker's review."
+      },
+      {
+        "date": "2026-11-17",
+        "kind": "internal",
+        "title": "A record of each reviewed plan",
+        "text": "A reviewed test plan can now produce a PDF showing the inputs, the reasoning and who reviewed it."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "The website in eight languages",
+        "text": "You can read about CloverProof in English, French, Italian, Spanish, Bulgarian, Finnish, Turkish and Arabic. Translations are machine-made and are waiting for native speakers' review."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "A shorter pilot form",
+        "text": "We removed the free-text notes box, so we collect less about you."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "A two-minute field check",
+        "text": "Answer four quick questions and see what kind of plan we could build for a field, before you share anything."
+      }
+    ]
   }
 }

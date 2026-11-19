@@ -4,13 +4,16 @@ import type { Locale } from "@/i18n/config";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Logo } from "./Logo";
 
-export function Header({ t, lang }: { t: Dictionary; lang: Locale }) {
+/** `path` is the page under /[lang] ("" = home): the language menu stays on it. */
+export function Header({ t, lang, path = "" }: { t: Dictionary; lang: Locale; path?: string }) {
+  // Full paths, so these also work from pages other than the home page.
+  const home = `/${lang}`;
   const links = [
-    { href: "#check", label: t.nav.check },
-    { href: "#how", label: t.nav.how },
-    { href: "#proof", label: t.nav.proof },
-    { href: "#principles", label: t.nav.principles },
-    { href: "#faq", label: t.nav.faq },
+    { href: `${home}#check`, label: t.nav.check },
+    { href: `${home}#how`, label: t.nav.how },
+    { href: `${home}#proof`, label: t.nav.proof },
+    { href: `${home}#principles`, label: t.nav.principles },
+    { href: `${home}#faq`, label: t.nav.faq },
   ];
   return (
     <header className="sticky top-0 z-30 border-b border-rule bg-ivory/95 backdrop-blur">
@@ -31,8 +34,8 @@ export function Header({ t, lang }: { t: Dictionary; lang: Locale }) {
           </ul>
         </nav>
         <div className="flex items-center gap-2 sm:gap-3">
-          <LanguageSwitcher lang={lang} label={t.nav.language} comingSoon={t.footer.comingSoon} />
-          <a href="#pilot" className="whitespace-nowrap rounded-full bg-olive px-4 py-2 text-sm font-semibold text-ivory transition-colors hover:bg-olive-deep">
+          <LanguageSwitcher lang={lang} path={path} label={t.nav.language} comingSoon={t.footer.comingSoon} />
+          <a href={`${home}#pilot`} className="whitespace-nowrap rounded-full bg-olive px-4 py-2 text-sm font-semibold text-ivory transition-colors hover:bg-olive-deep">
             {t.nav.cta}
           </a>
         </div>

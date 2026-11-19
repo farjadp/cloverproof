@@ -245,6 +245,9 @@
   },
   "footer": {
     "tagline": "Des décisions de fertilisation propres à chaque parcelle, preuves à l'appui.",
+    "more": "Plus",
+    "roadmap": "Feuille de route",
+    "whatsNew": "Nouveautés",
     "privacy": "Confidentialité",
     "languages": "Langues",
     "comingSoon": "bientôt",
@@ -403,5 +406,185 @@
     "noGaps": "Rien ne manque. Cette parcelle est prête pour un plan.",
     "cta": "Demander un plan pilote pour cette parcelle",
     "disclaimer": "Ce diagnostic montre uniquement la portée d'un plan. Il ne donne aucune dose — celles-ci viennent après la validation de vos données par un agronome."
+  },
+  "roadmap": {
+    "title": "Feuille de route",
+    "description": "Ce sur quoi CloverProof travaille maintenant, ce qui vient ensuite et ce qui viendra plus tard, en termes simples.",
+    "intro": "Ce sur quoi nous travaillons, ce qui vient ensuite et ce qui viendra plus tard. C'est un plan, pas une promesse : il évoluera avec ce que nous apprendrons des agriculteurs et des conseillers.",
+    "status": {
+      "title": "Où nous en sommes aujourd'hui",
+      "text": "CloverProof en est à ses débuts. Notre outil de planification est interne et il est testé avec des données d'exploitation fictives. Ses valeurs agronomiques ne sont pas encore validées par un agronome humain, et aucun plan ne parvient à un agriculteur sans l'approbation d'un agronome humain."
+    },
+    "cta": {
+      "title": "Dites-nous ce qui compte sur votre exploitation",
+      "text": "Nous voulons entendre les agriculteurs et les conseillers avant d'aller plus loin. Ce que vous nous direz peut changer cette liste.",
+      "button": "Aller au formulaire du pilote",
+      "changelog": "Voir les nouveautés"
+    },
+    "kinds": {
+      "internal": "Interne · en test",
+      "todo": "Reste à faire",
+      "planned": "Prévu",
+      "later": "Dépend du pilote"
+    },
+    "now": {
+      "title": "Maintenant",
+      "intro": "En cours de développement et de test dans notre équipe",
+      "items": [
+        {
+          "kind": "internal",
+          "title": "Des plans pour le blé, parcelle par parcelle",
+          "text": "Un outil pour notre équipe qui prépare un plan de fertilisation pour une parcelle : quoi apporter, combien, quand et pourquoi. Nous commençons par le blé d'hiver en Ontario."
+        },
+        {
+          "kind": "internal",
+          "title": "Une personne examine chaque plan",
+          "text": "Un agronome peut approuver, modifier ou rejeter un projet. Si un chiffre change, la raison est conservée et le plan reçoit une nouvelle version."
+        },
+        {
+          "kind": "internal",
+          "title": "Phosphore et potassium à partir d'une analyse de sol",
+          "text": "Avec une analyse de sol en laboratoire, un projet peut aussi les couvrir, pour les méthodes de laboratoire dont nous avons les tables de référence. Sans analyse, il couvre uniquement l'azote, avec un niveau de confiance moyen au maximum."
+        },
+        {
+          "kind": "todo",
+          "title": "Vérifier les chiffres",
+          "text": "Les valeurs utilisées viennent de références publiées. Un agronome humain doit encore les vérifier avant toute utilisation pour une vraie exploitation."
+        }
+      ]
+    },
+    "next": {
+      "title": "Ensuite",
+      "intro": "Prévu autour du pilote 2027",
+      "items": [
+        {
+          "kind": "planned",
+          "title": "Premiers plans pilotes",
+          "text": "Les demandes sont ouvertes. Nous prévoyons de préparer des plans pour un petit nombre d'exploitations de blé en février–avril 2027, chacun approuvé par un agronome humain avant d'être montré à l'exploitation."
+        },
+        {
+          "kind": "planned",
+          "title": "Un calendrier qui suit la saison",
+          "text": "Des périodes d'apport suggérées qui tiennent compte de la météo de la saison et indiquent leur dernière mise à jour."
+        },
+        {
+          "kind": "planned",
+          "title": "Nous envoyer votre analyse de sol",
+          "text": "Partagez votre rapport de laboratoire sous forme de fichier. Une personne saisit les valeurs et les confirme."
+        },
+        {
+          "kind": "planned",
+          "title": "Des comptes pour agriculteurs et conseillers",
+          "text": "Retrouvez vos plans approuvés au même endroit. Un conseiller ne voit une exploitation que si l'agriculteur lui donne accès, et celui-ci peut le retirer."
+        },
+        {
+          "kind": "planned",
+          "title": "Noter ce que vous avez apporté",
+          "text": "Un journal simple, adapté au téléphone, de ce qui était prévu et de ce que vous avez réellement fait."
+        },
+        {
+          "kind": "planned",
+          "title": "Partager un document de preuve",
+          "text": "Envoyez un lien vers votre document de preuve et désactivez-le quand vous ne voulez plus le partager."
+        }
+      ]
+    },
+    "later": {
+      "title": "Plus tard",
+      "intro": "Dépend de ce que le pilote nous apprendra",
+      "items": [
+        {
+          "kind": "later",
+          "title": "Les parcelles sur une carte",
+          "text": "Dessinez ou importez les limites des parcelles au lieu de saisir la surface."
+        },
+        {
+          "kind": "later",
+          "title": "Lire les analyses de sol pour vous",
+          "text": "Des valeurs reprises de votre rapport, que vous confirmez. Nous ne le proposerons que si cela s'avère assez fiable."
+        },
+        {
+          "kind": "later",
+          "title": "Résultats de la saison",
+          "text": "Noter la récolte et si le plan a été suivi, pour voir où les plans doivent changer."
+        },
+        {
+          "kind": "later",
+          "title": "Une application mobile",
+          "text": "Une application pour le terrain, y compris là où le réseau est faible."
+        },
+        {
+          "kind": "later",
+          "title": "Plus de cultures et de régions",
+          "text": "D'autres cultures et d'autres lieux, chacun avec ses règles et sa propre validation."
+        }
+      ]
+    }
+  },
+  "changelog": {
+    "title": "Nouveautés",
+    "description": "Les changements récents de CloverProof, en termes simples.",
+    "intro": "Les changements récents de CloverProof. Certains sont sur ce site. D'autres sont dans notre outil interne, que les agriculteurs ne peuvent pas encore utiliser.",
+    "roadmapLink": "Voir la feuille de route",
+    "kinds": {
+      "site": "Sur ce site",
+      "internal": "Outil interne · en test"
+    },
+    "entries": [
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Hectares ou acres",
+        "text": "Les doses de l'outil interne peuvent désormais s'afficher en kg/ha ou en lb/ac."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Une estimation du sol sans analyse de laboratoire",
+        "text": "Une parcelle sans analyse peut désormais afficher, à titre indicatif, une estimation de sol publiée. Le plan reste limité à l'azote, avec un niveau de confiance moyen au maximum, et nous recommandons toujours une analyse."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Phosphore et potassium à partir des analyses",
+        "text": "Les projets peuvent désormais inclure ces éléments lorsque le laboratoire a utilisé une méthode dont nous avons la table de référence."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "L'azote en plusieurs apports",
+        "text": "Les projets peuvent répartir l'azote en plusieurs apports, avec une période suggérée pour chacun. Ces périodes doivent encore être vérifiées par un agronome humain."
+      },
+      {
+        "date": "2026-11-17",
+        "kind": "site",
+        "title": "CloverProof en hébreu",
+        "text": "Le site est désormais disponible en hébreu. La traduction est automatique et attend la relecture d'un locuteur natif."
+      },
+      {
+        "date": "2026-11-17",
+        "kind": "internal",
+        "title": "Une trace de chaque plan examiné",
+        "text": "Un plan de test examiné peut désormais produire un PDF indiquant les données, le raisonnement et qui l'a examiné."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "Le site en huit langues",
+        "text": "Vous pouvez découvrir CloverProof en anglais, français, italien, espagnol, bulgare, finnois, turc et arabe. Les traductions sont automatiques et attendent la relecture de locuteurs natifs."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "Un formulaire pilote plus court",
+        "text": "Nous avons retiré le champ de notes libres : nous collectons ainsi moins d'informations sur vous."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "Un test de parcelle en deux minutes",
+        "text": "Répondez à quatre questions rapides et voyez quel type de plan nous pourrions établir pour une parcelle, avant de partager quoi que ce soit."
+      }
+    ]
   }
 }

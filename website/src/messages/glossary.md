@@ -33,6 +33,8 @@ Keep chemical symbols and units in Latin script and left-to-right, including ins
 | vendor-neutral | indépendant des fournisseurs | indipendente dai fornitori | independiente de proveedores | независим от доставчици | toimittajista riippumaton | tedarikçiden bağımsız | مستقل عن الموردين | בלתי תלוי בספקים |
 | software only | logiciel uniquement | solo software | solo software | само софтуер | pelkkä ohjelmisto | yalnızca yazılım | برمجيات فقط | תוכנה בלבד |
 | privacy notice | avis de confidentialité | informativa sulla privacy | aviso de privacidad | уведомление за поверителност | tietosuojaseloste | gizlilik bildirimi | إشعار الخصوصية | הודעת פרטיות |
+| roadmap | feuille de route | roadmap | hoja de ruta | пътна карта | tiekartta | yol haritası | خارطة الطريق | מפת דרכים |
+| What's new | Nouveautés | Novità | Novedades | Какво ново | Uutta | Yenilikler | ما الجديد | מה חדש |
 
 ## Rules for translators
 - Natural, not literal. Same meaning, no added claims, no softening or strengthening.

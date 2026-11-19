@@ -4,7 +4,8 @@ import { locales, localeMeta, type Locale } from "@/i18n/config";
 import { Flag } from "./Flag";
 import { Logo } from "./Logo";
 
-export function Footer({ t, lang }: { t: Dictionary; lang: Locale }) {
+export function Footer({ t, lang, path = "" }: { t: Dictionary; lang: Locale; path?: string }) {
+  const link = "inline-flex min-h-11 items-center underline decoration-sage underline-offset-4 hover:text-sage";
   return (
     <footer className="bg-ink text-ivory">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.5fr_1fr_1.5fr] lg:px-8">
@@ -12,10 +13,12 @@ export function Footer({ t, lang }: { t: Dictionary; lang: Locale }) {
           <Logo tone="white" className="h-10 w-auto" />
           <p className="mt-4 text-ivory/75">{t.footer.tagline}</p>
         </div>
-        <nav aria-label="Legal">
-          <Link href={`/${lang}/privacy`} className="underline decoration-sage underline-offset-4 hover:text-sage">
-            {t.footer.privacy}
-          </Link>
+        <nav aria-label={t.footer.more}>
+          <ul>
+            <li><Link href={`/${lang}/roadmap`} className={link}>{t.footer.roadmap}</Link></li>
+            <li><Link href={`/${lang}/whats-new`} className={link}>{t.footer.whatsNew}</Link></li>
+            <li><Link href={`/${lang}/privacy`} className={link}>{t.footer.privacy}</Link></li>
+          </ul>
         </nav>
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-sage">{t.footer.languages}</h2>
@@ -26,7 +29,7 @@ export function Footer({ t, lang }: { t: Dictionary; lang: Locale }) {
               return (
                 <li key={l}>
                   {m.enabled ? (
-                    <Link href={`/${l}`} lang={l} aria-current={l === lang ? "page" : undefined} className={`${chip} border-sage/60 text-ivory hover:bg-ivory/10`}>
+                    <Link href={`/${l}${path}`} lang={l} aria-current={l === lang ? "page" : undefined} className={`${chip} border-sage/60 text-ivory hover:bg-ivory/10`}>
                       <Flag locale={l} />
                       {l}
                       <span className="sr-only"> {m.label}</span>
