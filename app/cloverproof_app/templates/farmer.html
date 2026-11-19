@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import error, invalid, breadcrumb %}
+{% from "_macros.html" import error, invalid, breadcrumb, location_fields %}
 {% block title %}{{ farmer.display_name }}{% endblock %}
 {% block breadcrumb %}{{ breadcrumb([("Farmers", "/farmers"), (farmer.display_name, None)]) }}{% endblock %}
 {% macro add_farm(primary) %}
@@ -70,6 +70,7 @@
           <p class="hint">Entered by hand. Map drawing comes later.</p>
           {{ error(errors, "area_ha") }}
         </div>
+        {{ location_fields(values, errors) }}
         <button class="button" type="submit">Add field</button>
       </form>
     </section>

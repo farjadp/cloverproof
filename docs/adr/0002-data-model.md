@@ -75,3 +75,8 @@ Enum labels are the engine's StrEnum values character for character (`bray-1`, `
 - `soil_test.source = 'estimate'` rows are kept where they are, unchanged and not copied: they are hand-entered, have no source metadata to migrate, and remain the evidence of the plans that used them. That value stays valid for hand-entered estimates.
 - `source` accepts only `soilgrids`. LUCAS and WoSIS have licence restrictions (no export of raw LUCAS values, a per-profile WoSIS filter) and no loader, so adding either needs a forward migration together with those rules.
 - `retrieved_at` is a timestamp; the SoilGrids cache records a date (`retrieved_on`), so the adapter (not built yet) must store 00:00 UTC of that day.
+
+## Addendum (2026-11-18): field location (migration 0032)
+- `field.location_lat` and `field.location_lon` hold one optional WGS 84 point near the middle of the field, both set or both null. It is what a SoilGrids estimate is looked up with. It is not a boundary: `field_geometry_version` stays for map drawing (S18).
+- The value is mutable and overwritten on edit, with no history yet. `soil_estimate` does not record the point it was looked up for, so the loader must decide how a changed location affects stored estimates.
+- Coordinates can identify a farm: they are never copied into `recommendation.inputs_snapshot`, `recommendation.result` or a proof document, and `field_ai_boundary` (0021) keeps non-human contexts away from real farmers' field rows (rule 12). Real coordinates stay out of hosted environments until the Canadian host is live (ADR 0009).

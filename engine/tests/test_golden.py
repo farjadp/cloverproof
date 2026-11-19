@@ -333,14 +333,15 @@ def test_report_shows_errors_without_raising(tmp_path: Path) -> None:
 
 
 def test_report_handles_missing_pack(tmp_path: Path) -> None:
-    src_path = next(GOLDEN_DIR.glob("sample_*.yaml"))
-    src = src_path.read_text(encoding="utf-8")
-    (tmp_path / src_path.name).write_text(
-        src.replace("version: v0", "version: v99"), encoding="utf-8"
-    )
-    report = run_report(tmp_path, PACKS_DIR)
-    assert "ERROR" in report
-    assert "v99" in report
+    # Every sample, not whichever the filesystem lists first: their pack versions differ.
+    for src_path in sorted(GOLDEN_DIR.glob("sample_*.yaml")):
+        case = yaml.safe_load(src_path.read_text(encoding="utf-8"))
+        case["pack"]["version"] = "v99"
+        (tmp_path / src_path.name).write_text(yaml.safe_dump(case), encoding="utf-8")
+        report = run_report(tmp_path, PACKS_DIR)
+        (tmp_path / src_path.name).unlink()
+        assert "ERROR" in report, src_path.name
+        assert "v99" in report, src_path.name
 
 
 def test_main_always_exits_zero(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

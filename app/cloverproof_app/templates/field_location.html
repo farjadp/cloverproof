@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "_macros.html" import breadcrumb, location_fields %}
+{% block title %}Location of {{ field.name }}{% endblock %}
+{% block breadcrumb %}{{ breadcrumb([("Farmers", "/farmers"), (field.farmer_name, "/farmers/" ~ field.farmer_id), (field.name, "/fields/" ~ field.id), ("Location", None)]) }}{% endblock %}
+{% block content %}
+<h1>Location of {{ field.name }}</h1>
+<form class="form" method="post" action="/fields/{{ field.id }}/location" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  {{ location_fields(values, errors) }}
+  <p class="hint">Leave both boxes empty to remove the location.</p>
+  <div class="actions">
+    <button class="button" type="submit">Save location</button>
+    <a class="button text" href="/fields/{{ field.id }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
