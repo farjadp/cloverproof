@@ -245,6 +245,9 @@
   },
   "footer": {
     "tagline": "Lohkokohtaiset lannoituspäätökset, todisteineen.",
+    "more": "Lisää",
+    "roadmap": "Tiekartta",
+    "whatsNew": "Uutta",
     "privacy": "Tietosuoja",
     "languages": "Kielet",
     "comingSoon": "tulossa pian",
@@ -403,5 +406,185 @@
     "noGaps": "Mitään ei puutu. Lohko on valmis suunnitelmaa varten.",
     "cta": "Pyydä pilottisuunnitelma tälle lohkolle",
     "disclaimer": "Tämä testi näyttää vain suunnitelman laajuuden. Se ei anna määriä — ne tulevat vasta, kun agronomi on tarkastanut tietosi."
+  },
+  "roadmap": {
+    "title": "Tiekartta",
+    "description": "Mitä CloverProof tekee nyt, mitä seuraavaksi ja mitä myöhemmin, selkeästi kerrottuna.",
+    "intro": "Mitä teemme nyt, mitä seuraavaksi ja mitä myöhemmin. Tämä on suunnitelma, ei lupaus: se muuttuu sen mukaan, mitä opimme viljelijöiltä ja neuvojilta.",
+    "status": {
+      "title": "Missä olemme tänään",
+      "text": "CloverProof on alkuvaiheessa. Suunnittelutyökalumme on sisäinen, ja sitä testataan keksityillä tilatiedoilla. Sen agronomisia arvoja ei ole vielä vahvistanut ihmisagronomi, eikä yksikään suunnitelma päädy viljelijälle ilman ihmisagronomin hyväksyntää."
+    },
+    "cta": {
+      "title": "Kerro, mikä on tärkeää tilallasi",
+      "text": "Haluamme kuulla viljelijöitä ja neuvojia ennen kuin rakennamme lisää. Se, mitä kerrot, voi muuttaa tätä listaa.",
+      "button": "Pilotin lomakkeeseen",
+      "changelog": "Katso, mitä uutta"
+    },
+    "kinds": {
+      "internal": "Sisäinen · testissä",
+      "todo": "Vielä tekemättä",
+      "planned": "Suunniteltu",
+      "later": "Riippuu pilotista"
+    },
+    "now": {
+      "title": "Nyt",
+      "intro": "Tiimimme rakentaa ja testaa",
+      "items": [
+        {
+          "kind": "internal",
+          "title": "Vehnän suunnitelmat lohkoittain",
+          "text": "Tiimimme työkalu, joka laatii luonnoksen yhden lohkon lannoitussuunnitelmaksi: mitä, kuinka paljon, milloin ja miksi. Aloitamme syysvehnästä Ontariossa."
+        },
+        {
+          "kind": "internal",
+          "title": "Ihminen tarkastaa jokaisen suunnitelman",
+          "text": "Agronomi voi hyväksyä, muuttaa tai hylätä luonnoksen. Jos luku muuttuu, syy säilytetään ja suunnitelmasta tulee uusi versio."
+        },
+        {
+          "kind": "internal",
+          "title": "Fosfori ja kalium viljavuustutkimuksesta",
+          "text": "Laboratorion viljavuustutkimuksen kanssa luonnos voi kattaa myös nämä niillä menetelmillä, joista meillä on viitetaulukot. Ilman tutkimusta se kattaa vain typen, enintään keskitason varmuudella."
+        },
+        {
+          "kind": "todo",
+          "title": "Lukujen tarkistus",
+          "text": "Käytetyt arvot ovat peräisin julkaistuista ohjeista. Ihmisagronomin on vielä tarkistettava ne ennen käyttöä oikealla tilalla."
+        }
+      ]
+    },
+    "next": {
+      "title": "Seuraavaksi",
+      "intro": "Suunniteltu vuoden 2027 pilotin ympärille",
+      "items": [
+        {
+          "kind": "planned",
+          "title": "Ensimmäiset pilottisuunnitelmat",
+          "text": "Hakemukset ovat auki. Aiomme laatia suunnitelmat pienelle joukolle vehnätiloja helmi–huhtikuussa 2027. Ihmisagronomi hyväksyy jokaisen, ennen kuin tila näkee sen."
+        },
+        {
+          "kind": "planned",
+          "title": "Ajoitus, joka seuraa kasvukautta",
+          "text": "Ehdotetut levitysajat, joissa huomioidaan kauden sää ja näytetään viimeisin päivitys."
+        },
+        {
+          "kind": "planned",
+          "title": "Viljavuustutkimuksen lähettäminen",
+          "text": "Jaa laboratorion raportti tiedostona. Ihminen syöttää arvot ja vahvistaa ne."
+        },
+        {
+          "kind": "planned",
+          "title": "Tilit viljelijöille ja neuvojille",
+          "text": "Näet hyväksytyt suunnitelmasi yhdessä paikassa. Neuvoja näkee tilan vain, jos viljelijä antaa pääsyn, ja viljelijä voi perua sen."
+        },
+        {
+          "kind": "planned",
+          "title": "Tehtyjen levitysten kirjaus",
+          "text": "Yksinkertainen, puhelimeen sopiva loki siitä, mitä suunniteltiin ja mitä todella tehtiin."
+        },
+        {
+          "kind": "planned",
+          "title": "Todistusasiakirjan jakaminen",
+          "text": "Lähetä linkki todistusasiakirjaasi ja poista se käytöstä, kun et enää halua jakaa sitä."
+        }
+      ]
+    },
+    "later": {
+      "title": "Myöhemmin",
+      "intro": "Riippuu siitä, mitä pilotissa opimme",
+      "items": [
+        {
+          "kind": "later",
+          "title": "Lohkot kartalla",
+          "text": "Piirrä tai lataa lohkojen rajat pinta-alan kirjoittamisen sijaan."
+        },
+        {
+          "kind": "later",
+          "title": "Viljavuusraporttien luku puolestasi",
+          "text": "Arvot poimitaan raportistasi, ja sinä vahvistat ne. Tarjoamme tämän vain, jos se osoittautuu riittävän luotettavaksi."
+        },
+        {
+          "kind": "later",
+          "title": "Kauden tulokset",
+          "text": "Sadon ja suunnitelman noudattamisen kirjaus, jotta näemme, missä suunnitelmia pitää muuttaa."
+        },
+        {
+          "kind": "later",
+          "title": "Puhelinsovellus",
+          "text": "Sovellus pellolle, myös sinne, missä yhteys on heikko."
+        },
+        {
+          "kind": "later",
+          "title": "Lisää kasveja ja alueita",
+          "text": "Muita kasveja ja paikkoja, kullakin omat sääntönsä ja oma tarkastuksensa."
+        }
+      ]
+    }
+  },
+  "changelog": {
+    "title": "Uutta",
+    "description": "CloverProofin viimeaikaiset muutokset selkeästi kerrottuna.",
+    "intro": "CloverProofin viimeaikaiset muutokset. Osa näkyy tällä sivustolla. Osa on sisäisessä työkalussamme, jota viljelijät eivät voi vielä käyttää.",
+    "roadmapLink": "Katso tiekartta",
+    "kinds": {
+      "site": "Tällä sivustolla",
+      "internal": "Sisäinen työkalu · testissä"
+    },
+    "entries": [
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Hehtaarit tai eekkerit",
+        "text": "Sisäisen työkalun määrät voidaan nyt näyttää yksikössä kg/ha tai lb/ac."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Maaperäarvio ilman laboratoriotutkimusta",
+        "text": "Lohkolla, jolta ei ole tutkimusta, voidaan nyt näyttää taustatietona julkaistu maaperäarvio. Suunnitelma kattaa edelleen vain typen, enintään keskitason varmuudella, ja suosittelemme yhä tutkimusta."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Fosfori ja kalium laboratoriotuloksista",
+        "text": "Luonnokset voivat nyt sisältää nämä ravinteet, kun laboratorio on käyttänyt menetelmää, josta meillä on viitetaulukko."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Typpi useassa erässä",
+        "text": "Luonnokset voivat jakaa typen useaan levityskertaan ja ehdottaa kullekin ajankohdan. Ihmisagronomin on vielä tarkistettava ajoitusarvot."
+      },
+      {
+        "date": "2026-11-17",
+        "kind": "site",
+        "title": "CloverProof hepreaksi",
+        "text": "Sivusto on nyt saatavilla hepreaksi. Käännös on konekäännös ja odottaa äidinkielisen puhujan tarkastusta."
+      },
+      {
+        "date": "2026-11-17",
+        "kind": "internal",
+        "title": "Tallenne jokaisesta tarkastetusta suunnitelmasta",
+        "text": "Tarkastetusta testisuunnitelmasta voi nyt tehdä PDF:n, jossa näkyvät lähtötiedot, perustelut ja tarkastaja."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "Sivusto kahdeksalla kielellä",
+        "text": "CloverProofista voi lukea englanniksi, ranskaksi, italiaksi, espanjaksi, bulgariaksi, suomeksi, turkiksi ja arabiaksi. Käännökset ovat konekäännöksiä ja odottavat äidinkielisten puhujien tarkastusta."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "Lyhyempi pilottilomake",
+        "text": "Poistimme vapaan muistiinpanokentän, joten keräämme sinusta vähemmän tietoja."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "Kahden minuutin lohkotarkistus",
+        "text": "Vastaa neljään nopeaan kysymykseen ja näe, millaisen suunnitelman voisimme laatia lohkolle, ennen kuin jaat mitään."
+      }
+    ]
   }
 }

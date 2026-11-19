@@ -6,7 +6,7 @@ import { locales, localeMeta, type Locale } from "@/i18n/config";
 import { Flag } from "./Flag";
 
 /** Header language menu: flags + language code; native names stay as accessible labels. */
-export function LanguageSwitcher({ lang, label, comingSoon }: { lang: Locale; label: string; comingSoon: string }) {
+export function LanguageSwitcher({ lang, path = "", label, comingSoon }: { lang: Locale; path?: string; label: string; comingSoon: string }) {
   const ref = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export function LanguageSwitcher({ lang, label, comingSoon }: { lang: Locale; la
             <li key={l}>
               {m.enabled ? (
                 <Link
-                  href={`/${l}`}
+                  href={`/${l}${path}`}
                   lang={l}
                   aria-current={l === lang ? "page" : undefined}
                   className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-semibold text-ink hover:bg-sand aria-[current=page]:bg-sage-soft"

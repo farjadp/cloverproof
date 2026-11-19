@@ -245,6 +245,9 @@
   },
   "footer": {
     "tagline": "Decisiones de fertilización por parcela, con prueba.",
+    "more": "Más",
+    "roadmap": "Hoja de ruta",
+    "whatsNew": "Novedades",
     "privacy": "Privacidad",
     "languages": "Idiomas",
     "comingSoon": "próximamente",
@@ -403,5 +406,185 @@
     "noGaps": "No falta nada. Esta parcela está lista para un plan.",
     "cta": "Solicitar un plan piloto para esta parcela",
     "disclaimer": "Esta revisión solo muestra el alcance de un plan. No da dosis — esas llegan después de que un agrónomo revise sus datos."
+  },
+  "roadmap": {
+    "title": "Hoja de ruta",
+    "description": "En qué trabaja CloverProof ahora, qué viene después y qué llegará más adelante, en lenguaje sencillo.",
+    "intro": "En qué trabajamos, qué viene después y qué llegará más adelante. Es un plan, no una promesa: cambiará según lo que aprendamos de agricultores y asesores.",
+    "status": {
+      "title": "Dónde estamos hoy",
+      "text": "CloverProof está en una fase inicial. Nuestra herramienta de planificación es interna y se está probando con datos de fincas inventados. Sus valores agronómicos aún no están validados por un agrónomo humano, y ningún plan llega a un agricultor sin la aprobación de un agrónomo humano."
+    },
+    "cta": {
+      "title": "Cuéntenos qué importa en su finca",
+      "text": "Queremos escuchar a agricultores y asesores antes de construir más. Lo que nos diga puede cambiar esta lista.",
+      "button": "Ir al formulario del piloto",
+      "changelog": "Ver las novedades"
+    },
+    "kinds": {
+      "internal": "Interno · en pruebas",
+      "todo": "Pendiente",
+      "planned": "Previsto",
+      "later": "Depende del piloto"
+    },
+    "now": {
+      "title": "Ahora",
+      "intro": "En desarrollo y en pruebas en nuestro equipo",
+      "items": [
+        {
+          "kind": "internal",
+          "title": "Planes de trigo, parcela por parcela",
+          "text": "Una herramienta para nuestro equipo que prepara un borrador de plan de fertilización para una parcela: qué aplicar, cuánto, cuándo y por qué. Empezamos con el trigo de invierno en Ontario."
+        },
+        {
+          "kind": "internal",
+          "title": "Una persona revisa cada plan",
+          "text": "Un agrónomo puede aprobar, cambiar o rechazar un borrador. Si cambia un número, se guarda el motivo y el plan recibe una nueva versión."
+        },
+        {
+          "kind": "internal",
+          "title": "Fósforo y potasio a partir de un análisis",
+          "text": "Con un análisis de suelo de laboratorio, un borrador también puede cubrirlos, para los métodos de los que tenemos tablas de referencia. Sin análisis cubre solo el nitrógeno, con un nivel de confianza medio como máximo."
+        },
+        {
+          "kind": "todo",
+          "title": "Comprobar los números",
+          "text": "Los valores usados proceden de guías publicadas. Un agrónomo humano aún debe comprobarlos antes de usarlos en una finca real."
+        }
+      ]
+    },
+    "next": {
+      "title": "Después",
+      "intro": "Previsto en torno al piloto de 2027",
+      "items": [
+        {
+          "kind": "planned",
+          "title": "Primeros planes piloto",
+          "text": "Las solicitudes están abiertas. Prevemos preparar planes para un pequeño número de fincas de trigo entre febrero y abril de 2027, cada uno aprobado por un agrónomo humano antes de que la finca lo vea."
+        },
+        {
+          "kind": "planned",
+          "title": "Fechas que siguen la campaña",
+          "text": "Periodos de aplicación sugeridos que tienen en cuenta el tiempo de la campaña y muestran cuándo se actualizaron."
+        },
+        {
+          "kind": "planned",
+          "title": "Enviarnos su análisis de suelo",
+          "text": "Comparta el informe del laboratorio como archivo. Una persona introduce los valores y los confirma."
+        },
+        {
+          "kind": "planned",
+          "title": "Cuentas para agricultores y asesores",
+          "text": "Vea sus planes aprobados en un solo lugar. Un asesor solo ve una finca si el agricultor le da acceso, y el agricultor puede retirarlo."
+        },
+        {
+          "kind": "planned",
+          "title": "Registrar lo que aplicó",
+          "text": "Un registro sencillo, cómodo en el teléfono, de lo previsto y de lo que realmente hizo."
+        },
+        {
+          "kind": "planned",
+          "title": "Compartir un documento de prueba",
+          "text": "Envíe un enlace a su documento de prueba y desactívelo cuando ya no quiera compartirlo."
+        }
+      ]
+    },
+    "later": {
+      "title": "Más adelante",
+      "intro": "Depende de lo que aprendamos en el piloto",
+      "items": [
+        {
+          "kind": "later",
+          "title": "Parcelas en un mapa",
+          "text": "Dibuje o suba los límites de las parcelas en lugar de escribir la superficie."
+        },
+        {
+          "kind": "later",
+          "title": "Leer por usted los análisis de suelo",
+          "text": "Valores tomados de su informe para que usted los confirme. Solo lo ofreceremos si resulta lo bastante fiable."
+        },
+        {
+          "kind": "later",
+          "title": "Resultados de la campaña",
+          "text": "Registrar la cosecha y si se siguió el plan, para ver dónde deben cambiar los planes."
+        },
+        {
+          "kind": "later",
+          "title": "Una aplicación para el teléfono",
+          "text": "Una aplicación para usar en el campo, también donde hay poca cobertura."
+        },
+        {
+          "kind": "later",
+          "title": "Más cultivos y regiones",
+          "text": "Otros cultivos y lugares, cada uno con sus propias reglas y su propia revisión."
+        }
+      ]
+    }
+  },
+  "changelog": {
+    "title": "Novedades",
+    "description": "Los cambios recientes de CloverProof, en lenguaje sencillo.",
+    "intro": "Los cambios recientes de CloverProof. Algunos están en este sitio web. Otros están en nuestra herramienta interna, que los agricultores aún no pueden usar.",
+    "roadmapLink": "Ver la hoja de ruta",
+    "kinds": {
+      "site": "En este sitio web",
+      "internal": "Herramienta interna · en pruebas"
+    },
+    "entries": [
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Hectáreas o acres",
+        "text": "Las dosis de la herramienta interna ya se pueden mostrar en kg/ha o lb/ac."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Una estimación del suelo sin análisis de laboratorio",
+        "text": "Una parcela sin análisis ya puede mostrar, como contexto, una estimación de suelo publicada. El plan sigue siendo solo de nitrógeno, con un nivel de confianza medio como máximo, y seguimos recomendando un análisis."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Fósforo y potasio a partir de análisis",
+        "text": "Los borradores ya pueden incluir estos nutrientes cuando el laboratorio usó un método del que tenemos tabla de referencia."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Nitrógeno en varias aplicaciones",
+        "text": "Los borradores pueden dividir el nitrógeno en varias aplicaciones, con un momento sugerido para cada una. Esos momentos aún debe comprobarlos un agrónomo humano."
+      },
+      {
+        "date": "2026-11-17",
+        "kind": "site",
+        "title": "CloverProof en hebreo",
+        "text": "El sitio web ya está disponible en hebreo. La traducción es automática y está pendiente de revisión por un hablante nativo."
+      },
+      {
+        "date": "2026-11-17",
+        "kind": "internal",
+        "title": "Un registro de cada plan revisado",
+        "text": "Un plan de prueba revisado ya puede generar un PDF con los datos, el razonamiento y quién lo revisó."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "El sitio web en ocho idiomas",
+        "text": "Puede leer sobre CloverProof en inglés, francés, italiano, español, búlgaro, finés, turco y árabe. Las traducciones son automáticas y están pendientes de revisión por hablantes nativos."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "Un formulario piloto más corto",
+        "text": "Hemos quitado el campo de notas libres, así recogemos menos datos sobre usted."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "Una comprobación de parcela en dos minutos",
+        "text": "Responda cuatro preguntas rápidas y vea qué tipo de plan podríamos preparar para una parcela, antes de compartir nada."
+      }
+    ]
   }
 }

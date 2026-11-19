@@ -245,6 +245,9 @@
   },
   "footer": {
     "tagline": "Decisioni di concimazione per ogni appezzamento, con prova.",
+    "more": "Altro",
+    "roadmap": "Roadmap",
+    "whatsNew": "Novità",
     "privacy": "Privacy",
     "languages": "Lingue",
     "comingSoon": "in arrivo",
@@ -403,5 +406,185 @@
     "noGaps": "Non manca nulla. Questo appezzamento è pronto per un piano.",
     "cta": "Richiedi un piano pilota per questo appezzamento",
     "disclaimer": "Questa verifica mostra solo l'ambito di un piano. Non fornisce dosi — quelle arrivano dopo che un agronomo ha revisionato i tuoi dati."
+  },
+  "roadmap": {
+    "title": "Roadmap",
+    "description": "A cosa sta lavorando CloverProof adesso, cosa viene dopo e cosa arriverà più avanti, in parole semplici.",
+    "intro": "A cosa stiamo lavorando, cosa viene dopo e cosa arriverà più avanti. È un piano, non una promessa: cambierà in base a ciò che impariamo da agricoltori e consulenti.",
+    "status": {
+      "title": "A che punto siamo oggi",
+      "text": "CloverProof è in una fase iniziale. Il nostro strumento di pianificazione è interno ed è in prova con dati aziendali fittizi. I suoi valori agronomici non sono ancora convalidati da un agronomo umano, e nessun piano arriva a un agricoltore senza l'approvazione di un agronomo umano."
+    },
+    "cta": {
+      "title": "Diteci cosa conta nella vostra azienda",
+      "text": "Vogliamo sentire agricoltori e consulenti prima di costruire altro. Ciò che ci dite può cambiare questo elenco.",
+      "button": "Vai al modulo del pilota",
+      "changelog": "Vedi le novità"
+    },
+    "kinds": {
+      "internal": "Interno · in prova",
+      "todo": "Da fare",
+      "planned": "Previsto",
+      "later": "Dipende dal pilota"
+    },
+    "now": {
+      "title": "Adesso",
+      "intro": "In sviluppo e in prova nel nostro team",
+      "items": [
+        {
+          "kind": "internal",
+          "title": "Piani per il frumento, appezzamento per appezzamento",
+          "text": "Uno strumento per il nostro team che prepara una bozza di piano di concimazione per un appezzamento: cosa applicare, quanto, quando e perché. Iniziamo dal frumento autunnale in Ontario."
+        },
+        {
+          "kind": "internal",
+          "title": "Una persona esamina ogni piano",
+          "text": "Un agronomo può approvare, modificare o respingere una bozza. Se un numero cambia, il motivo viene conservato e il piano riceve una nuova versione."
+        },
+        {
+          "kind": "internal",
+          "title": "Fosforo e potassio da un'analisi del suolo",
+          "text": "Con un'analisi del suolo di laboratorio, una bozza può coprire anche questi elementi, per i metodi di cui abbiamo tabelle di riferimento. Senza analisi copre solo l'azoto, con livello di affidabilità al massimo medio."
+        },
+        {
+          "kind": "todo",
+          "title": "Controllare i numeri",
+          "text": "I valori usati provengono da indicazioni pubblicate. Un agronomo umano deve ancora controllarli prima che vengano usati per un'azienda reale."
+        }
+      ]
+    },
+    "next": {
+      "title": "Dopo",
+      "intro": "Previsto intorno al pilota 2027",
+      "items": [
+        {
+          "kind": "planned",
+          "title": "I primi piani pilota",
+          "text": "Le richieste sono aperte. Prevediamo di preparare piani per un piccolo numero di aziende a frumento tra febbraio e aprile 2027, ciascuno approvato da un agronomo umano prima che l'azienda lo veda."
+        },
+        {
+          "kind": "planned",
+          "title": "Tempi che seguono la stagione",
+          "text": "Finestre di applicazione suggerite che tengono conto del meteo della stagione e mostrano quando sono state aggiornate."
+        },
+        {
+          "kind": "planned",
+          "title": "Inviarci la vostra analisi del suolo",
+          "text": "Condividete il referto di laboratorio come file. Una persona inserisce i valori e li conferma."
+        },
+        {
+          "kind": "planned",
+          "title": "Account per agricoltori e consulenti",
+          "text": "Trovate i piani approvati in un unico posto. Un consulente vede un'azienda solo se l'agricoltore gli dà accesso, e l'agricoltore può revocarlo."
+        },
+        {
+          "kind": "planned",
+          "title": "Registrare ciò che avete applicato",
+          "text": "Un registro semplice, comodo da telefono, di ciò che era previsto e di ciò che avete fatto davvero."
+        },
+        {
+          "kind": "planned",
+          "title": "Condividere un documento di prova",
+          "text": "Inviate un link al vostro documento di prova e disattivatelo quando non volete più condividerlo."
+        }
+      ]
+    },
+    "later": {
+      "title": "Più avanti",
+      "intro": "Dipende da ciò che impareremo nel pilota",
+      "items": [
+        {
+          "kind": "later",
+          "title": "Appezzamenti su una mappa",
+          "text": "Disegnate o caricate i confini degli appezzamenti invece di digitare la superficie."
+        },
+        {
+          "kind": "later",
+          "title": "Leggere per voi le analisi del suolo",
+          "text": "Valori ripresi dal vostro referto, da confermare. Lo offriremo solo se si dimostrerà abbastanza affidabile."
+        },
+        {
+          "kind": "later",
+          "title": "Risultati della stagione",
+          "text": "Registrare il raccolto e se il piano è stato seguito, per capire dove i piani devono cambiare."
+        },
+        {
+          "kind": "later",
+          "title": "Un'app per il telefono",
+          "text": "Un'app da usare in campo, anche dove il segnale è debole."
+        },
+        {
+          "kind": "later",
+          "title": "Più colture e regioni",
+          "text": "Altre colture e altri luoghi, ciascuno con le proprie regole e la propria revisione."
+        }
+      ]
+    }
+  },
+  "changelog": {
+    "title": "Novità",
+    "description": "Le modifiche recenti di CloverProof, in parole semplici.",
+    "intro": "Le modifiche recenti di CloverProof. Alcune sono su questo sito. Altre sono nel nostro strumento interno, che gli agricoltori non possono ancora usare.",
+    "roadmapLink": "Vedi la roadmap",
+    "kinds": {
+      "site": "Su questo sito",
+      "internal": "Strumento interno · in prova"
+    },
+    "entries": [
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Ettari o acri",
+        "text": "Le dosi nello strumento interno ora si possono mostrare in kg/ha o lb/ac."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Una stima del suolo senza analisi di laboratorio",
+        "text": "Un appezzamento senza analisi può ora mostrare, come contesto, una stima del suolo pubblicata. Il piano resta solo per l'azoto, con livello di affidabilità al massimo medio, e continuiamo a consigliare un'analisi."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Fosforo e potassio dalle analisi di laboratorio",
+        "text": "Le bozze ora possono includere questi elementi quando il laboratorio ha usato un metodo di cui abbiamo la tabella di riferimento."
+      },
+      {
+        "date": "2026-11-18",
+        "kind": "internal",
+        "title": "Azoto in più applicazioni",
+        "text": "Le bozze possono dividere l'azoto in più applicazioni, con un periodo suggerito per ciascuna. Questi periodi devono ancora essere controllati da un agronomo umano."
+      },
+      {
+        "date": "2026-11-17",
+        "kind": "site",
+        "title": "CloverProof in ebraico",
+        "text": "Il sito è ora disponibile in ebraico. La traduzione è automatica ed è in attesa della revisione di un madrelingua."
+      },
+      {
+        "date": "2026-11-17",
+        "kind": "internal",
+        "title": "Una traccia di ogni piano esaminato",
+        "text": "Un piano di prova esaminato può ora generare un PDF con i dati, il ragionamento e chi lo ha esaminato."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "Il sito in otto lingue",
+        "text": "Potete leggere di CloverProof in inglese, francese, italiano, spagnolo, bulgaro, finlandese, turco e arabo. Le traduzioni sono automatiche e attendono la revisione di madrelingua."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "Un modulo pilota più breve",
+        "text": "Abbiamo tolto il campo per le note libere, così raccogliamo meno dati su di voi."
+      },
+      {
+        "date": "2026-11-16",
+        "kind": "site",
+        "title": "Un controllo dell'appezzamento in due minuti",
+        "text": "Rispondete a quattro domande rapide e vedete che tipo di piano potremmo preparare per un appezzamento, prima di condividere qualsiasi cosa."
+      }
+    ]
   }
 }
