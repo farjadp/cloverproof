@@ -111,7 +111,7 @@ Tests are in `app/tests/db/test_rls.py` unless noted.
 | 7.1–7.3, 7.6 | Met earlier | `actor_kind` (0012) — named `actor_kind` with values `human` / `service`, not `account_kind`; `test_actor_kind.py`, `test_app_s2_delta.py`, `test_review_integrity.py`. |
 | 7.4 | Met, on `farmer` | `farmer.record_kind` (`real` default, `demo`, `reference`), set only by a human superadmin, frozen once a recommendation exists (0017; `test_s2_model.py`). Never gates approval. |
 | 7.5 | Query documented here | `select count(*) from review r join app_user u on u.id = r.reviewer_id where r.decision = 'approve' and r.review_kind <> 'ai_reviewed' and u.actor_kind <> 'human'` = 0. Weekly run: ops runbook (Q4). |
-| 7.7 | Met | `*_ai_boundary` policies; `test_service_context_sees_no_real_farmer_rows`. Other tenant tables (soil tests, plans, recommendations) carry no names or geometry and stay visible to a service member of the org. |
+| 7.7 | Met | `*_ai_boundary` policies, including `soil_estimate` (0033: its values could locate a farm's map pixel); `test_service_context_sees_no_real_farmer_rows`. Other tenant tables (soil tests, plans, recommendations) carry no names or geometry and stay visible to a service member of the org. |
 | 8.1 | Met | 0021 indexes; `test_tenant_table_has_index_led_by_org_column`. |
 | 8.2 | Met in policy text | Helpers called as `(select app_ctx_org())`. `EXPLAIN` test on 100k rows not written. |
 | 8.3 | Not yet | Budget proposed: p95 within +20 % of RLS off; benchmark before the S5 gate. |

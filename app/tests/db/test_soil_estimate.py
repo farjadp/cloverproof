@@ -12,7 +12,14 @@ import psycopg
 import pytest
 from psycopg import errors
 
-from .conftest import Org, as_owner, insert, use_context
+from .conftest import (
+    Org,
+    as_owner,
+    insert,
+    locate_field,
+    soil_estimate_provenance,
+    use_context,
+)
 
 pytestmark = pytest.mark.db
 
@@ -45,6 +52,22 @@ REQUIRED = [
 ]
 
 
+# Migration 0033 needs a located field; setting the point makes its revision 1.
+REVISION = 1
+
+
+@pytest.fixture
+def org_a(db: psycopg.Connection, org_a: Org) -> Org:
+    assert locate_field(db, org_a.id, org_a.fields[0]) == REVISION
+    return org_a
+
+
+@pytest.fixture
+def org_b(db: psycopg.Connection, org_b: Org) -> Org:
+    assert locate_field(db, org_b.id, org_b.fields[0]) == REVISION
+    return org_b
+
+
 def estimate(org: Org, **overrides: Any) -> dict[str, Any]:
     values: dict[str, Any] = {
         "organisation_id": org.id,
@@ -66,7 +89,12 @@ def estimate(org: Org, **overrides: Any) -> dict[str, Any]:
         "attribution": "SoilGrids 2.0, ISRIC - World Soil Information, CC BY 4.0",
         "created_by": org.staff,
     }
-    return values | overrides
+    values |= overrides
+    # The address follows the row, so a test of another column fails on that column only.
+    provenance = soil_estimate_provenance(
+        REVISION, values["property"], values["depth_top_cm"], values["depth_bottom_cm"]
+    )
+    return provenance | values
 
 
 def refused(db: psycopg.Connection, expected: Any, values: dict[str, Any]) -> None:
@@ -80,12 +108,21 @@ def count(db: psycopg.Connection) -> int:
     return int(row[0])
 
 
-def test_only_the_uncertainty_columns_are_nullable(db: psycopg.Connection) -> None:
+def test_only_uncertainty_and_0033_columns_are_nullable(db: psycopg.Connection) -> None:
     rows = db.execute(
         "select column_name from information_schema.columns where table_schema = 'public'"
         " and table_name = 'soil_estimate' and is_nullable = 'YES'"
     ).fetchall()
-    assert {r[0] for r in rows} == {"value_q05", "value_q95", "uncertainty_ratio"}
+    # The last four are nullable for rows older than 0033; CHECKs require them on new rows.
+    assert {r[0] for r in rows} == {
+        "value_q05",
+        "value_q95",
+        "uncertainty_ratio",
+        "field_location_revision",
+        "statistic",
+        "layer_url",
+        "citation",
+    }
 
 
 def test_field_and_season_use_composite_foreign_keys(db: psycopg.Connection) -> None:

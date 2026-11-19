@@ -23,6 +23,12 @@ Changes are recorded in admin_event by trigger with the database login as the ac
         Platform role (migration 0012, decision 2026-11-16), human accounts only. A human
         superadmin may approve, edit and reject in organisations they are a member of
         (review_kind superadmin_approved, never calibration data). Audited in admin_event.
+
+    ... cli soil-estimate-load --field <id> --season <id> --cache-dir <path> --as <email>
+        Stores the cached SoilGrids values at the field's point (migration 0033), acting as the
+        named human member of the field's organisation. Operator checkout only: the app image
+        has no `data_sources`, and no request ever runs this. Never prints the coordinates.
+        Steps: docs/runbook-soilgrids-cache.md.
 """
 
 from __future__ import annotations
@@ -33,16 +39,27 @@ import os
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime, time
+from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 import psycopg
+from psycopg import errors
+from psycopg.conninfo import make_conninfo
 
 from cloverproof_app import security
+from cloverproof_app.config import DEPLOYED_ENVS, is_local_database
+from cloverproof_app.db.pool import set_rls_context
 from cloverproof_app.ratelimit import UNLOCK_CHANNEL, account_key
-from cloverproof_app.repo import admin_users, sessions, users
+from cloverproof_app.repo import admin_users, sessions, soil_estimates, users
 
 ORG_ROLES = ("org_admin", "agronomist", "advisor")
 PLATFORM_ROLES = ("superadmin",)  # platform `staff` comes with a later migration (RK-X11)
+NO_ESTIMATE_REASONS = {
+    "outside_cache": "the field's point is outside the cached area",
+    "nodata": "SoilGrids has no prediction at the field's point (masked pixel)",
+}
 
 
 class CliError(RuntimeError):
@@ -154,6 +171,144 @@ def user_revoke_sessions(conn: psycopg.Connection, *, email: str) -> int:
         return sessions.revoke_all_for_user(conn, creds.id)
 
 
+@dataclass(frozen=True)
+class SoilEstimateLoad:
+    stored: int
+    revision: int
+    no_estimate_reason: str | None = None
+
+
+def is_hosted_target(env: str, host: str) -> bool:
+    """True for a deployed ENV, and for any non-local database whatever ENV says.
+
+    ADR 0009 must hold when an operator's shell lacks ENV or still says `development`.
+    """
+    deployed = env.strip().lower() in DEPLOYED_ENVS
+    return deployed or not is_local_database(make_conninfo(host=host))
+
+
+def _soilgrids_lookup() -> tuple[Any, str]:
+    # Imported here: the app image does not install data_sources (see Dockerfile).
+    try:
+        from data_sources.soilgrids import lookup_estimate
+        from data_sources.soilgrids.catalog import LICENSE
+    except ImportError as error:
+        raise CliError(
+            "soil-estimate-load needs the data_sources package, which the app image does not"
+            " install; run it from an operator checkout after `uv sync`"
+        ) from error
+    return lookup_estimate, LICENSE
+
+
+def _operator_context(
+    conn: psycopg.Connection, email: str, field_id: UUID
+) -> tuple[UUID, UUID, str]:
+    """Set the RLS context of the named member; returns (user, organisation, record kind)."""
+    creds = users.get_credentials_by_email(conn, email)
+    if creds is None:
+        raise CliError("no user with that email")
+    if creds.actor_kind != "human":
+        raise CliError("--as must name a person; that is a service account")
+    if creds.disabled_at is not None:
+        raise CliError("that account is disabled")
+    for org in users.user_organisations(conn, creds.id):
+        set_rls_context(conn, user_id=creds.id, org_id=org.id)
+        kind = soil_estimates.field_record_kind(conn, org.id, field_id)
+        if kind is not None:
+            return creds.id, org.id, kind
+    raise CliError("no such field in an organisation this user belongs to")
+
+
+def _new_estimates(estimate: Any, licence: str) -> list[soil_estimates.NewEstimate]:
+    return [
+        soil_estimates.NewEstimate(
+            property=v.property,
+            depth_top_cm=v.depth_top_cm,
+            depth_bottom_cm=v.depth_bottom_cm,
+            statistic=v.statistic,
+            value=v.value,
+            unit=v.unit,
+            value_q05=v.q05,
+            value_q95=v.q95,
+            uncertainty_ratio=v.uncertainty_ratio,
+            source=v.provider.lower(),
+            source_version=v.version,
+            resolution_m=v.resolution_m,
+            # The cache records a date; 0031 stores it as 00:00 UTC of that day.
+            retrieved_at=datetime.combine(v.retrieved_on, time.min, UTC),
+            licence=licence,
+            attribution=estimate.attribution,
+            citation=estimate.citation,
+            layer_url=v.url,
+        )
+        for v in estimate.values
+    ]
+
+
+def soil_estimate_load(
+    conn: psycopg.Connection,
+    *,
+    field_id: UUID,
+    season_id: UUID,
+    cache_dir: Path,
+    operator_email: str,
+    hosted: bool,
+) -> SoilEstimateLoad:
+    """Store the cached values at the field's point, all of them or none, in one transaction.
+
+    Runs under the RLS context of a named, enabled human member of the field's organisation, so
+    no policy changes and no privileged path are needed. The field stays locked from reading its
+    point to commit. No message here may contain the point: third-party error text is dropped.
+    """
+    lookup_estimate, licence = _soilgrids_lookup()
+    try:
+        with conn.transaction():
+            if hosted:
+                row = conn.execute(
+                    "select rolsuper or rolbypassrls from pg_roles where rolname = current_user"
+                ).fetchone()
+                if row is None or row[0]:
+                    raise CliError("on a hosted database, log in as cp_app_login (RLS must apply)")
+            user_id, org_id, record_kind = _operator_context(conn, operator_email, field_id)
+            if hosted and record_kind == "real":
+                raise CliError(
+                    "refused: this field belongs to a real farmer and hosted environments hold"
+                    " synthetic or de-identified data only (ADR 0009)"
+                )
+            if not soil_estimates.season_exists(conn, org_id, season_id):
+                raise CliError("no such season in the field's organisation")
+            point = soil_estimates.lock_field_point(conn, org_id, field_id)
+            if point is None:
+                raise CliError("this field has no location; add one on the field page first")
+            try:
+                result = lookup_estimate(float(point.lon), float(point.lat), cache_dir=cache_dir)
+            except Exception as error:
+                raise CliError(
+                    f"the SoilGrids cache could not be read ({error.__class__.__name__});"
+                    " check --cache-dir and docs/runbook-soilgrids-cache.md"
+                ) from None
+            if result.status == "no_estimate":
+                reason = NO_ESTIMATE_REASONS[result.reason]
+                return SoilEstimateLoad(0, point.revision, reason)
+            rows = _new_estimates(result, licence)
+            for estimate in rows:
+                soil_estimates.insert_estimate(
+                    conn,
+                    org_id,
+                    field_id=field_id,
+                    season_id=season_id,
+                    revision=point.revision,
+                    created_by=user_id,
+                    estimate=estimate,
+                )
+    except errors.UniqueViolation:
+        raise CliError(
+            "this retrieval is already stored for this field, season and location;"
+            " nothing was changed"
+        ) from None
+    return SoilEstimateLoad(len(rows), point.revision)
+
+
 def prompt_password() -> str:
     if not sys.stdin.isatty():
         line = sys.stdin.readline().rstrip("\n")
@@ -201,6 +356,15 @@ def build_parser() -> argparse.ArgumentParser:
         "user-revoke-sessions", help="sign the user out on every device (password unchanged)"
     )
     revoke.add_argument("--email", required=True)
+    load = commands.add_parser(
+        "soil-estimate-load", help="store cached SoilGrids values for a field and season"
+    )
+    load.add_argument("--field", required=True, type=UUID, help="field id")
+    load.add_argument("--season", required=True, type=UUID, help="season id")
+    load.add_argument("--cache-dir", required=True, type=Path, help="SoilGrids cache directory")
+    load.add_argument(
+        "--as", required=True, dest="operator", help="email of an enabled member of the org"
+    )
     return parser
 
 
@@ -218,6 +382,21 @@ def run_command(conn: psycopg.Connection, args: argparse.Namespace) -> str:
     if args.command == "user-revoke-sessions":
         count = user_revoke_sessions(conn, email=args.email)
         return f"revoked {count} active session(s) for {args.email.strip()}"
+    if args.command == "soil-estimate-load":
+        load = soil_estimate_load(
+            conn,
+            field_id=args.field,
+            season_id=args.season,
+            cache_dir=args.cache_dir,
+            operator_email=args.operator,
+            hosted=is_hosted_target(os.environ.get("ENV", ""), conn.info.host),
+        )
+        if load.no_estimate_reason is not None:
+            return f"no estimate stored: {load.no_estimate_reason}"
+        return (
+            f"stored {load.stored} estimate value(s) for field {args.field},"
+            f" season {args.season}, location revision {load.revision}"
+        )
     result = user_create(
         conn,
         email=args.email,
