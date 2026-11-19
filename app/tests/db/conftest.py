@@ -237,6 +237,39 @@ def edited(result: dict[str, Any], n_rate: float) -> dict[str, Any]:
     return doc
 
 
+SOIL_ESTIMATE_LAYER_BASE = "https://files.isric.org/soilgrids/latest/data"
+SOIL_ESTIMATE_CITATION = "Poggio et al. 2021, SOIL 7, 217-240, doi:10.5194/soil-7-217-2021"
+
+
+def locate_field(
+    conn: psycopg.Connection, org_id: UUID, field_id: UUID, lat: float = 43.55, lon: float = -80.25
+) -> int:
+    """Set the field's point as a member of its organisation; returns the new revision."""
+    saved = current_context(conn)
+    use_context(conn, member_of(conn, org_id), org_id)
+    row = conn.execute(
+        "update field set location_lat = %s, location_lon = %s"
+        " where organisation_id = %s and id = %s returning location_revision",
+        (lat, lon, org_id, field_id),
+    ).fetchone()
+    restore_context(conn, saved)
+    assert row is not None
+    return int(row[0])
+
+
+def soil_estimate_provenance(
+    revision: int, prop: str = "nitrogen", top: int = 0, bottom: int = 5
+) -> dict[str, Any]:
+    """The columns migration 0033 requires on every new soil_estimate row."""
+    layer = f"{prop}/{prop}_{top}-{bottom}cm_mean.vrt"
+    return {
+        "field_location_revision": revision,
+        "statistic": "mean",
+        "layer_url": f"{SOIL_ESTIMATE_LAYER_BASE}/{layer}",
+        "citation": SOIL_ESTIMATE_CITATION,
+    }
+
+
 @dataclass
 class Org:
     id: UUID

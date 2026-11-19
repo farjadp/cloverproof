@@ -34,7 +34,9 @@ from .conftest import (
     as_owner,
     as_role,
     insert,
+    locate_field,
     recommendation_values,
+    soil_estimate_provenance,
     use_context,
 )
 
@@ -115,8 +117,8 @@ def _line(org: Org, recommendation: UUID) -> dict[str, Any]:
     }
 
 
-def _soil_estimate(org: Org, field: UUID) -> dict[str, Any]:
-    return {
+def _soil_estimate(db: psycopg.Connection, org: Org, field: UUID) -> dict[str, Any]:
+    return soil_estimate_provenance(locate_field(db, org.id, field)) | {
         "organisation_id": org.id,
         "field_id": field,
         "season_id": org.season,
@@ -186,7 +188,7 @@ TENANT_CASES: dict[str, tuple[Builder, str | None, bool]] = {
         "value",
         True,
     ),
-    "soil_estimate": (lambda db, o, r: _soil_estimate(o, o.fields[1]), None, False),
+    "soil_estimate": (lambda db, o, r: _soil_estimate(db, o, o.fields[1]), None, False),
     "crop_plan": (
         lambda db, o, r: {
             "organisation_id": o.id,
@@ -280,7 +282,7 @@ def complete(db: psycopg.Connection, org: Org, result: dict[str, Any]) -> None:
         unit="mg/kg",
         extraction_method="olsen",
     )
-    insert(db, "soil_estimate", **_soil_estimate(org, org.fields[0]))
+    insert(db, "soil_estimate", **_soil_estimate(db, org, org.fields[0]))
     insert(
         db,
         "application_log",

@@ -7,7 +7,7 @@ import psycopg
 import pytest
 from psycopg import errors
 
-from .conftest import Org, as_owner, insert
+from .conftest import Org, as_owner, insert, locate_field, soil_estimate_provenance
 
 pytestmark = pytest.mark.db
 
@@ -67,6 +67,7 @@ def approved(db: psycopg.Connection, org_a: Org) -> dict[str, Any]:
         licence="CC BY 4.0",
         attribution="SoilGrids 2.0, ISRIC - World Soil Information, CC BY 4.0",
         created_by=org_a.staff,
+        **soil_estimate_provenance(locate_field(db, org_a.id, org_a.fields[0])),
     )
     return {
         "recommendation": org_a.engine_rec,
