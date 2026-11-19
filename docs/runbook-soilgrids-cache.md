@@ -45,6 +45,61 @@ Download time has not been measured. Plan for a long run and at least 7 GB free 
 - The version recorded is `2.0`, set in code. The file tree does not pin it, so check ISRIC's release notes before a re-fetch.
 - A point outside the cached bbox, or on a masked pixel, gives `no_estimate`. A missing or damaged cache raises an error.
 
+## Load estimates into the database
+
+`soil-estimate-load` stores the cached values at one field's point, for one season, in `soil_estimate`. It runs from an operator checkout (`uv sync`), never in the app: the app image has no `data_sources`, and no web request reaches this code. It reads the cache only and opens nothing on the network.
+
+Before you start:
+
+- Migration 0033 is applied to the target database.
+- The cache is built (steps above). It stays on the operator's machine; only the values go to the database.
+- The field has a location, set on its page in the app.
+- `--as` names an enabled human member of the field's organisation, any role. The rows are written under that person's RLS context and record them as `created_by`.
+
+### Hosted environments: synthetic farmers only
+
+Staging and production hold synthetic or de-identified data only (ADR 0009). The command refuses a field whose farmer has `record_kind = 'real'` when `ENV` is `staging` or `production`, and also for any database that is not on this machine, whatever `ENV` says.
+
+`record_kind` defaults to `real`, and the app cannot change it, so **a test farmer created in the app counts as real until it is marked**. Mark it before its first plan: the value is frozen once the farmer has a recommendation (then create a new farmer instead). You need the `cp_admin_login` URL and a human superadmin who is a member of the farmer's organisation:
+
+```sql
+-- psql, logged in as cp_admin_login
+begin;
+select set_config('app.user_id', '<superadmin user id>', true),
+       set_config('app.org_id', '<organisation id>', true);
+update farmer set record_kind = 'demo' where organisation_id = '<organisation id>' and id = '<farmer id>';
+commit;
+```
+
+Only do this for a farmer that really is synthetic or de-identified. It is the check that keeps real farm data out of hosted environments.
+
+### Run it
+
+Log in as `cp_app_login`: the step needs no more than that. A superuser or `BYPASSRLS` login is refused on a hosted database.
+
+```sh
+ENV=staging DATABASE_URL='<cp_app_login URL>' uv run python -m cloverproof_app.cli soil-estimate-load \
+  --field <field id> --season <season id> \
+  --cache-dir data/cache/soilgrids --as <operator email>
+```
+
+Locally, leave `ENV` unset and use the local `DATABASE_URL`.
+
+| Output | Meaning |
+|---|---|
+| `stored N estimate value(s) ...` | All values were stored, in one transaction |
+| `no estimate stored: ...` | The point is outside the cache, or on a masked pixel. Nothing was stored; exit code 0 |
+| `error: this field has no location ...` | Add the location first |
+| `error: this retrieval is already stored ...` | Same cache, same location. Nothing was changed |
+| `error: refused: this field belongs to a real farmer ...` | See above |
+| `error: the SoilGrids cache could not be read ...` | Check `--cache-dir`, or rebuild the cache |
+
+The command never prints the field's coordinates. Do not paste a real field's point into the check in step 3 above: its output contains the coordinates.
+
+### When a field moves
+
+Changing or clearing a field's location raises `field.location_revision`. Its stored estimates stop being current at once; they stay in the table (it is immutable). Run the command again to store values for the new point: the same cache can be used. A point moved back to an earlier position also needs a new load.
+
 ## Attribution
 
 Wherever a value is shown, use `SoilEstimate.attribution` (`SoilGrids 2.0, ISRIC - World Soil Information, CC BY 4.0`) and `SoilEstimate.citation`.
