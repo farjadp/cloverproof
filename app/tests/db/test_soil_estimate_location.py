@@ -235,6 +235,27 @@ def test_service_account_cannot_load_a_real_farmers_field(
         )
 
 
+def test_service_account_cannot_read_a_real_farmers_estimates(
+    db: psycopg.Connection, org_a: Org
+) -> None:
+    """Rule 12: values from a public map could point to the farm."""
+    revision = locate_field(db, org_a.id, org_a.fields[0])
+    with as_owner(db):
+        service = insert(
+            db,
+            "app_user",
+            email="service-read@example.org",
+            display_name="Service",
+            actor_kind="service",
+        )
+        insert(db, "membership", organisation_id=org_a.id, user_id=service, role="advisor")
+        insert(db, "soil_estimate", **row(org_a, revision))
+    use_context(db, service, org_a.id)
+    assert db.execute("select count(*) from soil_estimate").fetchone() == (0,)
+    use_context(db, org_a.agronomist, org_a.id)
+    assert db.execute("select count(*) from soil_estimate").fetchone() == (1,)
+
+
 def test_rows_stay_immutable_after_a_move(db: psycopg.Connection, org_a: Org) -> None:
     revision = locate_field(db, org_a.id, org_a.fields[0])
     row_id = insert(db, "soil_estimate", **row(org_a, revision))
