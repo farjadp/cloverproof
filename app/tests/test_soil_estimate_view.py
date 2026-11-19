@@ -93,5 +93,5 @@ def test_default_prefers_usable_values_then_older_rows_then_this_year() -> None:
 
 def test_season_option_says_what_the_season_holds() -> None:
     assert view.season_option(season("2027", current=True)) == "2027 (estimates loaded)"
-    assert view.season_option(season("2027", stored=True)) == "2027 (location changed)"
+    assert view.season_option(season("2027", stored=True)) == "2027 (estimates out of date)"
     assert view.season_option(season("2027")) == "2027"

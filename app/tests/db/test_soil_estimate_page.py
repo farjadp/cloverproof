@@ -219,7 +219,7 @@ def test_default_opens_the_season_that_needs_the_warning(
     load(db, org_a, located(db, org_a))
     locate_field(db, org_a.id, org_a.fields[0], 44.0, -80.0)
     page = page_of(db, org_a)
-    assert "2027 (location changed)" in page and view.STALE_TITLE in page
+    assert "2027 (estimates out of date)" in page and view.STALE_TITLE in page
 
 
 def test_season_of_another_org_or_unknown_is_refused(
@@ -360,3 +360,14 @@ def test_page_code_does_not_import_data_sources() -> None:
             elif isinstance(node, ast.ImportFrom):
                 imported.add(node.module or "")
         assert not [m for m in imported if m.split(".")[0] == "data_sources"], name
+
+
+def test_licence_and_source_links_and_change_notice_are_shown(
+    db: psycopg.Connection, org_a: Org
+) -> None:
+    load(db, org_a, located(db, org_a))
+    page = page_of(db, org_a)
+    assert "https://creativecommons.org/licenses/by/4.0/" in page
+    assert "https://docs.isric.org/globaldata/soilgrids/" in page
+    assert "converted to the units shown" in page
+    assert "not an N credit" in page

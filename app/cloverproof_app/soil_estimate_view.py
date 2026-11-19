@@ -24,8 +24,8 @@ NO_LOCATION_BODY = "An estimate is looked up for one point in the field."
 NOT_LOADED_TITLE = "No estimate is loaded for this field and season."
 # The loader stores nothing for a point the cache cannot answer, so the two cases look the same.
 NOT_LOADED_BODY = "If a load has already run, the soil map may have no value at this point."
-STALE_TITLE = "This field's location changed, so older estimates are no longer used."
-STALE_BODY = "Estimates loaded for the earlier location are not shown here."
+STALE_TITLE = "Older estimates are not tied to this field's present location and are not used."
+STALE_BODY = "They are not shown here."
 NO_VALUE = "No value loaded for this point."
 
 CONFIDENCE = "low"  # Every SoilGrids value is low confidence (ADR 0006).
@@ -36,7 +36,7 @@ RATIO_NOTE = "Uncertainty: range width divided by the median"
 PROPERTY_NAMES = (
     ("phh2o", "Soil pH in water"),
     ("soc", "Organic carbon"),
-    ("nitrogen", "Total soil nitrogen (not nitrate)"),
+    ("nitrogen", "Total soil nitrogen (not nitrate, not an N credit)"),
     ("clay", "Clay"),
     ("sand", "Sand"),
     ("silt", "Silt"),
@@ -146,5 +146,5 @@ def season_option(season: EstimateSeason) -> str:
     if season.has_current:
         return f"{season.label} (estimates loaded)"
     if season.has_estimates:
-        return f"{season.label} (location changed)"
+        return f"{season.label} (estimates out of date)"
     return season.label
