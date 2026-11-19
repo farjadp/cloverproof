@@ -79,6 +79,49 @@ class NewEstimate:
     layer_url: str
 
 
+@dataclass(frozen=True)
+class EstimateSeason:
+    id: UUID
+    label: str
+    has_current: bool  # holds a value for the field's present location
+    has_estimates: bool  # holds any row for this field, of any location
+
+
+def seasons_for_field(
+    conn: psycopg.Connection, org_id: UUID, field_id: UUID
+) -> list[EstimateSeason]:
+    """Seasons used on the field's farm (plan, area or estimate), newest label first."""
+    with conn.cursor(row_factory=class_row(EstimateSeason)) as cur:
+        return cur.execute(
+            "select s.id, s.label,"
+            " exists (select 1 from soil_estimate se"
+            "   where se.organisation_id = s.organisation_id and se.field_id = f.id"
+            "     and se.season_id = s.id"
+            "     and se.field_location_revision = f.location_revision) as has_current,"
+            " exists (select 1 from soil_estimate se"
+            "   where se.organisation_id = s.organisation_id and se.field_id = f.id"
+            "     and se.season_id = s.id) as has_estimates"
+            " from field f join season s on s.organisation_id = f.organisation_id"
+            " where f.organisation_id = %(org)s and f.id = %(field)s and s.id in ("
+            "   select used.season_id from field sibling"
+            "   join lateral ("
+            "     select p.season_id from crop_plan p"
+            "       where p.organisation_id = sibling.organisation_id"
+            "         and p.field_id = sibling.id"
+            "     union select g.season_id from field_geometry_version g"
+            "       where g.organisation_id = sibling.organisation_id"
+            "         and g.field_id = sibling.id"
+            "     union select e.season_id from soil_estimate e"
+            "       where e.organisation_id = sibling.organisation_id"
+            "         and e.field_id = sibling.id"
+            "   ) used on true"
+            "   where sibling.organisation_id = f.organisation_id"
+            "     and sibling.farm_id = f.farm_id)"
+            " order by s.label desc, s.created_at desc, s.id",
+            {"org": org_id, "field": field_id},
+        ).fetchall()
+
+
 def current_estimates(
     conn: psycopg.Connection, org_id: UUID, field_id: UUID, season_id: UUID
 ) -> list[CurrentEstimate]:

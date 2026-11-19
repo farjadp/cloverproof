@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% from "_macros.html" import breadcrumb, confidence %}
+{% block title %}Soil estimate for {{ field.name }}{% endblock %}
+{% block breadcrumb %}{{ breadcrumb([("Farmers", "/farmers"), (field.farmer_name, "/farmers/" ~ field.farmer_id), (field.name, "/fields/" ~ field.id), ("Soil estimate", None)]) }}{% endblock %}
+{% block content %}
+<h1>Soil estimate for {{ field.name }}</h1>
+
+<div class="notice info estimate-statement">
+  <p class="notice-title">{{ view.STATEMENT }}</p>
+  <p><a href="/fields/{{ field.id }}/plans/new#has_soil">Add a real soil test in a new plan</a></p>
+</div>
+
+{% if seasons | length > 1 %}
+<form class="filters" method="get" action="/fields/{{ field.id }}/soil-estimate">
+  <div class="field">
+    <label for="season">Season</label>
+    <select id="season" name="season">
+      {% for s in seasons %}
+      <option value="{{ s.id }}"{% if s.id == season.id %} selected{% endif %}>{{ view.season_option(s) }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="button secondary" type="submit">Show season</button>
+</form>
+{% elif season %}
+<dl class="facts"><div><dt>Season</dt><dd>{{ season.label }}</dd></div></dl>
+{% endif %}
+
+{% if stale %}
+<div class="notice warn estimate-state" role="status">
+  <p class="notice-title">{{ view.STALE_TITLE }}</p>
+  <p>{{ view.STALE_BODY }}{% if has_location %} {{ view.OPERATOR_NOTE }}{% endif %}</p>
+</div>
+{% endif %}
+
+{% if not has_location %}
+<div class="notice info estimate-state">
+  <p class="notice-title">{{ view.NO_LOCATION_TITLE }}</p>
+  <p>{{ view.NO_LOCATION_BODY }} <a href="/fields/{{ field.id }}/location">Add the field location</a></p>
+</div>
+{% elif not groups and not stale %}
+<div class="notice info estimate-state">
+  <p class="notice-title">{{ view.NOT_LOADED_TITLE }}</p>
+  <p>{{ view.OPERATOR_NOTE }} {{ view.NOT_LOADED_BODY }}</p>
+</div>
+{% endif %}
+
+{% if groups %}
+<p class="estimate-key">Source and licence of every value: <a href="#attribution">Data source and attribution</a>.</p>
+<table class="stack estimate-table">
+  <thead><tr><th scope="col">Depth</th><th scope="col">Estimate</th><th scope="col">Range or uncertainty</th><th scope="col">Confidence</th><th scope="col">Source</th><th scope="col">Resolution</th><th scope="col">Retrieved</th></tr></thead>
+  {% for group in groups %}
+  <tbody>
+    <tr class="estimate-group"><th scope="rowgroup" colspan="7">{{ group.name }}</th></tr>
+    {% for r in group.rows %}
+    <tr>
+      <td data-label="Depth">{{ r.depth }}</td>
+      {% if r.value %}
+      <td data-label="Estimate"><div class="explained"><span class="value">{{ r.value }}</span><p class="why">{{ view.VALUE_NOTE }}</p></div></td>
+      <td data-label="Range or uncertainty">
+        {% if r.range %}<div class="explained"><span class="value">{{ r.range }}</span><p class="why">{{ view.RANGE_NOTE }}</p></div>{% endif %}
+        {% if r.ratio %}<div class="explained"><span class="value">{{ r.ratio }}</span><p class="why">{{ view.RATIO_NOTE }}</p></div>{% endif %}
+      </td>
+      <td data-label="Confidence">{{ confidence(view.CONFIDENCE) }}</td>
+      <td data-label="Source">{{ r.source }}</td>
+      <td data-label="Resolution">{{ r.resolution }}</td>
+      <td data-label="Retrieved">{{ r.retrieved }}</td>
+      {% else %}
+      <td colspan="6" class="estimate-none">{{ view.NO_VALUE }}</td>
+      {% endif %}
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="estimate-none">{{ view.NO_VALUE }}</td></tr>
+    {% endfor %}
+  </tbody>
+  {% endfor %}
+</table>
+
+<section id="attribution" aria-labelledby="attribution-h">
+  <h2 id="attribution-h">Data source and attribution</h2>
+  {% for c in credits %}
+  <p class="estimate-credit">{{ c.attribution }}</p>
+  <p class="estimate-credit">Citation: {{ c.citation }}</p>
+  <p class="estimate-credit">Licence: {{ c.licence }}</p>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

@@ -20,7 +20,14 @@ import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 
-from cloverproof_app import display_units, field_location, line_diff, planning, timer
+from cloverproof_app import (
+    display_units,
+    field_location,
+    line_diff,
+    planning,
+    soil_estimate_view,
+    timer,
+)
 from cloverproof_app.auth import (
     INTERNAL_ROLES,
     Conn,
@@ -28,7 +35,7 @@ from cloverproof_app.auth import (
     SettingsDep,
     require_org_role,
 )
-from cloverproof_app.repo import farms, plans
+from cloverproof_app.repo import farms, plans, soil_estimates
 from cloverproof_app.web import render, set_cookie
 from cloverproof_engine.pack import Pack
 
@@ -294,6 +301,38 @@ async def field_location_save(request: Request, conn: Conn, context: InternalOrg
     if not farms.set_field_location(conn, context.org.id, field_id, location):
         raise not_found("Field")
     return RedirectResponse(f"/fields/{field_id}", status_code=303)
+
+
+@router.get("/fields/{field_id}/soil-estimate")
+def field_soil_estimate(request: Request, conn: Conn, context: InternalOrg, field_id: UUID,
+                        season: UUID | None = None) -> Response:  # fmt: skip
+    """Stored estimates only: no fetch, and nothing here reaches a plan or the engine."""
+    row = load_field(conn, context, field_id)
+    org = context.org.id
+    seasons = soil_estimates.seasons_for_field(conn, org, field_id)
+    if season is None:
+        chosen = soil_estimate_view.default_season(seasons, date.today())
+    else:
+        chosen = soil_estimate_view.find_season(seasons, season)
+        if chosen is None:
+            raise not_found("Season")
+    estimates: list[soil_estimates.CurrentEstimate] = []
+    stale = False
+    if chosen is not None:
+        estimates = soil_estimates.current_estimates(conn, org, field_id, chosen.id)
+        stale = soil_estimates.has_stale_estimates(conn, org, field_id, chosen.id)
+    ctx = {
+        "field": row,
+        # Only whether there is one: this page never receives the coordinates.
+        "has_location": farms.get_field_location(conn, org, field_id) is not None,
+        "seasons": seasons,
+        "season": chosen,
+        "stale": stale,
+        "groups": soil_estimate_view.property_groups(estimates),
+        "credits": soil_estimate_view.credits_of(estimates),
+        "view": soil_estimate_view,
+    }
+    return render(request, "soil_estimate.html", ctx)
 
 
 # --- new plan -------------------------------------------------------------------------
