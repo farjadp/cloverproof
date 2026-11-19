@@ -168,13 +168,13 @@
   </div>
   <div class="field">
     <label for="location_lon">Longitude</label>
-    <div class="suffixed"><input id="location_lon" name="location_lon" type="text" autocomplete="off" spellcheck="false" maxlength="60" value="{{ values.location_lon }}"{% if errors.location_lon %}{{ invalid(errors, "location_lon") }}{% else %}{{ invalid(errors, "location_lon_confirm") }}{% endif %}><span class="suffix">°</span></div>
+    <div class="suffixed"><input id="location_lon" name="location_lon" type="text" autocomplete="off" spellcheck="false" maxlength="60" value="{{ values.location_lon }}"{{ invalid(errors, "location_lon") }}{% if errors.location_lon_confirm %} aria-describedby="location_lon_confirm-error"{% endif %}><span class="suffix">°</span></div>
     <p class="hint">Negative in Canada, for example -80.5.</p>
     {{ error(errors, "location_lon") }}
-    {{ error(errors, "location_lon_confirm") }}
   </div>
   {% if errors.location_lon_confirm or values.confirm_positive_lon %}
   <div class="field">
+    {% if errors.location_lon_confirm %}<div class="notice warn" role="alert" id="location_lon_confirm-error"><p>{{ errors.location_lon_confirm }}</p></div>{% endif %}
     <label class="choice" for="confirm_positive_lon"><input id="confirm_positive_lon" name="confirm_positive_lon" type="checkbox" value="1"{% if values.confirm_positive_lon %} checked{% endif %}> This positive longitude is right</label>
   </div>
   {% endif %}
