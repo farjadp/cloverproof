@@ -133,3 +133,19 @@ $$;
 create trigger soil_estimate_check_location
   before insert on soil_estimate
   for each row execute function soil_estimate_check_location();
+
+-- Rule 12: the means and quantiles of a 250 m map could point to a farm's pixel, so a
+-- non-human context never reads or writes estimates of a real farmer's field.
+create policy soil_estimate_ai_boundary on soil_estimate as restrictive for all to cp_app
+  using ((select public.app_ctx_is_human()) or exists (
+    select 1 from public.field f
+    join public.farm fa on fa.organisation_id = f.organisation_id and fa.id = f.farm_id
+    join public.farmer fr on fr.organisation_id = fa.organisation_id and fr.id = fa.farmer_id
+    where f.organisation_id = soil_estimate.organisation_id and f.id = soil_estimate.field_id
+      and fr.record_kind <> 'real'))
+  with check ((select public.app_ctx_is_human()) or exists (
+    select 1 from public.field f
+    join public.farm fa on fa.organisation_id = f.organisation_id and fa.id = f.farm_id
+    join public.farmer fr on fr.organisation_id = fa.organisation_id and fr.id = fa.farmer_id
+    where f.organisation_id = soil_estimate.organisation_id and f.id = soil_estimate.field_id
+      and fr.record_kind <> 'real'));
